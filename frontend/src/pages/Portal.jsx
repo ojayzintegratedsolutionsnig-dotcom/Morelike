@@ -186,15 +186,30 @@ function Portal() {
     setCurrentStep(2)
   }
 
-  // ── Step 2: Generate Viral DNA ────────────────────
+  // ── AI fetch helper (longer timeout for OpenAI calls) ──
+  const aiFetch = async (url, body) => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 180000)
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify(body),
+        signal: controller.signal
+      })
+      clearTimeout(timer)
+      return res
+    } catch (e) {
+      clearTimeout(timer)
+      throw e
+    }
+  }
+
+  // ── Step 2: Generate Content Blueprint ────────────────────
   const handleGenerateDNA = async () => {
     setIsGeneratingDNA(true)
     try {
-      const res = await fetch(`${API_URL}/api/generate-viral-dna`, {
-        method: 'POST',
-        headers: getApiHeaders(token),
-        body: JSON.stringify({ subtitles: extractedSubtitles })
-      })
+      const res = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: extractedSubtitles })
       const data = await res.json()
       if (data.success) {
         setViralDNA(data.viral_dna)
@@ -203,7 +218,7 @@ function Portal() {
         alert(data.error || 'Failed to generate analysis')
       }
     } catch {
-      alert('Failed to reach server')
+      alert('Failed to reach server — the AI is still processing. Try again.')
     }
     setIsGeneratingDNA(false)
   }
@@ -212,11 +227,7 @@ function Portal() {
   const handleGenerateTitles = async () => {
     setIsGeneratingTitles(true)
     try {
-      const res = await fetch(`${API_URL}/api/generate-titles`, {
-        method: 'POST',
-        headers: getApiHeaders(token),
-        body: JSON.stringify({ viral_dna: viralDNA })
-      })
+      const res = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: viralDNA })
       const data = await res.json()
       if (data.success) {
         setTitles(data.titles)
@@ -242,11 +253,7 @@ function Portal() {
     if (!chosenTitle) return
     setIsGeneratingPackage(true)
     try {
-      const res = await fetch(`${API_URL}/api/generate-package`, {
-        method: 'POST',
-        headers: getApiHeaders(token),
-        body: JSON.stringify({ viral_dna: viralDNA, title: chosenTitle, topic })
-      })
+      const res = await aiFetch(`${API_URL}/api/generate-package`, { viral_dna: viralDNA, title: chosenTitle, topic })
       const data = await res.json()
       if (data.success) {
         setFinalPackage(data.package)

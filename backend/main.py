@@ -176,7 +176,8 @@ def call_openai(system_prompt, user_message, max_tokens=8192):
             {"role": "user", "content": user_message}
         ],
         temperature=1.0,
-        max_tokens=max_tokens
+        max_tokens=max_tokens,
+        timeout=180
     )
     return response.choices[0].message.content
 
