@@ -33,6 +33,8 @@ Thumbs.db
 
 # Output files
 viral_dna.txt
+data.db
+*.txt
 
 # Logs
 *.log

@@ -1,0 +1,269 @@
+import React from 'react'
+import { Link } from 'react-router-dom'
+
+/* ── Step Icon SVG ─────────────────────────────────────────── */
+
+function StepIcon({ icon, color }) {
+  return (
+    <svg viewBox="0 0 48 48" className="w-14 h-14 mx-auto mb-3" fill="none">
+      <circle cx="24" cy="24" r="24" fill={color} opacity="0.15" />
+      <circle cx="24" cy="24" r="20" fill={color} opacity="0.3" />
+      {icon}
+    </svg>
+  )
+}
+
+/* ── Landing ──────────────────────────────────────────────── */
+function Landing() {
+  const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://store.lemonsqueezy.com/checkout'
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white relative overflow-hidden">
+      {/* Animated background blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply blur-xl opacity-20 animate-pulse-slow" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply blur-xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply blur-xl opacity-20 animate-pulse-slow" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Nav */}
+      <nav className="relative z-10 container mx-auto px-4 py-6 flex justify-between items-center max-w-6xl">
+        <div className="flex items-center gap-5">
+          <img
+            src="/logo.png"
+            alt="Morelike"
+            className="w-20 h-20 rounded-2xl object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none'
+              e.target.nextSibling.style.display = 'flex'
+            }}
+          />
+          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center font-extrabold text-white text-3xl shadow-lg shadow-purple-500/30" style={{ display: 'none' }}>
+            M
+          </div>
+          <span className="text-6xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+            Morelike
+          </span>
+        </div>
+        <div className="flex gap-6 items-center">
+          <Link to="/portal" className="text-gray-300 hover:text-white transition-colors text-sm">Portal</Link>
+          <Link to="/admin" className="text-gray-300 hover:text-white transition-colors text-sm">Admin</Link>
+          <a
+            href={LEMON_SQUEEZY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-sm"
+          >
+            Get Access — $8
+          </a>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative z-10 container mx-auto px-4 pt-16 pb-12 max-w-6xl">
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="text-center md:text-left">
+            <div className="inline-flex items-center gap-2 bg-purple-900/40 border border-purple-500/30 rounded-full px-4 py-1.5 text-sm text-purple-200 mb-6">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              For Content Creators
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              Never Run Out of{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Video Ideas</span>
+              {' '}Again
+            </h1>
+            <p className="text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
+              You know that feeling when you stare at a blank page, not knowing what to create next? Paste any YouTube channel you admire and instantly get fresh title ideas, full scripts, thumbnail concepts, and voiceover prompts — everything you need to hit record.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <a
+                href={LEMON_SQUEEZY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
+              >
+                Get Started — $8
+              </a>
+              <Link
+                to="/portal"
+                className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-lg rounded-xl transition-all text-center"
+              >
+                Already Have Access
+              </Link>
+            </div>
+            <p className="text-gray-500 text-sm mt-4">
+              One-time purchase. No subscription. Use it when you need it.
+            </p>
+          </div>
+          <div className="hidden md:block">
+            <img
+              src="/hero-workspace.png"
+              alt="Content creator workspace"
+              className="w-full rounded-2xl shadow-2xl border border-purple-500/20"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Problem / Solution strip */}
+      <section className="relative z-10 bg-gray-800/30 border-y border-purple-500/20 py-12">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="flex items-center gap-8 flex-col md:flex-row">
+            <img
+              src="/creator-stuck.png"
+              alt="Creator stuck at blank screen"
+              className="w-48 h-48 rounded-2xl object-cover border border-purple-500/30 shadow-lg flex-shrink-0"
+            />
+            <p className="text-purple-200 text-lg text-center md:text-left">
+              <span className="text-gray-400 line-through mr-2">"What should I create today?"</span>
+              <span className="text-white font-semibold">"Here are 3 ready-made scripts and everything you need."</span>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="relative z-10 container mx-auto px-4 py-20 max-w-6xl">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">How It Works</h2>
+        <p className="text-purple-200 text-center mb-14 max-w-xl mx-auto">Three simple steps from blank page to production-ready content.</p>
+        <div className="grid md:grid-cols-3 gap-8">
+          {/* Step 1 */}
+          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
+            <StepIcon
+              color="#7c3aed"
+              icon={
+                <g stroke="white" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="14" y="12" width="20" height="24" rx="3" />
+                  <path d="M18 20l4 4 8-8" />
+                  <path d="M14 8h20" stroke="#c4b5fd" />
+                </g>
+              }
+            />
+            <h3 className="text-lg font-semibold mb-2">1. Paste a Channel</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Drop in any YouTube channel you admire. We study what works so you don't have to guess.
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
+            <StepIcon
+              color="#db2777"
+              icon={
+                <g stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none">
+                  <path d="M12 36V12l24-4v28" />
+                  <path d="M12 22l24-4" />
+                  <path d="M12 30l24-4" />
+                  <circle cx="14" cy="12" r="3" fill="white" />
+                  <circle cx="14" cy="22" r="3" fill="white" />
+                  <circle cx="14" cy="30" r="3" fill="white" />
+                </g>
+              }
+            />
+            <h3 className="text-lg font-semibold mb-2">2. Pick a Title</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Get 3 fresh title ideas crafted to match your niche. Choose the one that clicks.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
+            <StepIcon
+              color="#f59e0b"
+              icon={
+                <g stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none">
+                  <rect x="8" y="6" width="32" height="36" rx="4" />
+                  <path d="M18 20l4 4 8-8" />
+                  <path d="M14 30h20" />
+                  <path d="M14 34h14" />
+                </g>
+              }
+            />
+            <h3 className="text-lg font-semibold mb-2">3. Download & Create</h3>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Get your full script, thumbnail concept, image prompt, and voiceover direction — all in one .txt file.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="relative z-10 container mx-auto px-4 pb-20 max-w-2xl">
+        <div className="bg-gray-800/80 backdrop-blur-lg rounded-3xl border border-purple-500/30 p-10 text-center">
+          <div className="inline-block bg-purple-900/40 rounded-full px-4 py-1 text-sm text-purple-300 mb-6">
+            Simple Pricing
+          </div>
+          <div className="text-6xl font-bold mb-2">$8</div>
+          <div className="text-gray-400 mb-8 text-lg">3 ready-made scripts</div>
+
+          <div className="grid grid-cols-1 gap-3 mb-10 text-left max-w-sm mx-auto">
+            {[
+              'Get video ideas inspired by any channel you love',
+              '3 unique title options to choose from',
+              'Full script with timestamps and visual cues',
+              'Thumbnail concept + AI image prompt',
+              'Voiceover direction for AI narration tools',
+              'Downloadable .txt — start creating instantly',
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 text-gray-300">
+                <svg className="w-5 h-5 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="#22c55e">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm">{item}</span>
+              </div>
+            ))}
+          </div>
+
+          <a
+            href={LEMON_SQUEEZY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg"
+          >
+            Get Access Now — $8
+          </a>
+          <p className="text-gray-500 text-sm mt-4">
+            One-time. No recurring fees.{' '}
+            <Link to="/success" className="text-purple-400 hover:underline">Already paid? Claim your token</Link>
+          </p>
+        </div>
+      </section>
+
+      {/* Testimonial-style trust strip */}
+      <section className="relative z-10 border-t border-gray-800 py-16">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="flex items-center gap-8 flex-col md:flex-row mb-12">
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-3xl font-bold mb-4">From Blank Page to <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Published</span></h2>
+              <p className="text-gray-400">Your next video idea, script, and production assets — all in one place.</p>
+            </div>
+            <img
+              src="/creator-success.png"
+              alt="Happy creator with finished content"
+              className="w-56 h-56 rounded-2xl object-cover border border-purple-500/30 shadow-lg flex-shrink-0"
+            />
+          </div>
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            {[
+              { stat: 'Fresh Ideas', desc: 'Stop staring at a blank screen. Get titles that are proven to work in your niche.' },
+              { stat: 'Save Hours', desc: 'Skip the research phase. Go from idea to finished script in minutes, not days.' },
+              { stat: 'Stay Consistent', desc: 'Post more often with less burnout. Your content calendar stays full.' },
+            ].map((item) => (
+              <div key={item.stat}>
+                <div className="text-xl font-bold text-white mb-2">{item.stat}</div>
+                <p className="text-gray-400 text-sm">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 text-center py-8 text-gray-500 text-sm border-t border-gray-800">
+        &copy; {new Date().getFullYear()} Morelike. Built for creators who want to create more, stress less.
+      </footer>
+    </div>
+  )
+}
+
+export default Landing

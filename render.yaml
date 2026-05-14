@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: morelike-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --worker-class eventlet --bind 0.0.0.0:$PORT --timeout 300
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: APIFY_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: FROM_EMAIL
+        value: noreply@morelike.app
