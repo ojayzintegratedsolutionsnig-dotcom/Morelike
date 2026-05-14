@@ -131,6 +131,25 @@ function Portal() {
     return () => { newSocket.close() }
   }, [tokenValidated])
 
+  // Poll status while extracting (fallback for unreliable WebSocket)
+  useEffect(() => {
+    if (!isExtracting || !tokenValidated) return
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
+        const data = await res.json()
+        setProgress(data.progress || 0)
+        if (data.message) setStatusMessage(data.message)
+        if (data.status === 'complete') {
+          setIsExtracting(false)
+          fetchSubtitles()
+        }
+        if (data.status === 'error') setIsExtracting(false)
+      } catch {}
+    }, 2000)
+    return () => clearInterval(poll)
+  }, [isExtracting, tokenValidated])
+
   // ── Data fetching ─────────────────────────────────
   const fetchSubtitles = async () => {
     try {
