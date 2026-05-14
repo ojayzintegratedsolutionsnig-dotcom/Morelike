@@ -4,7 +4,7 @@ services:
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --worker-class eventlet --bind 0.0.0.0:$PORT --timeout 300
+    startCommand: gunicorn main:app --worker-class eventlet --bind 0.0.0.0:$PORT --timeout 300
     envVars:
       - key: OPENAI_API_KEY
         sync: false
