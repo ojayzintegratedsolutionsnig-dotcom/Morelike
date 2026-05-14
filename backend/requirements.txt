@@ -7,6 +7,5 @@ apify-client==1.7.0
 requests==2.31.0
 openai>=1.55.0
 resend>=2.0.0
-gunicorn>=23.0.0
 eventlet>=0.35.0
 python-dotenv==1.0.0
