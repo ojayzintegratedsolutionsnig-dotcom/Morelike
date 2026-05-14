@@ -1,6 +1,6 @@
-# 🎬 Viral Content Cloner Agent
+# 🎬 Content Master
 
-Just paste a YouTube channel URL. The agent analyzes their most popular videos, extracts the "Viral DNA" (hooks, retention loops, pacing patterns), and then generates viral scripts for YOUR topics using the same winning formula.
+Just paste a YouTube channel URL. The agent analyzes their most popular videos, extracts the content blueprint (hooks, retention loops, pacing patterns), and then generates scripts for YOUR topics using the same winning formula.
 
 ## ✨ Features
 
@@ -76,7 +76,7 @@ The application will be available at:
 3. Set how many videos you want to extract (default: 20)
 4. Click "Start Extraction"
 5. Watch the real-time progress
-6. Download the `viral_dna.txt` file when complete
+6. Download the `content_blueprint.txt` file when complete
 7. Upload to NotebookLM for AI-powered analysis
 
 ## 🎯 What It Does
@@ -89,10 +89,10 @@ The extractor:
 - Provides real-time progress updates
 
 Perfect for:
-- Content creators studying viral patterns
+- Content creators studying successful patterns
 - Marketers analyzing competitor strategies
 - Researchers examining popular content
-- Anyone wanting to understand what makes content go viral
+- Anyone wanting to understand what makes content successful
 
 ## 🛠️ Technical Stack
 
@@ -101,7 +101,7 @@ Perfect for:
 - Flask-SocketIO (Real-time communication)
 - yt-dlp (YouTube video discovery)
 - Apify (Transcript extraction)
-- Google Gemini AI (Viral DNA analysis & script generation)
+- OpenAI GPT-4o (Content blueprint analysis & script generation)
 
 **Frontend:**
 - React (UI framework)
@@ -113,7 +113,7 @@ Perfect for:
 
 - Some videos may not have transcripts available (music videos, etc.)
 - The script includes delays to avoid rate limiting
-- The extractor saves to `viral_dna.txt` in the backend directory
+- The extractor saves to `content_blueprint.txt` in the backend directory
 - All processing happens locally on your machine
 
 ## 🐛 Troubleshooting

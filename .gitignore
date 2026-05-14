@@ -32,7 +32,7 @@ dist/
 Thumbs.db
 
 # Output files
-viral_dna.txt
+content_blueprint.txt
 data.db
 *.txt
 

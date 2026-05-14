@@ -468,7 +468,7 @@ function Portal() {
         {currentStep === 2 && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30">
             <h2 className="text-2xl font-bold mb-2">Step 2: Review & Analyze</h2>
-            <p className="text-purple-200 mb-6">AI will reverse-engineer the viral formula from these transcripts.</p>
+            <p className="text-purple-200 mb-6">AI will reverse-engineer the content formula from these transcripts.</p>
 
             {/* Subtitles preview */}
             <div className="mb-4">
@@ -492,11 +492,11 @@ function Portal() {
                 disabled={isGeneratingDNA}
                 className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 disabled:from-gray-600 disabled:to-gray-700 disabled:scale-100 disabled:cursor-not-allowed"
               >
-                {isGeneratingDNA ? 'Analyzing with AI...' : 'Generate Viral DNA Analysis'}
+                {isGeneratingDNA ? 'Analyzing with AI...' : 'Generate Content Blueprint'}
               </button>
             ) : (
               <div className="bg-purple-900/20 border border-purple-500/30 rounded-lg p-6">
-                <div className="text-green-400 font-semibold mb-2">Viral DNA Generated!</div>
+                <div className="text-green-400 font-semibold mb-2">Content Blueprint Generated!</div>
                 <div className="text-sm text-gray-400 mb-4">Analysis complete. Click below to get title ideas.</div>
                 <button onClick={() => setCurrentStep(3)} className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all">
                   Continue to Step 3
@@ -507,7 +507,7 @@ function Portal() {
             {isGeneratingDNA && (
               <div className="mt-4 flex items-center gap-3 text-purple-300">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400" />
-                <span>AI is reverse-engineering the viral algorithm...</span>
+                <span>AI is reverse-engineering the content formula...</span>
               </div>
             )}
 
@@ -521,7 +521,7 @@ function Portal() {
         {currentStep === 3 && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30">
             <h2 className="text-2xl font-bold mb-2">Step 3: Choose a Title</h2>
-            <p className="text-purple-200 mb-6">AI generates 3 title ideas based on the Viral DNA. Pick one to build your script around.</p>
+            <p className="text-purple-200 mb-6">AI generates 3 title ideas based on the Content Blueprint. Pick one to build your script around.</p>
 
             {!titles ? (
               <button
@@ -578,7 +578,7 @@ function Portal() {
         {/* ── STEP 4: Script Package ─────────────────────── */}
         {currentStep === 4 && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30">
-            <h2 className="text-2xl font-bold mb-2">Step 4: Your Viral Script Package</h2>
+            <h2 className="text-2xl font-bold mb-2">Step 4: Your Content Package</h2>
             <p className="text-purple-200 mb-6">Chosen: <strong className="text-white">{chosenTitle}</strong></p>
 
             {!finalPackage ? (
@@ -642,7 +642,7 @@ function Portal() {
             {isGeneratingPackage && (
               <div className="mt-4 flex items-center gap-3 text-purple-300">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400" />
-                <span>AI is engineering your viral script...</span>
+                <span>AI is engineering your script...</span>
               </div>
             )}
 

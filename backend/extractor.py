@@ -121,7 +121,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
             })
         return None
 
-    full_data = "=== VIRAL DNA ANALYSIS ===\n(Sorted by Most Popular of All Time)\n\n"
+    full_data = "=== CONTENT BLUEPRINT ANALYSIS ===\n(Sorted by Most Popular of All Time)\n\n"
     count = 0
     total = len(videos)
 
@@ -171,14 +171,14 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         time.sleep(random.uniform(1, 2))
 
     # Save to file
-    output_file = "viral_dna.txt"
+    output_file = "content_blueprint.txt"
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(full_data)
 
     if progress_callback:
         progress_callback({
             'status': 'complete',
-            'message': f'🎉 DONE! Saved {count} viral scripts to "{output_file}"',
+            'message': f'🎉 DONE! Saved {count} scripts to "{output_file}"',
             'progress': 100,
             'output_file': output_file,
             'videos_processed': count
