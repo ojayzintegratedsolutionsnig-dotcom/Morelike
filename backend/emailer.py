@@ -31,7 +31,7 @@ def send_token_email(to_email, token):
                 {token}
             </h1>
             <p><strong>Credits remaining:</strong> 1</p>
-            <p>Go to <a href="https://morelike.vercel.app/portal">the portal</a> and enter this token to start.</p>
+            <p>Go to <a href="https://morelikecreator.com/portal">the portal</a> and enter this token to start.</p>
             <p>Keep this email safe — if you lose your token, you can reclaim it with this email address.</p>
             <hr/>
             <p style="color:#888;">Morelike — Reverse-engineer viral content strategies</p>

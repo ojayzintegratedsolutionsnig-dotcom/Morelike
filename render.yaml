@@ -4,9 +4,9 @@ services:
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app --worker-class eventlet --bind 0.0.0.0:$PORT --timeout 300
+    startCommand: gunicorn main:app --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker --bind 0.0.0.0:$PORT --timeout 300
     envVars:
-      - key: OPENAI_API_KEY
+      - key: DEEPSEEK_API_KEY
         sync: false
       - key: APIFY_API_KEY
         sync: false
@@ -15,4 +15,4 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: FROM_EMAIL
-        value: noreply@morelike.app
+        value: noreply@contact.morelikecreator.com
