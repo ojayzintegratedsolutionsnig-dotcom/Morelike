@@ -1,0 +1,5 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "cd backend && gunicorn main:app -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -b 0.0.0.0:$PORT --timeout 300"
