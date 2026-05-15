@@ -595,6 +595,29 @@ def admin_generate_token():
     return jsonify({'success': True, 'token': token, 'email': email, 'credits': credits})
 
 
+@app.route('/api/admin/diag', methods=['GET'])
+@require_admin
+def admin_diag():
+    import time
+    results = {}
+    # Test DeepSeek connectivity
+    if deepseek_client:
+        try:
+            t0 = time.time()
+            r = deepseek_client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": "Say OK"}],
+                max_tokens=5,
+                timeout=15.0,
+            )
+            results['deepseek'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
+        except Exception as e:
+            results['deepseek'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
+    else:
+        results['deepseek'] = "No API key configured"
+    return jsonify(results)
+
+
 # ── Socket.IO ─────────────────────────────────────────────────
 
 @socketio.on('connect')
