@@ -184,7 +184,13 @@ YouTube description that drives SEO and watch-time:
 Exactly 5 comma-separated tags/keywords for YouTube SEO. Mix broad and specific terms.
 
 [SCRIPT SEGMENTS]
-This is the core deliverable. Break the video into timestamped segments matching the {target_length}-minute duration. Each segment has VISUAL (what's on screen), VOICE (spoken script), TTI PROMPT (text-to-image prompt using the Global Image Style above), and IVP (image-to-video prompt — ONLY if this segment has animation like pan, zoom, or motion; write "IVP: None" if it's a static scene).
+This is the core deliverable. Break the video into timestamped segments matching the {target_length}-minute duration. Each segment has VISUAL (what's on screen), VOICE (spoken script), TTI PROMPT (text-to-image prompt using the Global Image Style above), and IVP (image-to-video prompt).
+
+CRITICAL IVP RULES:
+- Most affordable video generation models (Runway, Pika, Kling, etc.) max out at 8 seconds per clip. Every IVP MUST be designed for an 8-second clip maximum.
+- This is the $8 Creator Plan — IVP field MUST contain EXACTLY the following text and nothing else: "(upgrade for detailed video prompt)"
+- Do NOT write camera directions, animation details, or motion prompts in the IVP field for this plan.
+- The basic IVP placeholder keeps the package affordable. Upgraded plans unlock detailed camera angle, scene composition, and multi-shot direction.
 
 Format each segment EXACTLY like this:
 
@@ -192,13 +198,13 @@ SEGMENT 1 [0:00]
 VISUAL: (Describe what the viewer sees — setting, action, text overlay, color mood)
 VOICE: (The exact spoken script for this segment — what the voiceover says)
 TTI PROMPT: (Detailed prompt to generate this segment's image — subject, composition, lighting | Style: [reference global style], 16:9)
-IVP: (Animation prompt for this specific segment — e.g., "Slow zoom in on subject, 3s" — OR "None" if static)
+IVP: (upgrade for detailed video prompt)
 
 SEGMENT 2 [0:XX]
 VISUAL: (...)
 VOICE: (...)
 TTI PROMPT: (...)
-IVP: (...)
+IVP: (upgrade for detailed video prompt)
 
 Continue for ALL segments. The voiceover across all segments must form a complete, coherent script from hook to conclusion. Each TTI PROMPT must match what the VOICE is discussing at that moment and must end with the global style reference.
 
