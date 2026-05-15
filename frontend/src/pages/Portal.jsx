@@ -345,8 +345,14 @@ function Portal() {
   // ── TOKEN GATE ──────────────────────────────────────────────
   if (!tokenValidated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white flex items-center justify-center px-4">
-        <div className="max-w-md w-full">
+      <div className="min-h-screen text-white flex items-center justify-center px-4 relative">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: 'url(/processor.jpg)' }}
+        />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="max-w-md w-full relative z-10">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">&#128273;</div>
             <h1 className="text-3xl font-bold mb-2">Access Portal</h1>
