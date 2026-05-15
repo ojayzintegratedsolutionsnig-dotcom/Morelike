@@ -91,9 +91,11 @@ def use_credit(token):
     if not row or row['credits'] <= 0:
         conn.close()
         return False
-    conn.execute(
-        'UPDATE tokens SET credits = credits - 1 WHERE token = ?', (token,)
-    )
+    new_credits = row['credits'] - 1
+    if new_credits <= 0:
+        conn.execute('DELETE FROM tokens WHERE token = ?', (token,))
+    else:
+        conn.execute('UPDATE tokens SET credits = ? WHERE token = ?', (new_credits, token))
     _log_action(conn, token, 'credit_used')
     conn.commit()
     conn.close()
