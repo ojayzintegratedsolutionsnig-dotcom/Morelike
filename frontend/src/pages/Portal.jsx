@@ -500,7 +500,7 @@ function Portal() {
             {/* Content */}
             <div className="relative z-10">
               <h2 className="text-2xl font-bold mb-1 text-white">Creating Your Content</h2>
-              <p className="text-purple-200/80 text-sm mb-2">Reverse-engineering what works and crafting your package...</p>
+              <p className="text-purple-200/50 text-sm mb-2">This may take up to 2 minutes</p>
               <ProgressBar />
             </div>
           </div>
@@ -524,11 +524,10 @@ function Portal() {
         {/* ── GENERATING SCREEN ────────────────────────────── */}
         {flow === 'generating' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30 text-center">
-            <h2 className="text-xl font-bold mb-2">Writing Your Script</h2>
-            <p className="text-purple-200 text-sm mb-2">{chosenTitle}</p>
-            <div className="flex items-center justify-center gap-3 py-12 text-purple-300">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-400" />
-              <span>AI is engineering your content package...</span>
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-purple-300">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
+              <span className="text-white text-lg font-semibold">Creating your content...</span>
+              <span className="text-purple-200/50 text-sm">This may take up to 2 minutes</span>
             </div>
           </div>
         )}
