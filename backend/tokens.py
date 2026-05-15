@@ -3,7 +3,10 @@ import uuid
 import os
 from datetime import datetime
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+# Use persistent volume on Railway, local file otherwise
+_DATA_DIR = '/data' if os.path.exists('/data') else os.path.dirname(os.path.abspath(__file__))
+os.makedirs(_DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(_DATA_DIR, 'morelike.db')
 
 
 def get_db():
