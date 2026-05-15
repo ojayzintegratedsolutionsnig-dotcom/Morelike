@@ -414,14 +414,14 @@ def generate_viral_dna():
     if not subtitles:
         return jsonify({'error': 'No subtitles provided. Extract or paste first.'}), 400
 
-    if len(subtitles.strip()) < 100:
-        return jsonify({'error': 'Not enough content. Please provide full video transcripts, not a short message.'}), 400
+    stripped = subtitles.strip()
+    if len(stripped) < 50:
+        return jsonify({'error': 'Not enough content. Please provide at least one full video transcript.'}), 400
 
-    # Detect obvious chat messages (very short, question marks, greetings)
-    stripped = subtitles.strip().lower()
-    chat_patterns = ['hello', 'hi there', 'hey ', 'what is', 'can you', 'tell me', 'how are you', 'who are you']
-    if stripped in chat_patterns or (len(stripped) < 200 and any(p in stripped for p in chat_patterns)):
-        return jsonify({'error': 'This tool only processes video transcripts. Please paste real subtitles from a YouTube video.'}), 400
+    # Only block single-line non-transcript inputs (greetings, one-word chats)
+    single_line = stripped.split('\n')[0].strip().lower()
+    if len(stripped) < 150 and single_line in ['hello', 'hi', 'hey', 'hi there', 'test', 'testing', 'yo', 'sup']:
+        return jsonify({'error': 'Please paste actual video transcripts, not a chat message.'}), 400
 
     # Trim content to prevent oversized prompts (DeepSeek: 64K context window)
     trimmed = subtitles.strip()
