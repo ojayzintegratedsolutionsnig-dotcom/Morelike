@@ -246,7 +246,7 @@ def call_ai(system_prompt, user_message, max_tokens=8192, retries=2):
         except Exception as e:
             last_error = e
             if attempt < retries:
-                time.sleep(2 ** attempt)
+                time.sleep(3 ** attempt)  # 1s, 3s, 9s backoff
 
     raise Exception(f"AI API error after {retries + 1} attempts: {str(last_error)}")
 
@@ -423,11 +423,17 @@ def generate_viral_dna():
     if stripped in chat_patterns or (len(stripped) < 200 and any(p in stripped for p in chat_patterns)):
         return jsonify({'error': 'This tool only processes video transcripts. Please paste real subtitles from a YouTube video.'}), 400
 
+    # Trim content to prevent oversized prompts (DeepSeek: 64K context window)
+    trimmed = subtitles.strip()
+    if len(trimmed) > 30000:
+        # Keep first 10K and last 5K — hook patterns in beginning, retention in ending
+        trimmed = trimmed[:10000] + "\n\n...[content trimmed]...\n\n" + trimmed[-5000:]
+
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     log_action(token, 'generate_viral_dna')
 
     try:
-        viral_dna = call_ai(VIRAL_DNA_SYSTEM_INSTRUCTION, subtitles)
+        viral_dna = call_ai(VIRAL_DNA_SYSTEM_INSTRUCTION, trimmed)
         return jsonify({'viral_dna': viral_dna, 'success': True})
     except Exception as e:
         return jsonify({'error': f'Failed to generate Viral DNA: {str(e)}'}), 500
