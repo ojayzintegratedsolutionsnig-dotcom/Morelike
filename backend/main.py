@@ -25,9 +25,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 init_db()
 
-DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', os.environ.get('DEEPSEEK_API_KEY', ''))
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
-deepseek_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com") if DEEPSEEK_API_KEY else None
+ai_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
 
 admin_sessions = set()
 
@@ -226,14 +226,14 @@ def extract_niche(viral_dna):
 
 def call_ai(system_prompt, user_message, max_tokens=8192, retries=2):
     import time
-    if not deepseek_client:
-        raise Exception("DeepSeek API key not configured")
+    if not ai_client:
+        raise Exception("AI API key not configured")
 
     last_error = None
     for attempt in range(retries + 1):
         try:
-            response = deepseek_client.chat.completions.create(
-                model="deepseek-chat",
+            response = ai_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
@@ -600,21 +600,21 @@ def admin_generate_token():
 def admin_diag():
     import time
     results = {}
-    # Test DeepSeek connectivity
-    if deepseek_client:
+    # Test AI connectivity
+    if ai_client:
         try:
             t0 = time.time()
-            r = deepseek_client.chat.completions.create(
-                model="deepseek-chat",
+            r = ai_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": "Say OK"}],
                 max_tokens=5,
                 timeout=15.0,
             )
-            results['deepseek'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
+            results['ai'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
         except Exception as e:
-            results['deepseek'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
+            results['ai'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
     else:
-        results['deepseek'] = "No API key configured"
+        results['ai'] = "No API key configured"
     return jsonify(results)
 
 
