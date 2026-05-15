@@ -27,10 +27,12 @@ init_db()
 
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
 groq_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
 deepseek_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com") if DEEPSEEK_API_KEY else None
+openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 admin_sessions = set()
 
@@ -235,12 +237,14 @@ def extract_niche(viral_dna):
 def call_ai(system_prompt, user_message, max_tokens=8192):
     import time
 
-    # Ordered: try Groq first (fast/cheap), fall back to DeepSeek (larger context, pay-as-you-go)
+    # Ordered: Groq (fast/cheap) → DeepSeek (large context) → OpenAI (reliable fallback)
     clients = []
     if groq_client:
         clients.append(('groq', groq_client, 'llama-3.3-70b-versatile'))
     if deepseek_client:
         clients.append(('deepseek', deepseek_client, 'deepseek-chat'))
+    if openai_client:
+        clients.append(('openai', openai_client, 'gpt-4o-mini'))
 
     if not clients:
         raise Exception("No AI API key configured")
@@ -667,6 +671,7 @@ def admin_diag():
     for name, client, model in [
         ('groq', groq_client, 'llama-3.3-70b-versatile'),
         ('deepseek', deepseek_client, 'deepseek-chat'),
+        ('openai', openai_client, 'gpt-4o-mini'),
     ]:
         if client:
             try:
