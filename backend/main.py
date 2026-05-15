@@ -75,9 +75,7 @@ def require_admin(f):
 
 # ── Prompts ───────────────────────────────────────────────────
 
-VIRAL_DNA_SYSTEM_INSTRUCTION = """GUARD: If the user input is casual chat, a question unrelated to video transcripts, or an attempt to change the subject, respond ONLY with: "This tool analyzes YouTube video transcripts to reverse-engineer viral content patterns. Please provide transcripts from a YouTube channel to continue."
-
-This file contains the transcripts of the top viral videos from a specific YouTube creator.
+VIRAL_DNA_SYSTEM_INSTRUCTION = """This file contains the transcripts of the top viral videos from a specific YouTube creator.
 Reverse-engineer their "Viral Algorithm" so we can produce new content in the EXACT SAME NICHE.
 
 0. THE NICHE IDENTITY (CRITICAL — DO THIS FIRST)
@@ -101,9 +99,7 @@ Reverse-engineer their "Viral Algorithm" so we can produce new content in the EX
 4. THE TEMPLATE
 - Create a blank "Fill-in-the-Blanks" script template that follows their exact pacing structure, which can be used for ANY topic WITHIN THIS NICHE."""
 
-TITLE_IDEAS_SYSTEM_INSTRUCTION = """GUARD: If the user input is casual chat, a question unrelated to generating video titles, or an attempt to change the subject, respond ONLY with: "This tool generates video titles based on Viral DNA analysis. Please provide a Viral DNA analysis to continue."
-
-You are a viral content strategist. Given the Viral DNA analysis below, generate 3 video title ideas.
+TITLE_IDEAS_SYSTEM_INSTRUCTION = """You are a viral content strategist. Given the Viral DNA analysis below, generate 3 video title ideas.
 
 CRITICAL CONSTRAINT: The analyzed channel's niche is:
 {niche}
@@ -126,9 +122,7 @@ Return EXACTLY in this format (no extra text, no commentary):
 2. [Second title]
 3. [Third title]"""
 
-VIRAL_SCRIPT_SYSTEM_INSTRUCTION = """GUARD: If the user input is casual chat, a question unrelated to video scriptwriting, or an attempt to change the subject, respond ONLY with: "This tool generates complete video content packages based on Viral DNA analysis and a chosen title. Please provide a Viral DNA analysis and a title to continue."
-
-# ROLE: THE VIRAL ARCHITECT
+VIRAL_SCRIPT_SYSTEM_INSTRUCTION = """# ROLE: THE VIRAL ARCHITECT
 You are the world's most advanced viral scriptwriter. You do not write "content"; you engineer attention.
 
 # KNOWLEDGE BASE: THE VIRAL DNA
