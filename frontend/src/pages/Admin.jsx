@@ -116,10 +116,10 @@ function Admin() {
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
         <div className="max-w-sm w-full relative z-10">
           <div className="text-center mb-8">
-            <div className="text-4xl mb-4">&#128274;</div>
-            <h1 className="text-2xl font-bold">Admin Panel</h1>
+            <div className="text-3xl md:text-4xl mb-4">&#128274;</div>
+            <h1 className="text-xl md:text-2xl font-bold">Admin Panel</h1>
           </div>
-          <form onSubmit={handleLogin} className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-8">
+          <form onSubmit={handleLogin} className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-6 md:p-8">
             <input
               type="password"
               placeholder="Admin password"
@@ -157,7 +157,7 @@ function Admin() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex flex-col sm:flex-row gap-2 mb-8">
           <button
             onClick={() => setTab('tokens')}
             className={`px-6 py-2 rounded-lg font-semibold transition-all ${tab === 'tokens' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
@@ -263,18 +263,18 @@ function Admin() {
                       </div>
                     )}
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-2">
                       <textarea
                         placeholder="Write a reply..."
                         value={replies[fb.id] || ''}
                         onChange={(e) => setReplies((prev) => ({ ...prev, [fb.id]: e.target.value }))}
-                        className="flex-1 bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
+                        className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm resize-none"
                         rows={2}
                       />
                       <button
                         onClick={() => handleReply(fb)}
                         disabled={sending[fb.id] || !replies[fb.id]?.trim()}
-                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-sm self-end"
+                        className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-sm self-stretch sm:self-end"
                       >
                         {sending[fb.id] ? 'Sending...' : 'Reply'}
                       </button>

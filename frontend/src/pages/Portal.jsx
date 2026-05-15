@@ -38,7 +38,7 @@ function TitlePicker({ titles, onChoose, onRegenerate, loading }) {
           <button
             key={i}
             onClick={() => onChoose(title, customTopic)}
-            className="w-full text-left p-4 rounded-lg border transition-all bg-gray-900/50 border-gray-700 hover:border-purple-500/50 hover:bg-gray-800/50 group"
+            className="w-full text-left p-3 md:p-4 rounded-lg border transition-all bg-gray-900/50 border-gray-700 hover:border-purple-500/50 hover:bg-gray-800/50 group"
           >
             <span className="text-purple-400 font-bold mr-3 group-hover:text-purple-300">#{i + 1}</span>
             <span className="text-white">{title}</span>
@@ -335,11 +335,11 @@ function Portal() {
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
         <div className="max-w-md w-full relative z-10">
           <div className="text-center mb-8">
-            <div className="text-5xl mb-4">&#128273;</div>
-            <h1 className="text-3xl font-bold mb-2">Access Portal</h1>
+            <div className="text-4xl md:text-5xl mb-4">&#128273;</div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Access Portal</h1>
             <p className="text-purple-200">Enter your token to get started.</p>
           </div>
-          <form onSubmit={handleValidateToken} className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-8">
+          <form onSubmit={handleValidateToken} className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-6 md:p-8">
             <input
               type="text"
               placeholder="Paste your access token"
@@ -375,22 +375,22 @@ function Portal() {
 
   // ── HEADER ──────────────────────────────────────────────────
   const header = (
-    <div className="flex justify-between items-center mb-8">
-      <div className="flex items-center gap-3">
+    <div className="flex justify-between items-center mb-6 md:mb-8 flex-wrap gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         <img
           src="/logo.png" alt="Morelike"
-          className="w-10 h-10 rounded-xl object-cover"
+          className="w-8 h-8 md:w-10 md:h-10 rounded-xl object-cover"
           onError={(e) => {
             e.target.style.display = 'none'
             e.target.nextSibling.style.display = 'flex'
           }}
         />
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center font-extrabold text-white text-lg shadow-lg shadow-purple-500/30" style={{ display: 'none' }}>M</div>
-        <Link to="/" className="text-2xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight hover:opacity-80 transition-opacity">Morelike</Link>
+        <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center font-extrabold text-white text-base md:text-lg shadow-lg shadow-purple-500/30" style={{ display: 'none' }}>M</div>
+        <Link to="/" className="text-xl md:text-2xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight hover:opacity-80 transition-opacity">Morelike</Link>
       </div>
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-400">{tokenEmail && `${tokenEmail} | `}Credits: <strong className="text-white">{credits}</strong></span>
-        <Link to="/" className="text-sm text-gray-400 hover:text-white transition-colors">Home</Link>
+      <div className="flex items-center gap-3 md:gap-4 flex-wrap">
+        <span className="text-xs md:text-sm text-gray-400">{tokenEmail && `${tokenEmail} | `}Credits: <strong className="text-white">{credits}</strong></span>
+        <Link to="/" className="text-xs md:text-sm text-gray-400 hover:text-white transition-colors">Home</Link>
       </div>
     </div>
   )
@@ -404,8 +404,8 @@ function Portal() {
 
         {/* ── INPUT SCREEN ─────────────────────────────────── */}
         {flow === 'input' && (
-          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30">
-            <h2 className="text-2xl font-bold mb-2">Generate Content Ideas</h2>
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
+            <h2 className="text-xl md:text-2xl font-bold mb-2">Generate Content Ideas</h2>
             <p className="text-purple-200 mb-6">Paste a YouTube channel you admire. We'll reverse-engineer what works and give you fresh ideas.</p>
 
             <div className="flex gap-2 mb-6">
@@ -471,7 +471,7 @@ function Portal() {
                   value={pastedSubtitles}
                   onChange={(e) => setPastedSubtitles(e.target.value)}
                   className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
-                  rows={12}
+                  rows={8}
                 />
                 <div className="text-sm text-gray-400 mb-4">{pastedSubtitles.length.toLocaleString()} characters</div>
                 <button
@@ -488,7 +488,7 @@ function Portal() {
 
         {/* ── PROCESSING SCREEN ────────────────────────────── */}
         {flow === 'processing' && (
-          <div className="relative rounded-2xl shadow-2xl p-8 border border-purple-500/30 text-center overflow-hidden min-h-[400px] flex flex-col items-center justify-center">
+          <div className="relative rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30 text-center overflow-hidden min-h-[300px] md:min-h-[400px] flex flex-col items-center justify-center">
             {/* Background image */}
             <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -507,7 +507,7 @@ function Portal() {
 
         {/* ── TITLE PICKER ─────────────────────────────────── */}
         {flow === 'pick_title' && (
-          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30">
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
             <TitlePicker
               titles={parsedTitles}
               onChoose={handleChooseTitle}
@@ -522,7 +522,7 @@ function Portal() {
 
         {/* ── GENERATING SCREEN ────────────────────────────── */}
         {flow === 'generating' && (
-          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-purple-500/30 text-center">
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30 text-center">
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-purple-300">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
               <span className="text-white text-lg font-semibold">Creating your content...</span>
@@ -533,7 +533,7 @@ function Portal() {
 
         {/* ── RESULT SCREEN ────────────────────────────────── */}
         {flow === 'result' && (
-          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-green-500/30">
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-green-500/30">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-3 h-3 bg-green-400 rounded-full" />
               <span className="text-green-400 font-semibold">Ready!</span>
@@ -543,11 +543,11 @@ function Portal() {
               <p className="text-sm text-gray-400 mb-4">Credits remaining: <strong className="text-white">{creditsAfter}</strong></p>
             )}
 
-            <pre className="bg-gray-900/70 border border-gray-700 rounded-lg p-6 text-gray-300 text-sm whitespace-pre-wrap font-mono max-h-96 overflow-y-auto mb-6">
+            <pre className="bg-gray-900/70 border border-gray-700 rounded-lg p-4 md:p-6 text-gray-300 text-xs md:text-sm whitespace-pre-wrap font-mono max-h-64 md:max-h-96 overflow-y-auto mb-6">
               {finalPackage}
             </pre>
 
-            <div className="flex gap-3 mb-8">
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-3 mb-8">
               <button onClick={handleDownload} className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all">
                 Download .txt
               </button>
@@ -562,7 +562,7 @@ function Portal() {
               {feedbackSent ? (
                 <p className="text-green-400 text-sm">Thank you! Your feedback has been submitted.</p>
               ) : (
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     placeholder="Share your thoughts..."
@@ -570,7 +570,7 @@ function Portal() {
                     onChange={(e) => setFeedbackMsg(e.target.value)}
                     className="flex-1 bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
                   />
-                  <button onClick={handleFeedback} disabled={!feedbackMsg.trim()} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all disabled:bg-gray-600 disabled:cursor-not-allowed">
+                  <button onClick={handleFeedback} disabled={!feedbackMsg.trim()} className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all disabled:bg-gray-600 disabled:cursor-not-allowed sm:self-start">
                     Send
                   </button>
                 </div>

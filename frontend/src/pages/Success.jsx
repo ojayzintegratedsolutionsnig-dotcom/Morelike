@@ -50,12 +50,12 @@ function Success() {
     <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4">&#127881;</div>
-          <h1 className="text-3xl font-bold mb-2">Payment Successful!</h1>
+          <div className="text-5xl md:text-6xl mb-4">&#127881;</div>
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Payment Successful!</h1>
           <p className="text-purple-200">Enter your Gmail to get your access token.</p>
         </div>
 
-        <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-8">
+        <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-6 md:p-8">
           {!token ? (
             <form onSubmit={handleClaim}>
               <label className="block text-sm text-purple-200 mb-2">Your Gmail address</label>
@@ -67,7 +67,17 @@ function Success() {
                 className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
                 required
               />
-              {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+              {error && (
+                <div className="mb-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                  <p>{error}</p>
+                  {error.includes('No completed purchase') && (
+                    <p className="mt-2 text-gray-400 text-xs">
+                      Make sure you completed payment on Lemon Squeezy with this Gmail address.
+                      The token is sent to your email automatically after purchase — check your inbox and spam folder.
+                    </p>
+                  )}
+                </div>
+              )}
               <button
                 type="submit"
                 disabled={loading}

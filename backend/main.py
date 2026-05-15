@@ -25,9 +25,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 init_db()
 
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', os.environ.get('DEEPSEEK_API_KEY', ''))
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
-ai_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
+
+groq_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
+deepseek_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com") if DEEPSEEK_API_KEY else None
 
 admin_sessions = set()
 
@@ -229,31 +232,48 @@ def extract_niche(viral_dna):
 
 # ── AI helpers ────────────────────────────────────────────────
 
-def call_ai(system_prompt, user_message, max_tokens=8192, retries=2):
+def call_ai(system_prompt, user_message, max_tokens=8192):
     import time
-    if not ai_client:
-        raise Exception("AI API key not configured")
 
-    last_error = None
-    for attempt in range(retries + 1):
-        try:
-            response = ai_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_message},
-                ],
-                temperature=1.0,
-                max_tokens=max_tokens,
-                timeout=300.0,
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            last_error = e
-            if attempt < retries:
-                time.sleep(3 ** attempt)  # 1s, 3s, 9s backoff
+    # Ordered: try Groq first (fast/cheap), fall back to DeepSeek (larger context, pay-as-you-go)
+    clients = []
+    if groq_client:
+        clients.append(('groq', groq_client, 'llama-3.3-70b-versatile'))
+    if deepseek_client:
+        clients.append(('deepseek', deepseek_client, 'deepseek-chat'))
 
-    raise Exception(f"AI API error after {retries + 1} attempts: {str(last_error)}")
+    if not clients:
+        raise Exception("No AI API key configured")
+
+    for provider, client, model in clients:
+        last_error = None
+        for attempt in range(2):
+            try:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message},
+                    ],
+                    temperature=1.0,
+                    max_tokens=max_tokens,
+                    timeout=300.0,
+                )
+                return response.choices[0].message.content
+            except Exception as e:
+                last_error = e
+                err_str = str(e).lower()
+                # Don't retry on rate limits or size errors — go straight to fallback
+                if '413' in err_str or 'rate_limit' in err_str or 'too large' in err_str:
+                    break
+                if attempt < 1:
+                    time.sleep(3)
+
+        # If we're on the last provider, raise. Otherwise try next.
+        if provider == clients[-1][0]:
+            raise Exception(f"AI API error ({provider}): {str(last_error)}")
+
+    raise Exception("AI API error: all providers exhausted")
 
 
 # ── Extraction ────────────────────────────────────────────────
@@ -312,17 +332,36 @@ def claim_token():
     if result:
         return jsonify({'success': True, 'token': result['token'], 'credits': result['credits']})
 
-    # No existing token — create one (for manual/direct flow)
-    token = create_token(email=email, credits=3)
-    try:
-        send_token_email(email, token)
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-    return jsonify({'success': True, 'token': token, 'credits': 1})
+    # No token with lemon_order_id — no purchase found
+    return jsonify({'error': 'No completed purchase found for this email. Please check your email or contact support.'}), 404
 
 
 @app.route('/api/webhook/lemonsqueezy', methods=['POST'])
 def lemonsqueezy_webhook():
+    import hmac
+    import hashlib
+
+    # Verify webhook signature — reject all unsigned requests
+    webhook_secret = os.environ.get('LEMON_SQUEEZY_WEBHOOK_SECRET', '')
+    if not webhook_secret:
+        print('[SECURITY] Webhook rejected: no LEMON_SQUEEZY_WEBHOOK_SECRET configured')
+        return jsonify({'error': 'Webhook not configured'}), 500
+
+    signature = request.headers.get('X-Signature', '')
+    raw_body = request.get_data(as_text=True)
+
+    expected = None
+    if signature.startswith('sha256='):
+        expected = 'sha256=' + hmac.new(
+            webhook_secret.encode('utf-8'),
+            raw_body.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+    if not expected or not hmac.compare_digest(expected, signature):
+        print('[SECURITY] Webhook rejected: invalid signature')
+        return jsonify({'error': 'Invalid signature'}), 401
+
     data = request.json or {}
     event = data.get('meta', {}).get('event_name', '')
     if event != 'order_created':
@@ -622,20 +661,24 @@ def admin_diag():
             results[name] = f"FAIL: {type(e).__name__}: {str(e)[:100]}"
 
     # Test AI connectivity
-    if ai_client:
-        try:
-            t0 = time.time()
-            r = ai_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": "Say OK"}],
-                max_tokens=5,
-                timeout=15.0,
-            )
-            results['ai_client'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
-        except Exception as e:
-            results['ai_client'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
-    else:
-        results['ai_client'] = "No API key configured"
+    for name, client, model in [
+        ('groq', groq_client, 'llama-3.3-70b-versatile'),
+        ('deepseek', deepseek_client, 'deepseek-chat'),
+    ]:
+        if client:
+            try:
+                t0 = time.time()
+                r = client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": "Say OK"}],
+                    max_tokens=5,
+                    timeout=15.0,
+                )
+                results[f'ai_{name}'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
+            except Exception as e:
+                results[f'ai_{name}'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
+        else:
+            results[f'ai_{name}'] = "No API key configured"
     return jsonify(results)
 
 

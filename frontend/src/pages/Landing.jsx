@@ -27,32 +27,30 @@ function Landing() {
       </div>
 
       {/* Nav */}
-      <nav className="relative z-10 container mx-auto px-4 py-6 flex justify-between items-center max-w-6xl">
-        <div className="flex items-center gap-5">
+      <nav className="relative z-10 container mx-auto px-4 py-4 md:py-6 flex justify-between items-center max-w-6xl flex-wrap gap-3">
+        <div className="flex items-center gap-3 md:gap-5">
           <img
             src="/logo.png"
             alt="Morelike"
-            className="w-20 h-20 rounded-2xl object-cover"
+            className="w-12 h-12 md:w-20 md:h-20 rounded-2xl object-cover"
             onError={(e) => {
               e.target.style.display = 'none'
               e.target.nextSibling.style.display = 'flex'
             }}
           />
-          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center font-extrabold text-white text-3xl shadow-lg shadow-purple-500/30" style={{ display: 'none' }}>
-            M
-          </div>
-          <span className="text-6xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+          <div className="w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center font-extrabold text-white text-lg md:text-3xl shadow-lg shadow-purple-500/30" style={{ display: 'none' }}>M</div>
+          <span className="text-2xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
             Morelike
           </span>
         </div>
-        <div className="flex gap-6 items-center">
-          <Link to="/portal" className="text-gray-300 hover:text-white transition-colors text-sm">Portal</Link>
-          <Link to="/admin" className="text-gray-300 hover:text-white transition-colors text-sm">Admin</Link>
+        <div className="flex gap-3 md:gap-6 items-center">
+          <Link to="/portal" className="text-gray-300 hover:text-white transition-colors text-xs md:text-sm">Portal</Link>
+          <Link to="/admin" className="text-gray-300 hover:text-white transition-colors text-xs md:text-sm">Admin</Link>
           <a
             href={LEMON_SQUEEZY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-sm"
+            className="px-3 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
           >
             Get Access — $8
           </a>
@@ -60,10 +58,10 @@ function Landing() {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 container mx-auto px-4 pt-16 pb-12 max-w-6xl">
+      <section className="relative z-10 container mx-auto px-4 pt-8 md:pt-16 pb-8 md:pb-12 max-w-6xl">
         <div className="grid md:grid-cols-2 gap-12 items-center">
           <div className="text-center md:text-left">
-            <div className="inline-flex items-center gap-2 bg-purple-900/40 border border-purple-500/30 rounded-full px-4 py-1.5 text-sm text-purple-200 mb-6">
+            <div className="inline-flex items-center gap-2 bg-purple-900/40 border border-purple-500/30 rounded-full px-3 py-1 md:px-4 md:py-1.5 text-xs md:text-sm text-purple-200 mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
               For Content Creators
             </div>
@@ -72,7 +70,7 @@ function Landing() {
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Video Ideas</span>
               {' '}Again
             </h1>
-            <p className="text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
+            <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
               You know that feeling when you stare at a blank page, not knowing what to create next? Paste any YouTube channel you admire and instantly get fresh title ideas, full scripts, thumbnail concepts, and voiceover prompts — everything you need to hit record.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -80,13 +78,13 @@ function Landing() {
                 href={LEMON_SQUEEZY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
+                className="px-6 py-3 md:px-8 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-base md:text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
               >
                 Get Started — $8
               </a>
               <Link
                 to="/portal"
-                className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-lg rounded-xl transition-all text-center"
+                className="px-6 py-3 md:px-8 md:py-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-base md:text-lg rounded-xl transition-all text-center"
               >
                 Already Have Access
               </Link>
@@ -112,9 +110,9 @@ function Landing() {
             <img
               src="/creator-stuck.png"
               alt="Creator stuck at blank screen"
-              className="w-48 h-48 rounded-2xl object-cover border border-purple-500/30 shadow-lg flex-shrink-0"
+              className="w-32 h-32 md:w-48 md:h-48 rounded-2xl object-cover border border-purple-500/30 shadow-lg flex-shrink-0"
             />
-            <p className="text-purple-200 text-lg text-center md:text-left">
+            <p className="text-purple-200 text-base md:text-lg text-center md:text-left">
               <span className="text-gray-400 line-through mr-2">"What should I create today?"</span>
               <span className="text-white font-semibold">"Here are 3 ready-made scripts and everything you need."</span>
             </p>
@@ -123,12 +121,12 @@ function Landing() {
       </section>
 
       {/* How it works */}
-      <section className="relative z-10 container mx-auto px-4 py-20 max-w-6xl">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">How It Works</h2>
+      <section className="relative z-10 container mx-auto px-4 py-12 md:py-20 max-w-6xl">
+        <h2 className="text-2xl md:text-4xl font-bold text-center mb-4">How It Works</h2>
         <p className="text-purple-200 text-center mb-14 max-w-xl mx-auto">Three simple steps from blank page to production-ready content.</p>
         <div className="grid md:grid-cols-3 gap-8">
           {/* Step 1 */}
-          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
+          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-5 md:p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
             <StepIcon
               color="#7c3aed"
               icon={
@@ -146,7 +144,7 @@ function Landing() {
           </div>
 
           {/* Step 2 */}
-          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
+          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-5 md:p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
             <StepIcon
               color="#db2777"
               icon={
@@ -167,7 +165,7 @@ function Landing() {
           </div>
 
           {/* Step 3 */}
-          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
+          <div className="bg-gray-800/60 backdrop-blur rounded-2xl p-5 md:p-8 border border-purple-500/20 text-center hover:border-purple-500/40 transition-all">
             <StepIcon
               color="#f59e0b"
               icon={
@@ -189,11 +187,11 @@ function Landing() {
 
       {/* Pricing */}
       <section className="relative z-10 container mx-auto px-4 pb-20 max-w-2xl">
-        <div className="bg-gray-800/80 backdrop-blur-lg rounded-3xl border border-purple-500/30 p-10 text-center">
+        <div className="bg-gray-800/80 backdrop-blur-lg rounded-3xl border border-purple-500/30 p-6 md:p-10 text-center">
           <div className="inline-block bg-purple-900/40 rounded-full px-4 py-1 text-sm text-purple-300 mb-6">
             Simple Pricing
           </div>
-          <div className="text-6xl font-bold mb-2">$8</div>
+          <div className="text-5xl md:text-6xl font-bold mb-2">$8</div>
           <div className="text-gray-400 mb-8 text-lg">3 ready-made scripts</div>
 
           <div className="grid grid-cols-1 gap-3 mb-10 text-left max-w-sm mx-auto">
@@ -218,7 +216,7 @@ function Landing() {
             href={LEMON_SQUEEZY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg"
+            className="block w-full py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-base md:text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg"
           >
             Get Access Now — $8
           </a>
@@ -234,13 +232,13 @@ function Landing() {
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="flex items-center gap-8 flex-col md:flex-row mb-12">
             <div className="flex-1 text-center md:text-left">
-              <h2 className="text-3xl font-bold mb-4">From Blank Page to <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Published</span></h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4">From Blank Page to <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Published</span></h2>
               <p className="text-gray-400">Your next video idea, script, and production assets — all in one place.</p>
             </div>
             <img
               src="/creator-success.png"
               alt="Happy creator with finished content"
-              className="w-56 h-56 rounded-2xl object-cover border border-purple-500/30 shadow-lg flex-shrink-0"
+              className="w-40 h-40 md:w-56 md:h-56 rounded-2xl object-cover border border-purple-500/30 shadow-lg flex-shrink-0"
             />
           </div>
           <div className="grid md:grid-cols-3 gap-8 text-center">
@@ -250,7 +248,7 @@ function Landing() {
               { stat: 'Stay Consistent', desc: 'Post more often with less burnout. Your content calendar stays full.' },
             ].map((item) => (
               <div key={item.stat}>
-                <div className="text-xl font-bold text-white mb-2">{item.stat}</div>
+                <div className="text-lg md:text-xl font-bold text-white mb-2">{item.stat}</div>
                 <p className="text-gray-400 text-sm">{item.desc}</p>
               </div>
             ))}

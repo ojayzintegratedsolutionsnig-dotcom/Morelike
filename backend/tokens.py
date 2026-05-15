@@ -103,10 +103,10 @@ def use_credit(token):
 
 
 def claim_token_by_email(email):
-    """Find the most recent unused token for a given email."""
+    """Find the most recent unused token for a given email — only tokens created by a real Lemon Squeezy order."""
     conn = get_db()
     row = conn.execute(
-        'SELECT token, credits FROM tokens WHERE email = ? AND credits > 0 ORDER BY created_at DESC LIMIT 1',
+        'SELECT token, credits FROM tokens WHERE email = ? AND credits > 0 AND lemon_order_id IS NOT NULL ORDER BY created_at DESC LIMIT 1',
         (email,)
     ).fetchone()
     conn.close()
