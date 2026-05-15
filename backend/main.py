@@ -224,19 +224,31 @@ def extract_niche(viral_dna):
 
 # ── AI helpers ────────────────────────────────────────────────
 
-def call_ai(system_prompt, user_message, max_tokens=8192):
+def call_ai(system_prompt, user_message, max_tokens=8192, retries=2):
+    import time
     if not deepseek_client:
         raise Exception("DeepSeek API key not configured")
-    response = deepseek_client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        temperature=1.0,
-        max_tokens=max_tokens,
-    )
-    return response.choices[0].message.content
+
+    last_error = None
+    for attempt in range(retries + 1):
+        try:
+            response = deepseek_client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=1.0,
+                max_tokens=max_tokens,
+                timeout=300.0,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            last_error = e
+            if attempt < retries:
+                time.sleep(2 ** attempt)
+
+    raise Exception(f"AI API error after {retries + 1} attempts: {str(last_error)}")
 
 
 # ── Extraction ────────────────────────────────────────────────
@@ -551,6 +563,30 @@ def admin_reply():
             print(f"Failed to send reply email: {e}")
 
     return jsonify({'success': True})
+
+
+@app.route('/api/admin/generate-token', methods=['POST'])
+@require_admin
+def admin_generate_token():
+    data = request.json or {}
+    email = data.get('email', '').strip()
+    credits = data.get('credits', 3)
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    try:
+        credits = max(1, min(100, int(credits)))
+    except (ValueError, TypeError):
+        credits = 3
+
+    token = create_token(email=email, credits=credits)
+    try:
+        send_token_email(email, token)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+
+    return jsonify({'success': True, 'token': token, 'email': email, 'credits': credits})
 
 
 # ── Socket.IO ─────────────────────────────────────────────────

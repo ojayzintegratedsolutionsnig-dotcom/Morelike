@@ -146,18 +146,12 @@ function Portal() {
 
   // ── Automated pipeline ──────────────────────────────────────
   const runPipeline = useCallback(async (extractedText) => {
-    // Stage 2: Generate Viral DNA
-    setProgressStage('Analyzing patterns')
-    setProgressSub('Reverse-engineering content formula...')
     try {
       const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: extractedText })
       const dnaData = await dnaRes.json()
       if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
       setViralDNA(dnaData.viral_dna)
 
-      // Stage 3: Generate Titles
-      setProgressStage('Generating titles')
-      setProgressSub('Brainstorming ideas...')
       const titlesRes = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: dnaData.viral_dna })
       const titlesData = await titlesRes.json()
       if (!titlesData.success) throw new Error(titlesData.error || 'Title generation failed')
@@ -165,7 +159,6 @@ function Portal() {
       const lines = titlesData.titles.split('\n').filter((l) => /^\d+[\.\)]/.test(l.trim()))
       setParsedTitles(lines.map((l) => l.replace(/^\d+[\.\)]\s*/, '').trim()))
 
-      setProgressStage('done')
       setTimeout(() => setFlow('pick_title'), 600)
     } catch (err) {
       setPipelineError(err.message)
@@ -178,8 +171,6 @@ function Portal() {
     if (!pastedSubtitles.trim()) return
     setPipelineError('')
     setFlow('processing')
-    setProgressStage('Extracting transcripts')
-    setProgressSub('Using pasted subtitles...')
     setTimeout(() => {
       extractedRef.current = pastedSubtitles
       runPipeline(pastedSubtitles)
@@ -191,18 +182,11 @@ function Portal() {
     if (!channelUrl.trim()) return
     setPipelineError('')
     setFlow('processing')
-    setProgressStage('Extracting transcripts')
-    setProgressSub('Connecting...')
 
-    // Connect socket for live progress
     const sock = io(API_URL)
     socketRef.current = sock
 
     sock.on('progress', (data) => {
-      if (data.status === 'extracting' || data.status === 'scanning' || data.status === 'starting') {
-        setProgressStage('Extracting transcripts')
-        setProgressSub(data.message?.slice(0, 80) || '')
-      }
       if (data.status === 'error') {
         setPipelineError(data.message || 'Extraction failed')
         setFlow('input')
@@ -210,7 +194,6 @@ function Portal() {
       }
       if (data.status === 'complete') {
         sock.close()
-        // Fetch subtitles
         fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
           .then(r => r.json())
           .then(d => {
@@ -274,8 +257,6 @@ function Portal() {
   // ── Regenerate titles ───────────────────────────────────────
   const handleRegenerateTitles = async () => {
     setFlow('processing')
-    setProgressStage('Generating titles')
-    setProgressSub('Brainstorming fresh ideas...')
     try {
       const res = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: viralDNA })
       const data = await res.json()

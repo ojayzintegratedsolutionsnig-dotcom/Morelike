@@ -76,8 +76,10 @@ function Admin() {
   // Login screen
   if (!adminToken) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white flex items-center justify-center px-4">
-        <div className="max-w-sm w-full">
+      <div className="min-h-screen text-white flex items-center justify-center px-4 relative">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/processor.jpg)' }} />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+        <div className="max-w-sm w-full relative z-10">
           <div className="text-center mb-8">
             <div className="text-4xl mb-4">&#128274;</div>
             <h1 className="text-2xl font-bold">Admin Panel</h1>
@@ -107,12 +109,96 @@ function Admin() {
     )
   }
 
+  // Token generator state
+  const [genEmail, setGenEmail] = useState('')
+  const [genCredits, setGenCredits] = useState(3)
+  const [genResult, setGenResult] = useState(null)
+  const [genError, setGenError] = useState('')
+  const [genLoading, setGenLoading] = useState(false)
+
+  const handleGenerateToken = async (e) => {
+    e.preventDefault()
+    if (!genEmail.trim()) return
+    setGenLoading(true)
+    setGenError('')
+    setGenResult(null)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/generate-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+        body: JSON.stringify({ email: genEmail.trim(), credits: genCredits })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setGenResult(data)
+        setGenEmail('')
+        setGenCredits(3)
+      } else {
+        setGenError(data.error || 'Failed')
+      }
+    } catch {
+      setGenError('Cannot reach server')
+    }
+    setGenLoading(false)
+  }
+
   // Feedback dashboard
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Feedback Dashboard</h1>
+          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <div className="flex gap-3">
+            <Link to="/portal" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all text-sm">Portal</Link>
+            <Link to="/" className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all text-sm">Home</Link>
+          </div>
+        </div>
+
+        {/* Token Generator */}
+        <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-green-500/30 p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4">Generate Token</h2>
+          <form onSubmit={handleGenerateToken} className="flex gap-4 flex-wrap items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm text-purple-200 mb-1">Email</label>
+              <input
+                type="email"
+                placeholder="user@example.com"
+                value={genEmail}
+                onChange={(e) => setGenEmail(e.target.value)}
+                className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                required
+              />
+            </div>
+            <div className="w-32">
+              <label className="block text-sm text-purple-200 mb-1">Credits</label>
+              <input
+                type="number" min="1" max="100"
+                value={genCredits}
+                onChange={(e) => setGenCredits(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
+                className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={genLoading || !genEmail.trim()}
+              className="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+            >
+              {genLoading ? 'Generating...' : 'Generate'}
+            </button>
+          </form>
+          {genError && <p className="mt-3 text-red-400 text-sm">{genError}</p>}
+          {genResult && (
+            <div className="mt-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+              <p className="text-green-400 text-sm">Token created!</p>
+              <p className="text-white font-mono text-lg mt-1">{genResult.token}</p>
+              <p className="text-gray-400 text-sm mt-1">{genResult.email} &middot; {genResult.credits} credits</p>
+            </div>
+          )}
+        </div>
+
+        {/* Feedback Dashboard */}
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-xl font-bold">Feedback</h2>
           <button
             onClick={() => loadFeedback(adminToken)}
             className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all text-sm"
