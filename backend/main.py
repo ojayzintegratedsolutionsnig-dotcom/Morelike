@@ -600,6 +600,22 @@ def admin_generate_token():
 def admin_diag():
     import time
     results = {}
+    # Test outbound connectivity
+    import urllib.request
+    targets = {
+        'httpbin': 'https://httpbin.org/ip',
+        'groq': 'https://api.groq.com/openai/v1/models',
+        'deepseek': 'https://api.deepseek.com/v1/models',
+    }
+    for name, url in targets.items():
+        try:
+            req = urllib.request.Request(url)
+            t0 = time.time()
+            urllib.request.urlopen(req, timeout=10)
+            results[name] = f"OK ({time.time() - t0:.1f}s)"
+        except Exception as e:
+            results[name] = f"FAIL: {type(e).__name__}: {str(e)[:100]}"
+
     # Test AI connectivity
     if ai_client:
         try:
@@ -610,11 +626,11 @@ def admin_diag():
                 max_tokens=5,
                 timeout=15.0,
             )
-            results['ai'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
+            results['ai_client'] = f"OK ({time.time() - t0:.1f}s): {r.choices[0].message.content}"
         except Exception as e:
-            results['ai'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
+            results['ai_client'] = f"FAIL: {type(e).__name__}: {str(e)[:200]}"
     else:
-        results['ai'] = "No API key configured"
+        results['ai_client'] = "No API key configured"
     return jsonify(results)
 
 
