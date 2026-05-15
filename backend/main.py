@@ -271,7 +271,10 @@ def call_ai(system_prompt, user_message, max_tokens=8192):
 
         # If we're on the last provider, raise. Otherwise try next.
         if provider == clients[-1][0]:
-            raise Exception(f"AI API error ({provider}): {str(last_error)}")
+            hint = ''
+            if len(clients) == 1:
+                hint = ' (no fallback configured — add DEEPSEEK_API_KEY for automatic failover)'
+            raise Exception(f"AI API error ({provider}){hint}: {str(last_error)}")
 
     raise Exception("AI API error: all providers exhausted")
 
