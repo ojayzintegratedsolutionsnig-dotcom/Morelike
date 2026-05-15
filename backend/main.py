@@ -167,6 +167,12 @@ Rewrite the script to neutralize these objections.
 ## PHASE 3: FINAL OUTPUT
 Present the final output in this exact format. Every section is mandatory.
 
+[VIDEO LENGTH]
+{target_length} minutes — $8 Creator Plan
+
+[GLOBAL IMAGE STYLE]
+Define a LOCKED visual style that ALL images in this video must follow. This ensures visual consistency across every scene. Include: art style (photorealistic / 3D render / digital painting / anime / cinematic / etc.), color palette (dominant colors, warmth/cool), lighting style, aspect ratio (16:9), and any recurring visual motifs. Every per-segment TTI prompt below MUST end with: "| Style: [reference this global style]".
+
 [FINAL TITLE]
 Write the title with hyper-optimized SEO emojis baked in. Place emojis strategically at the start or between key phrases. Match emoji density to the niche (1-4 typical).
 
@@ -181,30 +187,29 @@ YouTube description that drives SEO and watch-time:
 Exactly 5 comma-separated tags/keywords for YouTube SEO. Mix broad and specific terms.
 
 [SCRIPT SEGMENTS]
-This is the core deliverable. Break the video into timestamped segments. Each segment has VISUAL (what's on screen), VOICE (spoken script), and TTI PROMPT (text-to-image prompt to generate that scene's image). The visual + voice + image MUST align — the image shows what the voice is talking about.
+This is the core deliverable. Break the video into timestamped segments matching the {target_length}-minute duration. Each segment has VISUAL (what's on screen), VOICE (spoken script), TTI PROMPT (text-to-image prompt using the Global Image Style above), and IVP (image-to-video prompt — ONLY if this segment has animation like pan, zoom, or motion; write "IVP: None" if it's a static scene).
 
 Format each segment EXACTLY like this:
 
 SEGMENT 1 [0:00]
-VISUAL: (Describe what the viewer sees during this segment — setting, action, text overlay, color mood)
+VISUAL: (Describe what the viewer sees — setting, action, text overlay, color mood)
 VOICE: (The exact spoken script for this segment — what the voiceover says)
-TTI PROMPT: (Detailed prompt to generate this segment's image — subject, composition, lighting, style, aspect ratio 16:9)
+TTI PROMPT: (Detailed prompt to generate this segment's image — subject, composition, lighting | Style: [reference global style], 16:9)
+IVP: (Animation prompt for this specific segment — e.g., "Slow zoom in on subject, 3s" — OR "None" if static)
 
 SEGMENT 2 [0:XX]
 VISUAL: (...)
 VOICE: (...)
 TTI PROMPT: (...)
+IVP: (...)
 
-Continue for ALL segments. The voiceover across all segments must form a complete, coherent script from hook to conclusion — reading just the VOICE lines in order should give the full narration. Each TTI PROMPT must match what the VOICE is discussing at that moment.
-
-[IMAGE-TO-VIDEO PROMPT]
-A motion/animation prompt describing how the images should animate overall: camera movement style (zoom, pan, dolly), transition type between segments, pacing feel, atmosphere. This applies across all segments.
+Continue for ALL segments. The voiceover across all segments must form a complete, coherent script from hook to conclusion. Each TTI PROMPT must match what the VOICE is discussing at that moment and must end with the global style reference.
 
 [THUMBNAIL PROMPT 1]
-A scroll-stopping YouTube thumbnail: foreground, background, facial expression (if person), text overlay wording + font style, color scheme, lighting. Include 1-2 high-impact emojis in the text overlay. Ready to hand to a designer or AI.
+A scroll-stopping YouTube thumbnail: foreground, background, facial expression (if person), text overlay wording + font style, color scheme, lighting. Include 1-2 high-impact emojis in the text overlay.
 
 [THUMBNAIL PROMPT 2]
-An alternative thumbnail concept. Different composition, text overlay, or color contrast. Give the creator a real choice."""
+An alternative thumbnail concept. Different composition, text overlay, or color contrast."""
 
 
 # ── Helpers ────────────────────────────────────────────────────
@@ -475,10 +480,10 @@ def generate_package():
     if not chosen_title:
         return jsonify({'error': 'A chosen title is required'}), 400
 
-    # Validate video length (4 min max for $8 plan)
+    # Validate video length (3 min max for $8 plan)
     try:
         video_length = int(video_length)
-        video_length = max(1, min(4, video_length))
+        video_length = max(1, min(3, video_length))
     except (ValueError, TypeError):
         video_length = 3
 

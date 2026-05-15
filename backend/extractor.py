@@ -110,7 +110,9 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
             'progress': 0
         })
 
-    videos = get_viral_videos(channel_url, limit, progress_callback)
+    # $8 plan: max 3 videos per channel
+    effective_limit = min(limit, 3)
+    videos = get_viral_videos(channel_url, effective_limit, progress_callback)
 
     if not videos:
         if progress_callback:

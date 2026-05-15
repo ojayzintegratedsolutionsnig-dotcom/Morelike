@@ -435,16 +435,16 @@ function Portal() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-purple-200 mb-1">Videos to analyze (1-20)</label>
+                    <label className="block text-sm text-purple-200 mb-1">Videos to analyze (max 3 — $8 plan)</label>
                     <input
-                      type="number" min="1" max="20"
+                      type="number" min="1" max="3"
                       value={limit}
-                      onChange={(e) => setLimit(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                      onChange={(e) => setLimit(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)))}
                       className="w-24 bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-purple-200 mb-1">Target video length (max 4 min)</label>
+                    <label className="block text-sm text-purple-200 mb-1">Target video length ($8 plan: max 3 min)</label>
                     <select
                       value={videoLength}
                       onChange={(e) => setVideoLength(parseInt(e.target.value))}
@@ -453,7 +453,6 @@ function Portal() {
                       <option value={1}>1 minute</option>
                       <option value={2}>2 minutes</option>
                       <option value={3}>3 minutes</option>
-                      <option value={4}>4 minutes</option>
                     </select>
                   </div>
                 </div>
