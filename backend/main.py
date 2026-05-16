@@ -137,7 +137,7 @@ The content you are about to produce belongs to this niche:
 You MUST stay within this niche. Do NOT drift into another topic, genre, or subject area. Every output must be about {niche}.
 
 # TARGET VIDEO LENGTH
-{target_length} minutes. Pace the script to fill this duration naturally. The number of segments should scale with the length — typically 4-6 segments per minute of video (each segment is 10-15 seconds of spoken content).
+{target_length} minutes. Pace the script to fill this duration naturally. Plan for approximately {target_length} × 150 spoken words (standard speaking pace of ~150 words/minute).
 
 # TASK PROTOCOL
 When I give you a TOPIC AND TITLE, execute the following pipeline strictly in order. Do not skip steps.
@@ -148,7 +148,8 @@ Using the "Viral DNA" above, write a V1 script on the topic using the chosen tit
 - Match the Sentence Rhythm and Pacing.
 - Insert the specific "Retention Loops" identified in the DNA.
 - Study the DNA's niche and audience psychology to determine the emoji palette: which emojis feel native to this creator's space (e.g., finance channels use 📈💸🔥, tech channels use ⚡🤖🛠️, storytelling uses 🌀👁️💬). Do NOT use random emojis — every emoji must earn its place.
-- Break the script into SEGMENTS. Each segment is a visual scene change: what the viewer sees changes, the voiceover continues. Number of segments must match the target video length.
+- If the topic naturally calls for multiple characters/voices (e.g., dialogue scenes, interviews, skits), structure the script with character labels. Otherwise use a single narrator voice.
+- Identify 8-12 key visual moments in the script that would make compelling still images and short video clips.
 
 ## PHASE 2: THE ROAST (The Hostile Review)
 Take the V1 script and run it through this mandatory validation. Do NOT show me V1 — only show the final result.
@@ -163,58 +164,119 @@ Simulate 5 personas reviewing the draft:
 For each reviewer, identify one CRITICAL FAILURE in V1.
 Rewrite the script to neutralize these objections.
 
-## PHASE 3: FINAL OUTPUT
-Present the final output in this exact format. Every section is mandatory.
+## PHASE 3: SEO TITLE A/B TESTING
+Generate 2 candidate titles for the script:
+- Title A: High-curiosity, emotion-forward angle
+- Title B: Search-optimized, keyword-rich angle
+Compare them: which has stronger CTR potential for this niche? Pick the winner as the FINAL SEO TITLE.
+Bake in hyper-optimized SEO emojis. Place emojis strategically at the start or between key phrases (1-4 emojis typical for this niche).
 
-[VIDEO LENGTH]
-{target_length} minutes — $8 Creator Plan
+## PHASE 4: FINAL OUTPUT
+Present the final output in this EXACT format. Every section is mandatory. Use the EXACT section headers and separator lines shown below. Do not add extra commentary outside the format.
 
-[GLOBAL IMAGE STYLE]
-Define a LOCKED visual style that ALL images in this video must follow. This ensures visual consistency across every scene. Include: art style (photorealistic / 3D render / digital painting / anime / cinematic / etc.), color palette (dominant colors, warmth/cool), lighting style, aspect ratio (16:9), and any recurring visual motifs. Every per-segment TTI prompt below MUST end with: "| Style: [reference this global style]".
+═══════════════════════════════════
+USER PLAN: $8 Creator Plan
+SCRIPT DURATION: [X] min [Y] sec
+  (Formula: [total word count] words ÷ 150 words/min ≈ [X.X] min)
+═══════════════════════════════════
 
-[FINAL TITLE]
-Write the title with hyper-optimized SEO emojis baked in. Place emojis strategically at the start or between key phrases. Match emoji density to the niche (1-4 typical).
+GLOBAL STYLE RULE
+Art style: [photorealistic / 3D render / digital painting / anime / cinematic / etc.]
+Color palette: [dominant colors + warm/cool tone]
+Lighting: [lighting style]
+Aspect ratio: 16:9
+Recurring motifs: [visual motifs that repeat across scenes]
 
-[DESCRIPTION]
-YouTube description that drives SEO and watch-time:
-- First 2 lines: hook summary using high-search-volume keywords (this appears above the fold before "Show More")
-- Body: 3-5 sentences describing what the video covers, using relevant emojis as visual anchors
-- Include 3-5 relevant hashtags at the end
-- Match the tone and vocabulary of this niche
+───────────────────────────────────────
+FINAL SEO TITLE
+(after A/B analysis — winner with hyper-optimized SEO emojis)
 
-[TAGS/KEYWORDS]
-Exactly 5 comma-separated tags/keywords for YouTube SEO. Mix broad and specific terms.
+DESCRIPTION
+- Above-fold hook (first 2 lines): [hook summary using high-search-volume keywords]
+- Body: [3-5 sentences describing the video, with relevant emojis as visual anchors]
+- Hashtags: #tag1 #tag2 #tag3
 
-[SCRIPT SEGMENTS]
-This is the core deliverable. Break the video into timestamped segments matching the {target_length}-minute duration. Each segment has VISUAL (what's on screen), VOICE (spoken script), TTI PROMPT (text-to-image prompt using the Global Image Style above), and IVP (image-to-video prompt).
+TAGS/KEYWORDS
+tag1, tag2, tag3
 
-CRITICAL IVP RULES:
-- Most affordable video generation models (Runway, Pika, Kling, etc.) max out at 8 seconds per clip. Every IVP MUST be designed for an 8-second clip maximum.
-- This is the $8 Creator Plan — IVP field MUST contain EXACTLY the following text and nothing else: "(upgrade for detailed video prompt)"
-- Do NOT write camera directions, animation details, or motion prompts in the IVP field for this plan.
-- The basic IVP placeholder keeps the package affordable. Upgraded plans unlock detailed camera angle, scene composition, and multi-shot direction.
+═══════════════════════════════════
+THUMBNAIL DESIGN
+═══════════════════════════════════
 
-Format each segment EXACTLY like this:
+Concept A: [full design description — composition, foreground, background, text overlay wording + font style, color scheme, lighting, emojis in text overlay]
 
-SEGMENT 1 [0:00]
-VISUAL: (Describe what the viewer sees — setting, action, text overlay, color mood)
-VOICE: (The exact spoken script for this segment — what the voiceover says)
-TTI PROMPT: (Detailed prompt to generate this segment's image — subject, composition, lighting | Style: [reference global style], 16:9)
-IVP: (upgrade for detailed video prompt)
+Concept B: [alternative concept — different composition, different text overlay, different color contrast]
 
-SEGMENT 2 [0:XX]
-VISUAL: (...)
-VOICE: (...)
-TTI PROMPT: (...)
-IVP: (upgrade for detailed video prompt)
+A/B Analysis:
+- Concept A strength: [why A could win on CTR]
+- Concept B strength: [why B could win on CTR]
+Final Recommendation: [winner + reasoning]
 
-Continue for ALL segments. The voiceover across all segments must form a complete, coherent script from hook to conclusion. Each TTI PROMPT must match what the VOICE is discussing at that moment and must end with the global style reference.
+═══════════════════════════════════
+PURE SCRIPT
+═══════════════════════════════════
 
-[THUMBNAIL PROMPT 1]
-A scroll-stopping YouTube thumbnail: foreground, background, facial expression (if person), text overlay wording + font style, color scheme, lighting. Include 1-2 high-impact emojis in the text overlay.
+[Scene context in brackets. Dialogue prefixed by character name followed by colon. Multiple characters clearly distinguished.]
 
-[THUMBNAIL PROMPT 2]
-An alternative thumbnail concept. Different composition, text overlay, or color contrast."""
+[The hook — opening scene description]
+
+Character/ narrator: [dialogue text...]
+
+[Scene transition description]
+
+Character A: [dialogue...]
+Character B: [dialogue...]
+
+(Continue full script. No timestamps. No segment numbers. Just the clean script with scene cues and character labels.)
+
+═══════════════════════════════════
+IMAGE PROMPTS
+═══════════════════════════════════
+
+Image Prompt 1
+(Aligns with: "exact voice line this visual pairs with")
+[Detailed text-to-image prompt — subject, composition, lighting, mood, camera angle, color temperature] | Style: [global style], 16:9
+
+Image Prompt 2
+(Aligns with: "voice line")
+[Detailed text-to-image prompt...] | Style: [global style], 16:9
+
+(Continue for all 8-12 key visual moments. Each prompt ends with EXACTLY: "| Style: [global style], 16:9" so the user can copy-paste directly into an image generation model.)
+
+═══════════════════════════════════
+VIDEO PROMPTS
+═══════════════════════════════════
+
+Video Prompt 1
+(Aligns with: "voice line")
+(upgrade for detailed video prompt) | Style: [global style], 16:9
+
+Video Prompt 2
+(Aligns with: "voice line")
+(upgrade for detailed video prompt) | Style: [global style], 16:9
+
+(Continue for all video clips. $8 Creator Plan uses the placeholder "(upgrade for detailed video prompt)" for the core prompt content — no camera directions, no animation details, no motion prompts. Premium plans unlock full scene composition, camera angle direction, multi-shot sequencing, and motion style specification. Each prompt STILL ends with "| Style: [global style], 16:9".)
+
+═══════════════════════════════════
+VOICE PROMPT
+═══════════════════════════════════
+
+Tone: [overall vocal tone — warm, urgent, mysterious, conversational, authoritative, etc.]
+Mood Arc: [how the emotional register shifts across the script — e.g., curious → tense → relieved]
+Emotional Triggers: [specific words/phrases that carry emotional weight and how to deliver them]
+Pacing: [tempo description — rapid-fire opening, slow contemplation in middle, building urgency at end]
+Vocal Register: [pitch range, breathiness, projection style]
+Speed Variations: [where to speed up, where to pause, where to let silence land]
+{if multiple characters, include for EACH character:
+  Character [Name]: [vocal quality, accent, age feel, personality in voice]}
+
+═══════════════════════════════════
+ALIGNMENT SUMMARY
+═══════════════════════════════════
+
+Image 1 → Voice: "[matching line]" → Video 1: [what motion/transition happens]
+Image 2 → Voice: "[matching line]" → Video 2: [what motion/transition happens]
+(Continue for all image/video pairs. This shows exactly how visuals sync to the script.)"""
 
 
 # ── Helpers ────────────────────────────────────────────────────
@@ -412,7 +474,6 @@ def credits():
 
 
 @app.route('/api/extract', methods=['POST'])
-@require_token
 def extract():
     if extraction_status['running']:
         return jsonify({'error': 'Extraction already running'}), 400
@@ -429,9 +490,6 @@ def extract():
     if not re.match(yt_pattern, channel_url.strip()):
         return jsonify({'error': 'Invalid YouTube channel URL. Expected format: https://www.youtube.com/@ChannelName'}), 400
 
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    log_action(token, 'extract')
-
     thread = threading.Thread(target=run_extraction, args=(channel_url, limit))
     thread.daemon = True
     thread.start()
@@ -440,13 +498,11 @@ def extract():
 
 
 @app.route('/api/status', methods=['GET'])
-@require_token
 def status():
     return jsonify(extraction_status)
 
 
 @app.route('/api/subtitles', methods=['GET'])
-@require_token
 def get_subtitles():
     if not extracted_subtitles['content']:
         return jsonify({'error': 'No subtitles available. Please extract videos first.'}), 404
@@ -457,7 +513,6 @@ def get_subtitles():
 
 
 @app.route('/api/generate-viral-dna', methods=['POST'])
-@require_token
 def generate_viral_dna():
     data = request.json or {}
     subtitles = data.get('subtitles', extracted_subtitles.get('content', ''))
@@ -480,9 +535,6 @@ def generate_viral_dna():
         # Keep first 10K and last 5K — hook patterns in beginning, retention in ending
         trimmed = trimmed[:10000] + "\n\n...[content trimmed]...\n\n" + trimmed[-5000:]
 
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    log_action(token, 'generate_viral_dna')
-
     try:
         viral_dna = call_ai(VIRAL_DNA_SYSTEM_INSTRUCTION, trimmed)
         return jsonify({'viral_dna': viral_dna, 'success': True})
@@ -491,16 +543,12 @@ def generate_viral_dna():
 
 
 @app.route('/api/generate-titles', methods=['POST'])
-@require_token
 def generate_titles():
     data = request.json or {}
     viral_dna = data.get('viral_dna', '')
 
     if not viral_dna:
         return jsonify({'error': 'Viral DNA is required. Generate analysis first.'}), 400
-
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    log_action(token, 'generate_titles')
 
     try:
         niche = extract_niche(viral_dna)
@@ -544,7 +592,7 @@ def generate_package():
         niche = extract_niche(viral_dna)
         system_prompt = VIRAL_SCRIPT_SYSTEM_INSTRUCTION.format(viral_dna=viral_dna, niche=niche, target_length=video_length)
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
-        result = call_ai(system_prompt, user_message)
+        result = call_ai(system_prompt, user_message, max_tokens=16384)
         use_credit(token)
         last_generated_package = {'content': result, 'title': chosen_title}
         remaining = get_credits(token)

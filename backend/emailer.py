@@ -2,7 +2,7 @@ import os
 import resend
 
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
-FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@morelike.app')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'noreply@contact.morelikecreator.com')
 
 _configured = False
 

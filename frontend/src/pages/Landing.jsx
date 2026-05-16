@@ -63,7 +63,7 @@ function Landing() {
           <div className="text-center md:text-left">
             <div className="inline-flex items-center gap-2 bg-purple-900/40 border border-purple-500/30 rounded-full px-3 py-1 md:px-4 md:py-1.5 text-xs md:text-sm text-purple-200 mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              For Content Creators
+              Free Channel Analysis
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               Never Run Out of{' '}
@@ -71,17 +71,15 @@ function Landing() {
               {' '}Again
             </h1>
             <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
-              You know that feeling when you stare at a blank page, not knowing what to create next? Paste any YouTube channel you admire and instantly get fresh title ideas, full scripts, thumbnail concepts, and voiceover prompts — everything you need to hit record.
+              Paste any YouTube channel and get fresh title ideas, viral DNA analysis, and topic breakdowns — completely free. Pay $8 only when you're ready to generate your full script package.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <a
-                href={LEMON_SQUEEZY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/portal"
                 className="px-6 py-3 md:px-8 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-base md:text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
               >
-                Get Started — $8
-              </a>
+                Analyze a Channel Free
+              </Link>
               <Link
                 to="/portal"
                 className="px-6 py-3 md:px-8 md:py-4 bg-gray-700 hover:bg-gray-600 text-white font-semibold text-base md:text-lg rounded-xl transition-all text-center"
@@ -90,7 +88,7 @@ function Landing() {
               </Link>
             </div>
             <p className="text-gray-500 text-sm mt-4">
-              One-time purchase. No subscription. Use it when you need it.
+              Free analysis. Pay $8 only when you pick a title and generate your script.
             </p>
           </div>
           <div className="hidden md:block">
@@ -114,7 +112,7 @@ function Landing() {
             />
             <p className="text-purple-200 text-base md:text-lg text-center md:text-left">
               <span className="text-gray-400 line-through mr-2">"What should I create today?"</span>
-              <span className="text-white font-semibold">"Here are 3 ready-made scripts and everything you need."</span>
+              <span className="text-white font-semibold">"Here are 3 title ideas — pick one and unlock the full package."</span>
             </p>
           </div>
         </div>
@@ -177,9 +175,9 @@ function Landing() {
                 </g>
               }
             />
-            <h3 className="text-lg font-semibold mb-2">3. Download & Create</h3>
+            <h3 className="text-lg font-semibold mb-2">3. Unlock & Create</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Get your full script, thumbnail concept, image prompt, and voiceover direction — all in one .txt file.
+              Pick your title, unlock the full package for $8, and get your script, image prompts, video prompts, voice direction, and thumbnail design — all in one download.
             </p>
           </div>
         </div>
@@ -189,19 +187,24 @@ function Landing() {
       <section className="relative z-10 container mx-auto px-4 pb-20 max-w-2xl">
         <div className="bg-gray-800/80 backdrop-blur-lg rounded-3xl border border-purple-500/30 p-6 md:p-10 text-center">
           <div className="inline-block bg-purple-900/40 rounded-full px-4 py-1 text-sm text-purple-300 mb-6">
-            Simple Pricing
+            How It Works
           </div>
-          <div className="text-5xl md:text-6xl font-bold mb-2">$8</div>
-          <div className="text-gray-400 mb-8 text-lg">3 ready-made scripts</div>
+          <div className="flex items-center justify-center gap-4 text-lg mb-8">
+            <span className="text-white font-bold">1. Analyze Free</span>
+            <span className="text-gray-500">→</span>
+            <span className="text-white font-bold">2. Pick a Title</span>
+            <span className="text-gray-500">→</span>
+            <span className="text-white font-bold">3. Unlock $8</span>
+          </div>
 
           <div className="grid grid-cols-1 gap-3 mb-10 text-left max-w-sm mx-auto">
             {[
-              'Get video ideas inspired by any channel you love',
-              '3 unique title options to choose from',
-              'Full script with timestamps and visual cues',
-              'Thumbnail concept + AI image prompt',
-              'Voiceover direction for AI narration tools',
-              'Downloadable .txt — start creating instantly',
+              'Analyze any YouTube channel for free',
+              'Get viral DNA breakdown + niche analysis',
+              '3 SEO-optimized title ideas to choose from',
+              'Full script package: dialogue, image & video prompts',
+              'Thumbnail A/B test + voiceover direction',
+              'Downloadable .txt — ready to create',
             ].map((item, i) => (
               <div key={i} className="flex items-start gap-3 text-gray-300">
                 <svg className="w-5 h-5 mt-0.5 flex-shrink-0" viewBox="0 0 20 20" fill="#22c55e">
@@ -212,16 +215,14 @@ function Landing() {
             ))}
           </div>
 
-          <a
-            href={LEMON_SQUEEZY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to="/portal"
             className="block w-full py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-base md:text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg"
           >
-            Get Access Now — $8
-          </a>
+            Analyze a Channel Free
+          </Link>
           <p className="text-gray-500 text-sm mt-4">
-            One-time. No recurring fees.{' '}
+            Pay $8 only when you're ready to generate.{' '}
             <Link to="/success" className="text-purple-400 hover:underline">Already paid? Claim your token</Link>
           </p>
         </div>
