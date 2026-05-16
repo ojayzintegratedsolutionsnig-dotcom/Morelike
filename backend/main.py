@@ -267,8 +267,8 @@ Emotional Triggers: [specific words/phrases that carry emotional weight and how 
 Pacing: [tempo description — rapid-fire opening, slow contemplation in middle, building urgency at end]
 Vocal Register: [pitch range, breathiness, projection style]
 Speed Variations: [where to speed up, where to pause, where to let silence land]
-{if multiple characters, include for EACH character:
-  Character [Name]: [vocal quality, accent, age feel, personality in voice]}
+{{if multiple characters, include for EACH character:
+  Character [Name]: [vocal quality, accent, age feel, personality in voice]}}
 
 ═══════════════════════════════════
 ALIGNMENT SUMMARY
