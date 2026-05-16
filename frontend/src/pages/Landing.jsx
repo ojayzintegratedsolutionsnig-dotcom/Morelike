@@ -71,7 +71,7 @@ function Landing() {
               {' '}Again
             </h1>
             <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
-              Paste any YouTube channel and get fresh title ideas, viral DNA analysis, and topic breakdowns — completely free. Pay $8 only when you're ready to generate your full script package.
+              Paste any YouTube channel you admire and get fresh title ideas, topic breakdowns, and a deep analysis of what makes their content work — completely free. When you're ready, unlock 3 full script packages for just $8 (up to 3 minutes of video each).
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
@@ -88,7 +88,7 @@ function Landing() {
               </Link>
             </div>
             <p className="text-gray-500 text-sm mt-4">
-              Free analysis. Pay $8 only when you pick a title and generate your script.
+              $8 = 3 credits. Each credit unlocks a full script package (up to 3 min video).
             </p>
           </div>
           <div className="hidden md:block">
@@ -177,7 +177,7 @@ function Landing() {
             />
             <h3 className="text-lg font-semibold mb-2">3. Unlock & Create</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Pick your title, unlock the full package for $8, and get your script, image prompts, video prompts, voice direction, and thumbnail design — all in one download.
+              Unlock 3 full script packages for $8 — each with a complete script (up to 3 min), image prompts, video prompts, voice direction, and thumbnail design. Ready to download.
             </p>
           </div>
         </div>
@@ -200,7 +200,7 @@ function Landing() {
           <div className="grid grid-cols-1 gap-3 mb-10 text-left max-w-sm mx-auto">
             {[
               'Analyze any YouTube channel for free',
-              'Get viral DNA breakdown + niche analysis',
+              'Deep analysis of what makes the channel work',
               '3 SEO-optimized title ideas to choose from',
               'Full script package: dialogue, image & video prompts',
               'Thumbnail A/B test + voiceover direction',
@@ -222,7 +222,7 @@ function Landing() {
             Analyze a Channel Free
           </Link>
           <p className="text-gray-500 text-sm mt-4">
-            Pay $8 only when you're ready to generate.{' '}
+            $8 = 3 credits (up to 3 min per video). Pay when you're ready to unlock.{' '}
             <Link to="/success" className="text-purple-400 hover:underline">Already paid? Claim your token</Link>
           </p>
         </div>

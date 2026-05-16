@@ -104,7 +104,7 @@ function Paywall({ onTokenValidated, onCancel }) {
         <div className="text-4xl mb-3">&#128274;</div>
         <h2 className="text-xl font-bold mb-2">Unlock Your Script Package</h2>
         <p className="text-purple-200 text-sm">
-          Analysis is free. Generating the full script package costs <strong>$8</strong> (3 credits).
+          Analysis is free. Unlock 3 script packages for <strong>$8</strong> — up to 3 minutes of video each.
         </p>
       </div>
 
@@ -667,7 +667,7 @@ function Portal() {
               onRegenerate={handleRegenerateTitles}
               loading={false}
             />
-            <p className="text-gray-500 text-xs mt-4">Selecting a title will prompt you to unlock the full script package ($8).</p>
+            <p className="text-gray-500 text-xs mt-4">Selecting a title will prompt you to unlock the full script package — $8 for 3 credits (up to 3 min per video).</p>
             <button onClick={handleReset} className="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all text-sm">
               Start Over
             </button>
