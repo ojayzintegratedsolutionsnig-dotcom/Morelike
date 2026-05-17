@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import io from 'socket.io-client'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002'
-const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://store.lemonsqueezy.com/checkout'
+const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/0772c25a-3fa9-4ca4-b229-7c7fbdd04127'
 
 const getApiHeaders = (token) => ({
   'Content-Type': 'application/json',

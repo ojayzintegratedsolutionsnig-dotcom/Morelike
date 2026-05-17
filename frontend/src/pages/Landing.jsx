@@ -15,7 +15,7 @@ function StepIcon({ icon, color }) {
 
 /* ── Landing ──────────────────────────────────────────────── */
 function Landing() {
-  const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://store.lemonsqueezy.com/checkout'
+  const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/0772c25a-3fa9-4ca4-b229-7c7fbdd04127'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white relative overflow-hidden">
