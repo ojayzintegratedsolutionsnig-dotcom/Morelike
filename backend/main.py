@@ -150,65 +150,66 @@ USER PLAN: $8 Creator Plan
 SCRIPT DURATION: [X] min [Y] sec (Formula: [W] words ÷ 150 words/min)
 ═══════════════════════════════════
 
-STYLE DNA CONFIRMATION
-Niche: [one-line niche statement]
-Target word count: [number] (±5%)
-Pacing: [words/sec, sentence rhythm from DNA]
-Hook style: [how the DNA hooks, applied to this script]
-Emotional flow: [tension arc across the script]
+SCRIPT DNA
+	Niche: [one-line niche statement]
+	Target word count: [number] (±5%)
+	Pacing: [words/sec, sentence rhythm from DNA]
+	Hook style: [how the DNA hooks, applied to this script]
+	Emotional flow: [tension arc across the script]
+	Global Visual Style: [from Visual Style Profile — art style, color palette, lighting setup, render quality, atmosphere. This exact style is fully embedded in every image and video prompt below. No separate style section needed — each prompt is self-contained.]
 
-───────────────────────────────────────
-FINAL SEO TITLE
-(after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
+	────────────────────────────────────────
+	FINAL SEO TITLE
+	(after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
 
-DESCRIPTION
-- Above-fold hook (first 2 lines): [hook using high-search-volume keywords]
-- Body: [3-5 sentences describing the video, max 2 relevant emojis as visual anchors]
-- Hashtags: #tag1 #tag2 #tag3
+	DESCRIPTION
+	- Above-fold hook (first 2 lines): [hook using high-search-volume keywords]
+	- Body: [3-5 sentences describing the video, max 2 relevant emojis as visual anchors]
+	- Hashtags: #tag1 #tag2 #tag3
 
-TAGS/KEYWORDS
-tag1, tag2, tag3
+	TAGS/KEYWORDS
+	tag1, tag2, tag3
 
-═══════════════════════════════════
-THUMBNAIL DESIGN
-═══════════════════════════════════
-Design as a cinematic movie poster using thumbnail style data above.
+	════════════════════════════════════════
+	THUMBNAIL DESIGN
+	════════════════════════════════════════
+	Design as a cinematic movie poster using thumbnail style data above.
 
-Concept A — Emotion-Forward:
-  Focal Point: [exactly what the viewer sees — character close-up or epic scene]
-  Emotional Hook: [the question this image plants]
-  Composition: [foreground frame → midground subject → background atmosphere]
-  Text Overlay: [wording (1-4 words), cinematic serif font, gold/emboss texture, drop shadow, position]
-  Color + Lighting: [palette + key light + rim + volumetrics]
+	Concept A — Emotion-Forward:
+	  Focal Point: [exactly what the viewer sees — character close-up or epic scene]
+	  Emotional Hook: [the question this image plants]
+	  Composition: [foreground frame → midground subject → background atmosphere]
+	  Text Overlay: [wording (1-4 words), cinematic serif font, gold/emboss texture, drop shadow, position]
+	  Color + Lighting: [palette + key light + rim + volumetrics]
 
-Concept B — CTR-Optimized Alternative:
-  (Different composition, different emotional angle, different text treatment)
+	Concept B — CTR-Optimized Alternative:
+	  (Different composition, different emotional angle, different text treatment)
 
-A/B Analysis:
-  Concept A strength: [which CTR lever]
-  Concept B strength: [which CTR lever]
-  Final Recommendation: [winner + niche-specific reasoning]
+	A/B Analysis:
+	  Concept A strength: [which CTR lever]
+	  Concept B strength: [which CTR lever]
+	  Final Recommendation: [winner + niche-specific reasoning]
 
-═══════════════════════════════════
-BEATS (Voice + Image + Video per Beat, max 8 seconds each)
-═══════════════════════════════════
-Generate the full script as numbered BEATS. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
+	════════════════════════════════════════
+	BEATS (Voice + Image + Video per Beat, max 8 seconds each)
+	════════════════════════════════════════
+	Generate the full script as numbered BEATS. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
 
-For EVERY beat, use the Visual Style Profile data above to maintain absolute consistency. The style tags, color palette, lighting, and composition from the analysis must be baked into every image and video prompt.
+	CRITICAL: Every image and video prompt must be a fully detailed, self-contained, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be complete enough to paste directly into an AI image/video generator with zero context.
 
-BEAT 1 — [Hook Moment]
-VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
+	BEAT 1 — [Hook Moment]
+	VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
 
-IMAGE PROMPT: [Standalone text-to-image prompt. Describe the full scene — subject, environment, composition, lighting, mood. End with: | Style: {style_tags}, 16:9]
+	IMAGE PROMPT: [Fully detailed, self-contained text-to-image prompt. Include: subject description + pose/expression + environment + composition/framing + lighting setup (key light direction, quality, color temp) + color palette (3-5 named colors) + art style + render quality + atmosphere + aspect ratio. The global visual style is fully baked into this description. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
 
-VIDEO PROMPT: [Shot type + camera movement + subject action + environment dynamics + lighting animation + depth/parallax + transition out. End with: | Style: {style_tags}, 16:9]
+	VIDEO PROMPT: [Fully detailed, self-contained text-to-video prompt. Include: shot type + camera movement + subject action/motion + environment dynamics (wind, particles, water) + lighting animation (how light moves/changes) + depth/parallax layers + transition out + art style + color palette + atmosphere + aspect ratio. The global visual style is fully baked into this description. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
 
-BEAT 2 — [Beat Name]
-VOICE OVER: [...]
-IMAGE PROMPT: [...] | Style: {style_tags}, 16:9
-VIDEO PROMPT: [...] | Style: {style_tags}, 16:9
+	BEAT 2 — [Beat Name]
+	VOICE OVER: [...]
+	IMAGE PROMPT: [Fully detailed, self-contained. Subject + environment + composition + lighting + color palette + art style + render quality + atmosphere + aspect ratio. All style details spelled out in full prose.]
+	VIDEO PROMPT: [Fully detailed, self-contained. Shot + camera + subject action + environment dynamics + lighting animation + depth + transition + art style + color palette + atmosphere + aspect ratio. All style details spelled out in full prose.]
 
-(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". All style tags must be identical across every prompt.)
+	(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". Every image and video prompt is fully self-contained with the global visual style baked in — detailed prose, no shorthand, no pipe tags.)
 
 ═══════════════════════════════════
 INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
@@ -660,16 +661,13 @@ def generate_package():
         # Build style context from vision analysis
         vis_str = json.dumps(visual_json, indent=2) if visual_json else 'No visual reference provided — use the Viral DNA to infer visual style.'
         thumb_str = json.dumps(thumbnail_json, indent=2) if thumbnail_json else 'No thumbnail reference provided — use the Viral DNA to infer thumbnail style.'
-        style_tags = ', '.join(visual_json.get('style_tags', [])) if visual_json else 'match the Viral DNA aesthetic'
 
-        # Use DeepSeek for quality synthesis (avoids Groq's 12K TPM bottleneck)
         system_prompt = MASTER_PACKAGE_SYSTEM_INSTRUCTION.format(
             viral_dna=viral_dna,
             niche=niche,
             target_length=video_length,
             visual_json=vis_str,
-            thumbnail_json=thumb_str,
-            style_tags=style_tags
+            thumbnail_json=thumb_str
         )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
 
