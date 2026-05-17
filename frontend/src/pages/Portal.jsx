@@ -69,6 +69,8 @@ function TitlePicker({ titles, onChoose, onRegenerate, loading }) {
 }
 
 /* ── Paywall modal ──────────────────────────────────────────── */
+const LEMON_SQUEEZY_URL_PRO = import.meta.env.VITE_LEMON_SQUEEZY_URL_PRO || 'https://morelike.lemonsqueezy.com/checkout/buy/pro-product-id'
+
 function Paywall({ onTokenValidated, onCancel }) {
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(false)
@@ -87,7 +89,7 @@ function Paywall({ onTokenValidated, onCancel }) {
       })
       const data = await res.json()
       if (data.valid) {
-        onTokenValidated(token.trim(), data.credits, data.email || '')
+        onTokenValidated(token.trim(), data.credits, data.email || '', data.plan || 'basic', data.limits || {})
       } else {
         setError('Invalid or expired token.')
       }
@@ -103,7 +105,7 @@ function Paywall({ onTokenValidated, onCancel }) {
         <div className="text-4xl mb-3">&#128274;</div>
         <h2 className="text-xl font-bold mb-2">Unlock Your Script Package</h2>
         <p className="text-purple-200 text-sm">
-          Analysis is free. Unlock 3 script packages for <strong>$8</strong> — up to 3 minutes of video each.
+          Analysis is free. Choose your plan — 3 credits each.
         </p>
       </div>
 
@@ -112,9 +114,19 @@ function Paywall({ onTokenValidated, onCancel }) {
           href={LEMON_SQUEEZY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center text-sm"
+          className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
         >
-          Get Access — $8
+          <span className="block text-lg">Basic — $8</span>
+          <span className="block text-xs text-purple-200 mt-1">3 min max · 3 videos</span>
+        </a>
+        <a
+          href={LEMON_SQUEEZY_URL_PRO}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
+        >
+          <span className="block text-lg">Pro — $10</span>
+          <span className="block text-xs text-pink-200 mt-1">5 min max · 5 videos</span>
         </a>
       </div>
 
@@ -185,6 +197,8 @@ function Portal() {
   const [token, setToken] = useState('')
   const [credits, setCredits] = useState(0)
   const [tokenEmail, setTokenEmail] = useState('')
+  const [tokenPlan, setTokenPlan] = useState('basic')
+  const [planLimits, setPlanLimits] = useState({ max_videos: 3, max_minutes: 3 })
   const [tokenValidated, setTokenValidated] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
 
@@ -239,10 +253,15 @@ function Portal() {
           setToken(stored)
           setCredits(data.credits)
           setTokenEmail(data.email || '')
+          setTokenPlan(data.plan || 'basic')
+          setPlanLimits(data.limits || { max_videos: 3, max_minutes: 3 })
           setTokenValidated(true)
+          setLimit(data.limits?.max_videos || 3)
+          setVideoLength(data.limits?.max_minutes || 3)
         } else {
           localStorage.removeItem('morelike_token')
           localStorage.removeItem('morelike_credits')
+          localStorage.removeItem('morelike_plan')
         }
       }).catch(() => {})
     }
@@ -261,10 +280,15 @@ function Portal() {
       if (data.valid) {
         setCredits(data.credits)
         setTokenEmail(data.email || '')
+        setTokenPlan(data.plan || 'basic')
+        setPlanLimits(data.limits || { max_videos: 3, max_minutes: 3 })
         setTokenValidated(true)
         setShowLogin(false)
+        setLimit(data.limits?.max_videos || 3)
+        setVideoLength(data.limits?.max_minutes || 3)
         localStorage.setItem('morelike_token', token.trim())
         localStorage.setItem('morelike_credits', String(data.credits))
+        localStorage.setItem('morelike_plan', data.plan || 'basic')
       } else {
         alert('Invalid or expired token.')
       }
@@ -274,14 +298,18 @@ function Portal() {
   }
 
   // ── Paywall callback ────────────────────────────────────────
-  const handlePaywallValidated = useCallback((validatedToken, creds, email) => {
+  const handlePaywallValidated = useCallback((validatedToken, creds, email, plan, limits) => {
     setToken(validatedToken)
     setCredits(creds)
     setTokenEmail(email)
+    setTokenPlan(plan || 'basic')
+    setPlanLimits(limits || { max_videos: 3, max_minutes: 3 })
     setTokenValidated(true)
+    setLimit(limits?.max_videos || 3)
+    setVideoLength(limits?.max_minutes || 3)
     localStorage.setItem('morelike_token', validatedToken)
     localStorage.setItem('morelike_credits', String(creds))
-    // Route to visual upload instead of directly generating
+    localStorage.setItem('morelike_plan', plan || 'basic')
     setFlow('visual_upload')
   }, [])
 
@@ -587,9 +615,12 @@ function Portal() {
     setToken('')
     setCredits(0)
     setTokenEmail('')
+    setTokenPlan('basic')
+    setPlanLimits({ max_videos: 3, max_minutes: 3 })
     setTokenValidated(false)
     localStorage.removeItem('morelike_token')
     localStorage.removeItem('morelike_credits')
+    localStorage.removeItem('morelike_plan')
   }
 
   // Cleanup socket on unmount
@@ -626,7 +657,7 @@ function Portal() {
       <div className="flex items-center gap-3 md:gap-4 flex-wrap">
         {tokenValidated ? (
           <>
-            <span className="text-xs md:text-sm text-gray-400">{tokenEmail && `${tokenEmail} | `}Credits: <strong className="text-white">{credits}</strong></span>
+            <span className="text-xs md:text-sm text-gray-400">{tokenEmail && `${tokenEmail} | `}{tokenPlan === 'pro' ? 'Pro' : 'Basic'} · Credits: <strong className="text-white">{credits}</strong></span>
             <button onClick={handleLogout} className="text-xs md:text-sm text-gray-400 hover:text-white transition-colors">Logout</button>
           </>
         ) : (
@@ -702,11 +733,11 @@ function Portal() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-purple-200 mb-1">Videos to analyze (max 3)</label>
+                    <label className="block text-sm text-purple-200 mb-1">Videos to analyze (max {planLimits.max_videos})</label>
                     <input
-                      type="number" min="1" max="3"
+                      type="number" min="1" max={planLimits.max_videos}
                       value={limit}
-                      onChange={(e) => setLimit(Math.min(3, Math.max(1, parseInt(e.target.value) || 1)))}
+                      onChange={(e) => setLimit(Math.min(planLimits.max_videos, Math.max(1, parseInt(e.target.value) || 1)))}
                       className="w-24 bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
@@ -717,9 +748,9 @@ function Portal() {
                       onChange={(e) => setVideoLength(parseInt(e.target.value))}
                       className="bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
-                      <option value={1}>1 minute</option>
-                      <option value={2}>2 minutes</option>
-                      <option value={3}>3 minutes</option>
+                      {Array.from({ length: planLimits.max_minutes }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>{n} minute{n > 1 ? 's' : ''}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

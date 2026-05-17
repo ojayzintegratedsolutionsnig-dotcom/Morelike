@@ -16,6 +16,7 @@ function StepIcon({ icon, color }) {
 /* ── Landing ──────────────────────────────────────────────── */
 function Landing() {
   const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/0772c25a-3fa9-4ca4-b229-7c7fbdd04127'
+  const LEMON_SQUEEZY_URL_PRO = import.meta.env.VITE_LEMON_SQUEEZY_URL_PRO || 'https://morelike.lemonsqueezy.com/checkout/buy/pro-product-id'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white relative overflow-hidden">
@@ -52,7 +53,15 @@ function Landing() {
             rel="noopener noreferrer"
             className="px-3 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
           >
-            Get Access — $8
+            Basic $8
+          </a>
+          <a
+            href={LEMON_SQUEEZY_URL_PRO}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
+          >
+            Pro $10
           </a>
         </div>
       </nav>
@@ -71,7 +80,7 @@ function Landing() {
               {' '}Again
             </h1>
             <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
-              Paste any YouTube channel you admire and get fresh title ideas, topic breakdowns, and a deep analysis of what makes their content work — completely free. When you're ready, unlock 3 full script packages for just $8 (up to 3 minutes of video each).
+              Paste any YouTube channel you admire and get fresh title ideas, topic breakdowns, and a deep analysis of what makes their content work — completely free. When you're ready, unlock 3 full script packages starting at <strong>$8</strong> (up to 5 min with Pro).
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
@@ -88,7 +97,7 @@ function Landing() {
               </Link>
             </div>
             <p className="text-gray-500 text-sm mt-4">
-              $8 = 3 credits. Each credit unlocks a full script package (up to 3 min video).
+              Basic $8 = 3 credits (3 min max) &middot; Pro $10 = 3 credits (5 min max, 5 videos).
             </p>
           </div>
           <div className="hidden md:block">
@@ -177,7 +186,7 @@ function Landing() {
             />
             <h3 className="text-lg font-semibold mb-2">3. Unlock & Create</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Unlock 3 full script packages for $8 — each with a complete script (up to 3 min), image prompts, video prompts, voice direction, and thumbnail design. Ready to download.
+              Unlock 3 full script packages starting at $8 — each with a complete script, image prompts, video prompts, voice direction, and thumbnail design. Pro plan supports up to 5 min videos. Ready to download.
             </p>
           </div>
         </div>
@@ -194,7 +203,7 @@ function Landing() {
             <span className="text-gray-500">→</span>
             <span className="text-white font-bold">2. Pick a Title</span>
             <span className="text-gray-500">→</span>
-            <span className="text-white font-bold">3. Unlock $8</span>
+            <span className="text-white font-bold">3. Unlock</span>
           </div>
 
           <div className="grid grid-cols-1 gap-3 mb-10 text-left max-w-sm mx-auto">
@@ -215,14 +224,35 @@ function Landing() {
             ))}
           </div>
 
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            <a
+              href={LEMON_SQUEEZY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
+            >
+              <span className="block text-lg">Basic — $8</span>
+              <span className="block text-xs text-purple-200 mt-1">3 credits · 3 min max · 3 videos</span>
+            </a>
+            <a
+              href={LEMON_SQUEEZY_URL_PRO}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
+            >
+              <span className="block text-lg">Pro — $10</span>
+              <span className="block text-xs text-pink-200 mt-1">3 credits · 5 min max · 5 videos</span>
+            </a>
+          </div>
+
           <Link
             to="/portal"
-            className="block w-full py-3 md:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-base md:text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg"
+            className="block w-full py-3 md:py-4 bg-gray-700 hover:bg-gray-600 text-white font-bold text-base md:text-lg rounded-xl transition-all shadow-lg"
           >
-            Analyze a Channel Free
+            Or Analyze a Channel Free First
           </Link>
           <p className="text-gray-500 text-sm mt-4">
-            $8 = 3 credits (up to 3 min per video). Pay when you're ready to unlock.{' '}
+            Pay when you're ready to unlock — 3 credits per plan.{' '}
             <Link to="/success" className="text-purple-400 hover:underline">Already paid? Claim your token</Link>
           </p>
         </div>

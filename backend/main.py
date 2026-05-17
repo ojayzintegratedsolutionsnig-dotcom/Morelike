@@ -18,6 +18,7 @@ from functools import wraps
 from extractor import extract_viral_content
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token
 from tokens import claim_token_by_email, log_action, save_feedback, get_all_feedback, save_reply
+from tokens import get_plan_limits, PLAN_CONFIG
 from emailer import send_token_email, send_reply_email
 
 load_dotenv()
@@ -449,7 +450,15 @@ def validate_token():
     valid = is_token_valid(token)
     if valid:
         creds = get_credits(token)
-        return jsonify({'valid': True, 'credits': creds['credits'], 'email': creds.get('email')})
+        plan = creds.get('plan', 'basic')
+        limits = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
+        return jsonify({
+            'valid': True,
+            'credits': creds['credits'],
+            'email': creds.get('email'),
+            'plan': plan,
+            'limits': limits
+        })
     return jsonify({'valid': False, 'error': 'Invalid or expired token'})
 
 
@@ -465,7 +474,15 @@ def claim_token():
 
     result = claim_token_by_email(email)
     if result:
-        return jsonify({'success': True, 'token': result['token'], 'credits': result['credits']})
+        plan = result.get('plan', 'basic')
+        limits = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
+        return jsonify({
+            'success': True,
+            'token': result['token'],
+            'credits': result['credits'],
+            'plan': plan,
+            'limits': limits
+        })
 
     # No token with lemon_order_id — no purchase found
     return jsonify({'error': 'No completed purchase found for this email. Please check your email or contact support.'}), 404
@@ -506,16 +523,24 @@ def lemonsqueezy_webhook():
     email = order_data.get('user_email', '') or order_data.get('email', '')
     order_id = data.get('data', {}).get('id', '')
 
+    # Detect which plan was purchased from the product ID
+    first_item = order_data.get('first_order_item', {}) or {}
+    product_id = first_item.get('product_id', '')
+
+    # Map product IDs to plans — pro product ID configurable via env
+    PRO_PRODUCT_ID = os.environ.get('LEMON_SQUEEZY_PRODUCT_PRO', '')
+    plan = 'pro' if (PRO_PRODUCT_ID and product_id == PRO_PRODUCT_ID) else 'basic'
+
     if not email:
         return jsonify({'error': 'No email in order'}), 400
 
-    token = create_token(email=email, credits=3, lemon_order_id=order_id)
+    token = create_token(email=email, credits=3, lemon_order_id=order_id, plan=plan)
     try:
         send_token_email(email, token)
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-    return jsonify({'success': True, 'token': token})
+    return jsonify({'success': True, 'token': token, 'plan': plan})
 
 
 @app.route('/api/admin/login', methods=['POST'])
@@ -536,7 +561,10 @@ def admin_login():
 def credits():
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     creds = get_credits(token)
-    return jsonify(creds)
+    if creds:
+        plan = creds.get('plan', 'basic')
+        creds['limits'] = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
+    return jsonify(creds or {})
 
 
 @app.route('/api/extract', methods=['POST'])
@@ -642,16 +670,21 @@ def generate_package():
     if not chosen_title:
         return jsonify({'error': 'A chosen title is required'}), 400
 
-    try:
-        video_length = int(video_length)
-        video_length = max(1, min(3, video_length))
-    except (ValueError, TypeError):
-        video_length = 3
-
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     creds = get_credits(token)
     if not creds or creds['credits'] <= 0:
         return jsonify({'error': 'No credits remaining. Purchase more to continue.'}), 402
+
+    # Apply plan-based max video length
+    plan = creds.get('plan', 'basic')
+    limits = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
+    max_minutes = limits['max_minutes']
+
+    try:
+        video_length = int(video_length)
+        video_length = max(1, min(max_minutes, video_length))
+    except (ValueError, TypeError):
+        video_length = max_minutes
 
     log_action(token, 'generate_package')
 
@@ -756,22 +789,25 @@ def admin_generate_token():
     data = request.json or {}
     email = data.get('email', '').strip()
     credits = data.get('credits', 3)
+    plan = data.get('plan', 'basic')
 
     if not email:
         return jsonify({'error': 'Email is required'}), 400
+    if plan not in PLAN_CONFIG:
+        return jsonify({'error': f'Invalid plan. Choose: {", ".join(PLAN_CONFIG.keys())}'}), 400
 
     try:
         credits = max(1, min(100, int(credits)))
     except (ValueError, TypeError):
         credits = 3
 
-    token = create_token(email=email, credits=credits)
+    token = create_token(email=email, credits=credits, plan=plan)
     try:
         send_token_email(email, token)
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-    return jsonify({'success': True, 'token': token, 'email': email, 'credits': credits})
+    return jsonify({'success': True, 'token': token, 'email': email, 'credits': credits, 'plan': plan})
 
 
 @app.route('/api/admin/diag', methods=['GET'])

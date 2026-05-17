@@ -16,6 +16,13 @@ def get_db():
     return conn
 
 
+# Plan configuration
+PLAN_CONFIG = {
+    'basic': {'max_videos': 3, 'max_minutes': 3, 'price': '$8'},
+    'pro':   {'max_videos': 5, 'max_minutes': 5, 'price': '$10'},
+}
+
+
 def init_db():
     conn = get_db()
     conn.executescript('''
@@ -25,6 +32,7 @@ def init_db():
             credits INTEGER NOT NULL DEFAULT 1,
             email TEXT,
             lemon_order_id TEXT,
+            plan TEXT NOT NULL DEFAULT 'basic',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -45,20 +53,36 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     ''')
+
+    # Migrate existing tables that lack the plan column
+    try:
+        conn.execute('ALTER TABLE tokens ADD COLUMN plan TEXT NOT NULL DEFAULT "basic"')
+    except Exception:
+        pass  # column already exists
+
     conn.commit()
     conn.close()
 
 
-def create_token(email=None, credits=3, lemon_order_id=None):
+def create_token(email=None, credits=3, lemon_order_id=None, plan='basic'):
     token = uuid.uuid4().hex[:12].upper()
     conn = get_db()
     conn.execute(
-        'INSERT INTO tokens (token, credits, email, lemon_order_id) VALUES (?, ?, ?, ?)',
-        (token, credits, email, lemon_order_id)
+        'INSERT INTO tokens (token, credits, email, lemon_order_id, plan) VALUES (?, ?, ?, ?, ?)',
+        (token, credits, email, lemon_order_id, plan)
     )
     conn.commit()
     conn.close()
     return token
+
+
+def get_plan_limits(token):
+    """Return max_videos and max_minutes for the token's plan."""
+    conn = get_db()
+    row = conn.execute('SELECT plan FROM tokens WHERE token = ?', (token,)).fetchone()
+    conn.close()
+    plan = row['plan'] if row else 'basic'
+    return PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
 
 
 def is_token_valid(token):
@@ -75,11 +99,11 @@ def is_token_valid(token):
 def get_credits(token):
     conn = get_db()
     row = conn.execute(
-        'SELECT credits, email FROM tokens WHERE token = ?', (token,)
+        'SELECT credits, email, plan FROM tokens WHERE token = ?', (token,)
     ).fetchone()
     conn.close()
     if row:
-        return {'credits': row['credits'], 'email': row['email']}
+        return {'credits': row['credits'], 'email': row['email'], 'plan': row['plan']}
     return None
 
 
@@ -106,12 +130,12 @@ def claim_token_by_email(email):
     """Find the most recent unused token for a given email — only tokens created by a real Lemon Squeezy order."""
     conn = get_db()
     row = conn.execute(
-        'SELECT token, credits FROM tokens WHERE email = ? AND credits > 0 AND lemon_order_id IS NOT NULL ORDER BY created_at DESC LIMIT 1',
+        'SELECT token, credits, plan FROM tokens WHERE email = ? AND credits > 0 AND lemon_order_id IS NOT NULL ORDER BY created_at DESC LIMIT 1',
         (email,)
     ).fetchone()
     conn.close()
     if row:
-        return {'token': row['token'], 'credits': row['credits']}
+        return {'token': row['token'], 'credits': row['credits'], 'plan': row['plan']}
     return None
 
 
