@@ -11,6 +11,9 @@ import os
 from dotenv import load_dotenv
 import threading
 import uuid
+import base64
+import json
+import re
 from functools import wraps
 from extractor import extract_viral_content
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token
@@ -124,76 +127,45 @@ Return EXACTLY in this format (no extra text, no commentary):
 2. [Second title]
 3. [Third title]"""
 
-VIRAL_SCRIPT_SYSTEM_INSTRUCTION = """# ROLE: THE VIRAL ARCHITECT
-You are the world's most advanced viral scriptwriter. You do not write "content"; you engineer attention.
+MASTER_PACKAGE_SYSTEM_INSTRUCTION = """# ROLE: AI YouTube Content Engine
+You analyze, model, and recreate YouTube content styles. Match style, not phrasing. Outputs are fully original.
 
-# KNOWLEDGE BASE: THE VIRAL DNA
+# CONTEXT
+## Viral DNA (Channel Style Blueprint)
 {viral_dna}
 
-# NICHE LOCK
-The content you are about to produce belongs to this niche:
-{niche}
+## Visual Style Profile (from reference image analysis)
+{visual_json}
 
-You MUST stay within this niche. Do NOT drift into another topic, genre, or subject area. Every output must be about {niche}.
+## Thumbnail Style Data (from thumbnail analysis)
+{thumbnail_json}
 
-# TARGET VIDEO LENGTH
-{target_length} minutes. Pace the script to fill this duration naturally. Plan for approximately {target_length} × 150 spoken words (standard speaking pace of ~150 words/minute).
+## Target
+Niche: {niche}
+Duration: {target_length} minutes (~{target_length} × 150 words)
 
-# TASK PROTOCOL
-When I give you a TOPIC AND TITLE, execute the following pipeline strictly in order. Do not skip steps.
-
-## PHASE 1: THE DRAFT (The Architect)
-Using the "Viral DNA" above, write a V1 script on the topic using the chosen title.
-- Use the exact Hook Structure defined in the DNA.
-- Match the Sentence Rhythm and Pacing.
-- Insert the specific "Retention Loops" identified in the DNA.
-- Study the DNA's niche and audience psychology to determine the emoji palette: which emojis feel native to this creator's space (e.g., finance channels use 📈💸🔥, tech channels use ⚡🤖🛠️, storytelling uses 🌀👁️💬). Do NOT use random emojis — every emoji must earn its place.
-- If the topic naturally calls for multiple characters/voices (e.g., dialogue scenes, interviews, skits), structure the script with character labels. Otherwise use a single narrator voice.
-- Identify 8-12 key visual moments in the script that would make compelling still images and short video clips.
-
-## PHASE 2: THE ROAST (The Hostile Review)
-Take the V1 script and run it through this mandatory validation. Do NOT show me V1 — only show the final result.
-
-Simulate 5 personas reviewing the draft:
-1. The Endless Scroller: "What makes me NOT watch past 2 seconds?"
-2. The Seen-It-All Cynic: "What feels derivative or recycled?"
-3. The Silent Judge: "What is unclear or wasting my time?"
-4. The Share-Gatekeeper: "Why would I be embarrassed to share this?"
-5. The Platform Native: "What algorithm signals are missing?"
-
-For each reviewer, identify one CRITICAL FAILURE in V1.
-Rewrite the script to neutralize these objections.
-
-## PHASE 3: SEO TITLE A/B TESTING
-Generate 2 candidate titles for the script:
-- Title A: High-curiosity, emotion-forward angle
-- Title B: Search-optimized, keyword-rich angle
-Compare them: which has stronger CTR potential for this niche? Pick the winner as the FINAL SEO TITLE.
-Bake in hyper-optimized SEO emojis. Place emojis strategically at the start or between key phrases (1-4 emojis typical for this niche).
-
-## PHASE 4: FINAL OUTPUT
-Present the final output in this EXACT format. Every section is mandatory. Use the EXACT section headers and separator lines shown below. Do not add extra commentary outside the format.
+# OUTPUT FORMAT
+Produce the following sections in order. Every section is mandatory.
 
 ═══════════════════════════════════
 USER PLAN: $8 Creator Plan
-SCRIPT DURATION: [X] min [Y] sec
-  (Formula: [total word count] words ÷ 150 words/min ≈ [X.X] min)
+SCRIPT DURATION: [X] min [Y] sec (Formula: [W] words ÷ 150 words/min)
 ═══════════════════════════════════
 
-GLOBAL STYLE RULE
-Art style: [photorealistic / 3D render / digital painting / anime / cinematic / etc.]
-Color palette: [dominant colors + warm/cool tone]
-Lighting: [lighting style]
-Aspect ratio: 16:9
-Recurring motifs: [visual motifs that repeat across scenes]
+STYLE DNA CONFIRMATION
+Niche: [one-line niche statement]
+Target word count: [number] (±5%)
+Pacing: [words/sec, sentence rhythm from DNA]
+Hook style: [how the DNA hooks, applied to this script]
+Emotional flow: [tension arc across the script]
 
 ───────────────────────────────────────
 FINAL SEO TITLE
-(after A/B analysis — winner with hyper-optimized SEO emojis)
+(after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
 
 DESCRIPTION
-- Above-fold hook (first 2 lines): [hook summary using high-search-volume keywords]
-- Body: [3-5 sentences describing the video, with relevant emojis as visual anchors]
+- Above-fold hook (first 2 lines): [hook using high-search-volume keywords]
+- Body: [3-5 sentences describing the video, max 2 relevant emojis as visual anchors]
 - Hashtags: #tag1 #tag2 #tag3
 
 TAGS/KEYWORDS
@@ -202,81 +174,59 @@ tag1, tag2, tag3
 ═══════════════════════════════════
 THUMBNAIL DESIGN
 ═══════════════════════════════════
+Design as a cinematic movie poster using thumbnail style data above.
 
-Concept A: [full design description — composition, foreground, background, text overlay wording + font style, color scheme, lighting, emojis in text overlay]
+Concept A — Emotion-Forward:
+  Focal Point: [exactly what the viewer sees — character close-up or epic scene]
+  Emotional Hook: [the question this image plants]
+  Composition: [foreground frame → midground subject → background atmosphere]
+  Text Overlay: [wording (1-4 words), cinematic serif font, gold/emboss texture, drop shadow, position]
+  Color + Lighting: [palette + key light + rim + volumetrics]
 
-Concept B: [alternative concept — different composition, different text overlay, different color contrast]
+Concept B — CTR-Optimized Alternative:
+  (Different composition, different emotional angle, different text treatment)
 
 A/B Analysis:
-- Concept A strength: [why A could win on CTR]
-- Concept B strength: [why B could win on CTR]
-Final Recommendation: [winner + reasoning]
+  Concept A strength: [which CTR lever]
+  Concept B strength: [which CTR lever]
+  Final Recommendation: [winner + niche-specific reasoning]
 
 ═══════════════════════════════════
-PURE SCRIPT
+BEATS (Voice + Image + Video per Beat, max 8 seconds each)
 ═══════════════════════════════════
+Generate the full script as numbered BEATS. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
 
-[Scene context in brackets. Dialogue prefixed by character name followed by colon. Multiple characters clearly distinguished.]
+For EVERY beat, use the Visual Style Profile data above to maintain absolute consistency. The style tags, color palette, lighting, and composition from the analysis must be baked into every image and video prompt.
 
-[The hook — opening scene description]
+BEAT 1 — [Hook Moment]
+VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
 
-Character/ narrator: [dialogue text...]
+IMAGE PROMPT: [Standalone text-to-image prompt. Describe the full scene — subject, environment, composition, lighting, mood. End with: | Style: {style_tags}, 16:9]
 
-[Scene transition description]
+VIDEO PROMPT: [Shot type + camera movement + subject action + environment dynamics + lighting animation + depth/parallax + transition out. End with: | Style: {style_tags}, 16:9]
 
-Character A: [dialogue...]
-Character B: [dialogue...]
+BEAT 2 — [Beat Name]
+VOICE OVER: [...]
+IMAGE PROMPT: [...] | Style: {style_tags}, 16:9
+VIDEO PROMPT: [...] | Style: {style_tags}, 16:9
 
-(Continue full script. No timestamps. No segment numbers. Just the clean script with scene cues and character labels.)
-
-═══════════════════════════════════
-IMAGE PROMPTS
-═══════════════════════════════════
-
-Image Prompt 1
-(Aligns with: "exact voice line this visual pairs with")
-[Detailed text-to-image prompt — subject, composition, lighting, mood, camera angle, color temperature] | Style: [global style], 16:9
-
-Image Prompt 2
-(Aligns with: "voice line")
-[Detailed text-to-image prompt...] | Style: [global style], 16:9
-
-(Continue for all 8-12 key visual moments. Each prompt ends with EXACTLY: "| Style: [global style], 16:9" so the user can copy-paste directly into an image generation model.)
-
-═══════════════════════════════════
-VIDEO PROMPTS
-═══════════════════════════════════
-
-Video Prompt 1
-(Aligns with: "voice line")
-(upgrade for detailed video prompt) | Style: [global style], 16:9
-
-Video Prompt 2
-(Aligns with: "voice line")
-(upgrade for detailed video prompt) | Style: [global style], 16:9
-
-(Continue for all video clips. $8 Creator Plan uses the placeholder "(upgrade for detailed video prompt)" for the core prompt content — no camera directions, no animation details, no motion prompts. Premium plans unlock full scene composition, camera angle direction, multi-shot sequencing, and motion style specification. Each prompt STILL ends with "| Style: [global style], 16:9".)
+(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". All style tags must be identical across every prompt.)
 
 ═══════════════════════════════════
 VOICE PROMPT
 ═══════════════════════════════════
-
-Tone: [overall vocal tone — warm, urgent, mysterious, conversational, authoritative, etc.]
-Mood Arc: [how the emotional register shifts across the script — e.g., curious → tense → relieved]
-Emotional Triggers: [specific words/phrases that carry emotional weight and how to deliver them]
-Pacing: [tempo description — rapid-fire opening, slow contemplation in middle, building urgency at end]
-Vocal Register: [pitch range, breathiness, projection style]
-Speed Variations: [where to speed up, where to pause, where to let silence land]
-{{if multiple characters, include for EACH character:
-  Character [Name]: [vocal quality, accent, age feel, personality in voice]}}
+Tone: [vocal tone — warm, urgent, mysterious, authoritative]
+Mood Arc: [how emotion shifts — curious → tense → relieved]
+Pacing: [tempo — rapid opening, slow contemplation, building urgency]
+Vocal Register: [pitch, breathiness, projection]
+{{if multiple characters, include per character: Character [Name]: [vocal quality, accent, age feel, personality in voice]}}
 
 ═══════════════════════════════════
 ALIGNMENT SUMMARY
 ═══════════════════════════════════
-
-Image 1 → Voice: "[matching line]" → Video 1: [what motion/transition happens]
-Image 2 → Voice: "[matching line]" → Video 2: [what motion/transition happens]
-(Continue for all image/video pairs. This shows exactly how visuals sync to the script.)"""
+Beat 1 → Voice: "[line]" → Image: [scene] → Video: [motion]
+Beat 2 → Voice: "[line]" → Image: [scene] → Video: [motion]
+(All beats mapped. Shows visual-audio sync.)"""
 
 
 # ── Helpers ────────────────────────────────────────────────────
@@ -343,6 +293,149 @@ def call_ai(system_prompt, user_message, max_tokens=8192):
             raise Exception(f"AI API error ({provider}){hint}: {str(last_error)}")
 
     raise Exception("AI API error: all providers exhausted")
+
+
+def call_ai_deepseek(system_prompt, user_message, max_tokens=16384):
+    """Call DeepSeek directly for large-context creative synthesis."""
+    import time
+    if not deepseek_client:
+        raise Exception("DeepSeek API key not configured")
+    for attempt in range(2):
+        try:
+            response = deepseek_client.chat.completions.create(
+                model='deepseek-chat',
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=1.0,
+                max_tokens=max_tokens,
+                timeout=300.0,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            if attempt < 1:
+                time.sleep(3)
+            else:
+                raise Exception(f"DeepSeek error: {str(e)}")
+
+
+def call_groq_vision(system_prompt, user_message, image_base64_list, max_tokens=4096):
+    """Groq Vision analysis — uses llama-4-scout for structured image extraction."""
+    import time
+
+    if not groq_client:
+        raise Exception("Groq API key required for vision analysis")
+
+    user_content = [{"type": "text", "text": user_message}]
+    for b64 in image_base64_list:
+        user_content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
+        })
+
+    for attempt in range(2):
+        try:
+            response = groq_client.chat.completions.create(
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                temperature=0.3,
+                max_tokens=max_tokens,
+                response_format={"type": "json_object"},
+                timeout=120.0,
+            )
+            raw = response.choices[0].message.content
+            return json.loads(raw)
+        except Exception as e:
+            if attempt < 1:
+                time.sleep(2)
+            else:
+                raise Exception(f"Groq Vision error: {str(e)}")
+
+
+STYLE_TAG_MAP = {
+    'warm cinematic glow': 'golden-hour-cinematic',
+    'golden hour lighting': 'golden-hour-cinematic',
+    'amber rim light': 'golden-hour-cinematic',
+    'soft warm backlight': 'golden-hour-cinematic',
+    'dramatic shadows': 'high-contrast-dramatic',
+    'high contrast chiaroscuro': 'high-contrast-dramatic',
+    'deep shadows': 'high-contrast-dramatic',
+    'volumetric fog': 'atmospheric-haze',
+    'atmospheric haze': 'atmospheric-haze',
+    'dust motes': 'atmospheric-haze',
+    'god rays': 'divine-light-beams',
+    'divine light rays': 'divine-light-beams',
+    'heavenly backlight': 'divine-light-beams',
+    'cinematic lighting': 'cinematic-lighting',
+    'movie trailer lighting': 'cinematic-lighting',
+    'pixar-style': 'stylized-3d-soft',
+    'dreamworks-style': 'stylized-3d-soft',
+    'unreal-engine': 'cinematic-realtime',
+    'photorealistic': 'photorealistic',
+    'stylized 2d': 'stylized-2d-flat',
+    'flat illustration': 'stylized-2d-flat',
+}
+
+
+def normalize_visual_json(raw_json):
+    """Normalize style tags from Groq Vision into canonical tokens."""
+    if not raw_json:
+        return raw_json
+    tags = raw_json.get('style_tags', [])
+    if tags:
+        normalized = []
+        seen = set()
+        for tag in tags:
+            tag_lower = tag.lower().strip()
+            canonical = STYLE_TAG_MAP.get(tag_lower, tag_lower.replace(' ', '-'))
+            if canonical not in seen:
+                normalized.append(canonical)
+                seen.add(canonical)
+        raw_json['style_tags'] = normalized
+    return raw_json
+
+
+# ── Vision prompts ─────────────────────────────────────────────
+
+VISUAL_ANALYSIS_SYSTEM_INSTRUCTION = """Analyze this reference image from a video. Extract objective visual data for AI image/video recreation.
+Return ONLY a JSON object with these exact keys:
+{
+  "art_style": "stylized 3D / 2D illustration / photorealistic / cinematic animation / etc.",
+  "camera_angle": "eye-level / low angle / high angle / dutch tilt / aerial / etc.",
+  "lighting": "key light direction + quality (soft/hard) + color temperature",
+  "color_palette": "dominant 3-5 colors with descriptive names",
+  "subject_description": "main subject — pose, expression, clothing, distinguishing features",
+  "facial_expression": "emotion on face — neutral, intense, joyful, sorrowful, etc.",
+  "emotion": "overall emotional tone of the scene",
+  "environment": "location, time of day, atmospheric conditions",
+  "composition": "subject placement, framing, depth layers (foreground/midground/background)",
+  "foreground_elements": "objects/elements closest to camera",
+  "background_elements": "objects/environment in background",
+  "cinematic_style": "Pixar-like / Unreal Engine cinematic / anime / hand-drawn / etc.",
+  "time_of_day": "golden hour / midday / night / twilight / interior no window / etc.",
+  "render_quality": "low-poly / high-detail / painterly / smooth / textured",
+  "style_tags": ["tag1", "tag2", "tag3"]
+}
+Be extremely detailed and objective. No creative writing. No storytelling. Just visual facts."""
+
+THUMBNAIL_ANALYSIS_SYSTEM_INSTRUCTION = """Analyze this YouTube thumbnail image. Extract objective design data.
+Return ONLY a JSON object with these exact keys:
+{
+  "text_style": "font family feel, size, weight, color, effects (emboss/shadow/gradient)",
+  "text_placement": "top center / bottom center / upper third / etc.",
+  "composition": "focal point placement, depth layers, rule of thirds usage",
+  "color_contrast": "dominant contrast strategy — warm subject + cool bg / complementary / monochromatic",
+  "emotion_trigger": "what emotion does this thumbnail provoke — curiosity, awe, urgency, fear, hope",
+  "visual_hooks": ["hook1", "hook2"],
+  "art_style": "same categories as video reference",
+  "lighting": "thumbnail-specific lighting treatment",
+  "color_palette": "dominant 3-5 colors"
+}
+Be detailed and objective. Focus on what drives CTR — emotion, contrast, readability, curiosity gap."""
 
 
 # ── Extraction ────────────────────────────────────────────────
@@ -568,13 +661,14 @@ def generate_package():
     chosen_title = data.get('title', '')
     topic = data.get('topic', '')
     video_length = data.get('video_length', 3)
+    visual_json = data.get('visual_json', None)
+    thumbnail_json = data.get('thumbnail_json', None)
 
     if not viral_dna:
         return jsonify({'error': 'Viral DNA is required'}), 400
     if not chosen_title:
         return jsonify({'error': 'A chosen title is required'}), 400
 
-    # Validate video length (3 min max for $8 plan)
     try:
         video_length = int(video_length)
         video_length = max(1, min(3, video_length))
@@ -590,9 +684,29 @@ def generate_package():
 
     try:
         niche = extract_niche(viral_dna)
-        system_prompt = VIRAL_SCRIPT_SYSTEM_INSTRUCTION.format(viral_dna=viral_dna, niche=niche, target_length=video_length)
+
+        # Build style context from vision analysis
+        vis_str = json.dumps(visual_json, indent=2) if visual_json else 'No visual reference provided — use the Viral DNA to infer visual style.'
+        thumb_str = json.dumps(thumbnail_json, indent=2) if thumbnail_json else 'No thumbnail reference provided — use the Viral DNA to infer thumbnail style.'
+        style_tags = ', '.join(visual_json.get('style_tags', [])) if visual_json else 'match the Viral DNA aesthetic'
+
+        # Use DeepSeek for quality synthesis (avoids Groq's 12K TPM bottleneck)
+        system_prompt = MASTER_PACKAGE_SYSTEM_INSTRUCTION.format(
+            viral_dna=viral_dna,
+            niche=niche,
+            target_length=video_length,
+            visual_json=vis_str,
+            thumbnail_json=thumb_str,
+            style_tags=style_tags
+        )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
-        result = call_ai(system_prompt, user_message, max_tokens=16384)
+
+        # Send directly to DeepSeek for large-context creative synthesis
+        if not deepseek_client:
+            result = call_ai(system_prompt, user_message, max_tokens=16384)
+        else:
+            result = call_ai_deepseek(system_prompt, user_message, max_tokens=16384)
+
         use_credit(token)
         last_generated_package = {'content': result, 'title': chosen_title}
         remaining = get_credits(token)
@@ -736,6 +850,106 @@ def admin_diag():
         else:
             results[f'ai_{name}'] = "No API key configured"
     return jsonify(results)
+
+
+# ── Vision Analysis ────────────────────────────────────────────
+
+@app.route('/api/analyze-visuals', methods=['POST'])
+@require_token
+def analyze_visuals():
+    """Analyze 3-5 video reference images via Groq Vision. Returns structured JSON."""
+    if not groq_client:
+        return jsonify({'error': 'Groq API key not configured'}), 500
+
+    files = request.files.getlist('images')
+    if not files or len(files) < 3:
+        return jsonify({'error': 'Minimum 3 reference images required'}), 400
+    if len(files) > 5:
+        return jsonify({'error': 'Maximum 5 reference images allowed'}), 400
+
+    try:
+        image_b64_list = []
+        for f in files:
+            if f.content_type not in ('image/jpeg', 'image/png', 'image/webp'):
+                return jsonify({'error': f'Unsupported format: {f.content_type}. Use JPEG, PNG, or WebP.'}), 400
+            img_bytes = f.read()
+            if len(img_bytes) > 4 * 1024 * 1024:
+                return jsonify({'error': f'{f.filename} exceeds 4MB limit'}), 400
+            image_b64_list.append(base64.b64encode(img_bytes).decode('utf-8'))
+
+        results = []
+        for i, b64 in enumerate(image_b64_list):
+            analysis = call_groq_vision(
+                VISUAL_ANALYSIS_SYSTEM_INSTRUCTION,
+                "Analyze this reference video image. Return structured JSON.",
+                [b64]
+            )
+            results.append(normalize_visual_json(analysis))
+
+        # Merge results: use most common values, aggregate style tags
+        merged = {}
+        all_tags = []
+        for r in results:
+            all_tags.extend(r.get('style_tags', []))
+            for key in r:
+                if key == 'style_tags':
+                    continue
+                merged[key] = r[key]  # last one wins — reasonable for consistent images
+
+        # Deduplicate and order tags by frequency
+        from collections import Counter
+        tag_counts = Counter(all_tags)
+        merged['style_tags'] = [tag for tag, _ in tag_counts.most_common(15)]
+        merged['per_image_analysis'] = results
+
+        return jsonify({'visual_profile': merged, 'success': True})
+    except Exception as e:
+        return jsonify({'error': f'Vision analysis failed: {str(e)}'}), 500
+
+
+@app.route('/api/analyze-thumbnails', methods=['POST'])
+@require_token
+def analyze_thumbnails():
+    """Analyze 2-3 thumbnail reference images via Groq Vision. Returns structured JSON."""
+    if not groq_client:
+        return jsonify({'error': 'Groq API key not configured'}), 500
+
+    files = request.files.getlist('images')
+    if not files or len(files) < 2:
+        return jsonify({'error': 'Minimum 2 thumbnail images required'}), 400
+    if len(files) > 3:
+        return jsonify({'error': 'Maximum 3 thumbnail images allowed'}), 400
+
+    try:
+        image_b64_list = []
+        for f in files:
+            if f.content_type not in ('image/jpeg', 'image/png', 'image/webp'):
+                return jsonify({'error': f'Unsupported format: {f.content_type}. Use JPEG, PNG, or WebP.'}), 400
+            img_bytes = f.read()
+            if len(img_bytes) > 4 * 1024 * 1024:
+                return jsonify({'error': f'{f.filename} exceeds 4MB limit'}), 400
+            image_b64_list.append(base64.b64encode(img_bytes).decode('utf-8'))
+
+        results = []
+        for b64 in image_b64_list:
+            analysis = call_groq_vision(
+                THUMBNAIL_ANALYSIS_SYSTEM_INSTRUCTION,
+                "Analyze this YouTube thumbnail. Return structured JSON.",
+                [b64]
+            )
+            results.append(analysis)
+
+        # Merge thumbnail results
+        merged = {}
+        for r in results:
+            for key in r:
+                if key not in merged:
+                    merged[key] = r[key]
+        merged['per_thumbnail_analysis'] = results
+
+        return jsonify({'thumbnail_profile': merged, 'success': True})
+    except Exception as e:
+        return jsonify({'error': f'Thumbnail analysis failed: {str(e)}'}), 500
 
 
 # ── Socket.IO ─────────────────────────────────────────────────

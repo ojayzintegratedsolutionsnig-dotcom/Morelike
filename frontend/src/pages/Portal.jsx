@@ -189,7 +189,7 @@ function Portal() {
   const [tokenValidated, setTokenValidated] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
 
-  // Flow state: 'input' | 'processing' | 'pick_title' | 'paywall' | 'generating' | 'result'
+  // Flow state: 'input' | 'processing' | 'pick_title' | 'paywall' | 'visual_upload' | 'thumbnail_upload' | 'generating' | 'result'
   const [flow, setFlow] = useState('input')
   const [inputMode, setInputMode] = useState('scrape')
 
@@ -210,6 +210,14 @@ function Portal() {
   const pendingTitle = useRef('')
   const pendingTopic = useRef('')
 
+  // Visual analysis
+  const [visualImages, setVisualImages] = useState([])
+  const [thumbnailImages, setThumbnailImages] = useState([])
+  const [visualProfile, setVisualProfile] = useState(null)
+  const [thumbnailProfile, setThumbnailProfile] = useState(null)
+  const visualProfileRef = useRef(null)
+  const thumbnailProfileRef = useRef(null)
+
   // Feedback
   const [feedbackMsg, setFeedbackMsg] = useState('')
   const [feedbackSent, setFeedbackSent] = useState(false)
@@ -217,6 +225,29 @@ function Portal() {
   // Socket ref
   const socketRef = useRef(null)
   const extractedRef = useRef('')
+
+  // ── Auto-login from localStorage ─────────────────────────────
+  useEffect(() => {
+    const stored = localStorage.getItem('morelike_token')
+    const storedCreds = localStorage.getItem('morelike_credits')
+    if (stored && storedCreds && parseInt(storedCreds) > 0) {
+      fetch(`${API_URL}/api/validate-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: stored.trim() })
+      }).then(r => r.json()).then(data => {
+        if (data.valid && data.credits > 0) {
+          setToken(stored)
+          setCredits(data.credits)
+          setTokenEmail(data.email || '')
+          setTokenValidated(true)
+        } else {
+          localStorage.removeItem('morelike_token')
+          localStorage.removeItem('morelike_credits')
+        }
+      }).catch(() => {})
+    }
+  }, [])
 
   // ── Token validation ────────────────────────────────────────
   const handleValidateToken = async (e) => {
@@ -233,6 +264,8 @@ function Portal() {
         setTokenEmail(data.email || '')
         setTokenValidated(true)
         setShowLogin(false)
+        localStorage.setItem('morelike_token', token.trim())
+        localStorage.setItem('morelike_credits', String(data.credits))
       } else {
         alert('Invalid or expired token.')
       }
@@ -247,11 +280,10 @@ function Portal() {
     setCredits(creds)
     setTokenEmail(email)
     setTokenValidated(true)
-    // Auto-continue to generate with the pending title
-    setFlow('generating')
-    setTimeout(() => {
-      doGeneratePackage(validatedToken, pendingTitle.current, pendingTopic.current)
-    }, 300)
+    localStorage.setItem('morelike_token', validatedToken)
+    localStorage.setItem('morelike_credits', String(creds))
+    // Route to visual upload instead of directly generating
+    setFlow('visual_upload')
   }, [])
 
   // ── AI fetch helper ─────────────────────────────────────────
@@ -274,7 +306,7 @@ function Portal() {
   }, [token])
 
   // ── Generate package (called after credit check) ────────────
-  const doGeneratePackage = useCallback(async (authToken, title, customTopic) => {
+  const doGeneratePackage = useCallback(async (authToken, title, customTopic, visProfile, thumbProfile) => {
     try {
       const res = await fetch(`${API_URL}/api/generate-package`, {
         method: 'POST',
@@ -283,7 +315,9 @@ function Portal() {
           viral_dna: viralDNA,
           title,
           topic: customTopic || '',
-          video_length: videoLength
+          video_length: videoLength,
+          visual_json: visProfile || null,
+          thumbnail_json: thumbProfile || null
         }),
         signal: (() => {
           const ctrl = new AbortController()
@@ -296,11 +330,14 @@ function Portal() {
         setFinalPackage(data.package)
         setCreditsAfter(data.credits_remaining)
         setCredits(data.credits_remaining)
+        localStorage.setItem('morelike_credits', String(data.credits_remaining))
         setFlow('result')
       } else {
         if (res.status === 401 || res.status === 402) {
           setTokenValidated(false)
           setToken('')
+          localStorage.removeItem('morelike_token')
+          localStorage.removeItem('morelike_credits')
           setFlow('paywall')
           alert(data.error || 'Token expired or no credits.')
         } else {
@@ -399,10 +436,11 @@ function Portal() {
   const handleChooseTitle = (title, customTopic) => {
     setChosenTitle(title)
 
-    // If token is valid and has credits, go straight to generating
     if (tokenValidated && credits > 0) {
-      setFlow('generating')
-      doGeneratePackage(token, title, customTopic)
+      // Authenticated — go to visual upload first
+      pendingTitle.current = title
+      pendingTopic.current = customTopic
+      setFlow('visual_upload')
     } else {
       // Hold title and show paywall
       pendingTitle.current = title
@@ -455,6 +493,72 @@ function Portal() {
     } catch {}
   }
 
+  // ── Visual upload handlers ──────────────────────────────────
+  const handleVisualUpload = async () => {
+    if (visualImages.length < 3) {
+      alert('Please upload at least 3 reference images from the channel videos.')
+      return
+    }
+    setFlow('processing')
+    try {
+      const form = new FormData()
+      visualImages.forEach((f) => form.append('images', f))
+      const res = await fetch(`${API_URL}/api/analyze-visuals`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: form
+      })
+      const data = await res.json()
+      if (data.success) {
+        setVisualProfile(data.visual_profile)
+        visualProfileRef.current = data.visual_profile
+        setFlow('thumbnail_upload')
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (e) {
+      alert('Visual analysis failed: ' + (e.message || 'Server error'))
+      setFlow('visual_upload')
+    }
+  }
+
+  const handleThumbnailUpload = async () => {
+    if (thumbnailImages.length < 2) {
+      alert('Please upload at least 2 thumbnail reference images from the channel.')
+      return
+    }
+    setFlow('processing')
+    try {
+      const form = new FormData()
+      thumbnailImages.forEach((f) => form.append('images', f))
+      const res = await fetch(`${API_URL}/api/analyze-thumbnails`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: form
+      })
+      const data = await res.json()
+      if (data.success) {
+        setThumbnailProfile(data.thumbnail_profile)
+        thumbnailProfileRef.current = data.thumbnail_profile
+        setFlow('generating')
+        doGeneratePackage(token, pendingTitle.current, pendingTopic.current, visualProfileRef.current, data.thumbnail_profile)
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (e) {
+      alert('Thumbnail analysis failed: ' + (e.message || 'Server error'))
+      setFlow('thumbnail_upload')
+    }
+  }
+
+  const handleRemoveVisualImage = (index) => {
+    setVisualImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleRemoveThumbnailImage = (index) => {
+    setThumbnailImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
   // ── Reset ───────────────────────────────────────────────────
   const handleReset = () => {
     setFlow('input')
@@ -467,6 +571,12 @@ function Portal() {
     setFinalPackage('')
     setPipelineError('')
     setFeedbackMsg('')
+    setVisualImages([])
+    setThumbnailImages([])
+    setVisualProfile(null)
+    setThumbnailProfile(null)
+    visualProfileRef.current = null
+    thumbnailProfileRef.current = null
     setFeedbackSent(false)
     extractedRef.current = ''
     pendingTitle.current = ''
@@ -479,6 +589,8 @@ function Portal() {
     setCredits(0)
     setTokenEmail('')
     setTokenValidated(false)
+    localStorage.removeItem('morelike_token')
+    localStorage.removeItem('morelike_credits')
   }
 
   // Cleanup socket on unmount
@@ -684,13 +796,136 @@ function Portal() {
           </div>
         )}
 
+        {/* ── VISUAL UPLOAD ─────────────────────────────────── */}
+        {flow === 'visual_upload' && (
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
+            <h2 className="text-xl font-bold mb-1">Upload Reference Images</h2>
+            <p className="text-purple-200 text-sm mb-6">
+              Upload <strong>3-5 screenshots or stills</strong> from the channel's videos (NOT thumbnails).
+              These will be analyzed to match the exact visual style — art style, lighting, composition, color palette.
+            </p>
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                if (files.length + visualImages.length > 5) {
+                  alert('Maximum 5 images allowed')
+                  return
+                }
+                setVisualImages((prev) => [...prev, ...files].slice(0, 5))
+              }}
+              className="mb-4 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:font-semibold hover:file:bg-purple-700"
+            />
+
+            {visualImages.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-6">
+                {visualImages.map((file, i) => (
+                  <div key={i} className="relative group">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Ref ${i + 1}`}
+                      className="w-full h-24 object-cover rounded-lg border border-gray-600"
+                    />
+                    <button
+                      onClick={() => handleRemoveVisualImage(i)}
+                      className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                    <span className="text-xs text-gray-400 block truncate mt-1">{file.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="text-gray-400 text-sm mb-4">{visualImages.length} / 5 images selected (minimum 3)</p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleVisualUpload}
+                disabled={visualImages.length < 3}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed"
+              >
+                Analyze Visual Style
+              </button>
+              <button onClick={() => setFlow('pick_title')} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-sm">
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── THUMBNAIL UPLOAD ──────────────────────────────── */}
+        {flow === 'thumbnail_upload' && (
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
+            <h2 className="text-xl font-bold mb-1">Upload Thumbnail References</h2>
+            <p className="text-purple-200 text-sm mb-6">
+              Upload <strong>2-3 thumbnails</strong> from the channel. These are analyzed for text style, composition, color contrast, and emotional triggers.
+            </p>
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                if (files.length + thumbnailImages.length > 3) {
+                  alert('Maximum 3 thumbnail images allowed')
+                  return
+                }
+                setThumbnailImages((prev) => [...prev, ...files].slice(0, 3))
+              }}
+              className="mb-4 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:font-semibold hover:file:bg-purple-700"
+            />
+
+            {thumbnailImages.length > 0 && (
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {thumbnailImages.map((file, i) => (
+                  <div key={i} className="relative group">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Thumb ${i + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                    />
+                    <button
+                      onClick={() => handleRemoveThumbnailImage(i)}
+                      className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                    <span className="text-xs text-gray-400 block truncate mt-1">{file.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="text-gray-400 text-sm mb-4">{thumbnailImages.length} / 3 thumbnails selected (minimum 2)</p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleThumbnailUpload}
+                disabled={thumbnailImages.length < 2}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed"
+              >
+                Analyze Thumbnails & Generate
+              </button>
+              <button onClick={() => setFlow('visual_upload')} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-sm">
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── GENERATING SCREEN ─────────────────────────────── */}
         {flow === 'generating' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30 text-center">
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-purple-300">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
-              <span className="text-white text-lg font-semibold">Creating your content...</span>
-              <span className="text-purple-200/50 text-sm">This may take up to 2 minutes</span>
+              <span className="text-white text-lg font-semibold">Generating your content package...</span>
+              <span className="text-purple-200/50 text-sm">DeepSeek is synthesizing script + image prompts + video prompts — up to 2 minutes</span>
             </div>
           </div>
         )}
