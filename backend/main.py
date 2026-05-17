@@ -28,14 +28,12 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 init_db()
 
-GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
-groq_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
 deepseek_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com") if DEEPSEEK_API_KEY else None
-openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+groq_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
 
 admin_sessions = set()
 
@@ -213,6 +211,29 @@ VIDEO PROMPT: [...] | Style: {style_tags}, 16:9
 (Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". All style tags must be identical across every prompt.)
 
 ═══════════════════════════════════
+INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
+═══════════════════════════════════
+Before finalizing, review every section above (Title, Description, Thumbnail, ALL Beats) against these 5 hostile critics:
+
+1. THE ENDLESS SCROLLER — Would they leave in 2 seconds? Is the hook a generic question or a genuine pattern interrupt? If the first beat doesn't create a curiosity gap, it fails.
+
+2. THE SEEN-IT-ALL CYNIC — What feels derivative, recycled, or AI-slop? Where did you default to "delve into" / "unlock the secrets" / "in a world where"? Flag every cliché phrase and every beat that sounds like every other video in this niche.
+
+3. THE SILENT JUDGE — What is unclear, confusing, or wasting time? Flag any beat where the viewer's mental response is "get to the point." Flag any voice-over line that would sound unnatural spoken aloud.
+
+4. THE SHARE-GATEKEEPER — Why would someone feel embarrassed to share this? Is the emotional tone cringe, try-hard, or inauthentic? Does it match how real humans in this niche actually talk?
+
+5. THE PLATFORM NATIVE — Where does retention drop? Flag the exact beat number where pacing dies, where the middle sags, where the payoff disappoints. Is there a pattern interrupt every 15-20 seconds? Does the ending earn the watch?
+
+For each critic, identify at least one CRITICAL FAILURE. Then REBUILD:
+- Hook weak? Replace it with a specific, visual, surprising pattern interrupt from the Viral DNA.
+- Middle dragging? Cut filler beats, inject a retention loop (open loop, stakes raise, or format twist).
+- Ending flat? Add a twist, an emotional payoff, or a specific call-to-comment tied to the topic.
+- Cliché phrases? Rewrite with concrete, niche-specific language the original creator would actually use.
+
+Output ONLY the final, post-review version. Never show the draft or the critique.
+
+═══════════════════════════════════
 VOICE PROMPT
 ═══════════════════════════════════
 Tone: [vocal tone — warm, urgent, mysterious, authoritative]
@@ -247,59 +268,10 @@ def extract_niche(viral_dna):
 # ── AI helpers ────────────────────────────────────────────────
 
 def call_ai(system_prompt, user_message, max_tokens=8192):
-    import time
-
-    # Ordered: Groq (fast/cheap) → DeepSeek (large context) → OpenAI (reliable fallback)
-    clients = []
-    if groq_client:
-        clients.append(('groq', groq_client, 'llama-3.3-70b-versatile'))
-    if deepseek_client:
-        clients.append(('deepseek', deepseek_client, 'deepseek-chat'))
-    if openai_client:
-        clients.append(('openai', openai_client, 'gpt-4o-mini'))
-
-    if not clients:
-        raise Exception("No AI API key configured")
-
-    for provider, client, model in clients:
-        last_error = None
-        for attempt in range(2):
-            try:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_message},
-                    ],
-                    temperature=1.0,
-                    max_tokens=max_tokens,
-                    timeout=300.0,
-                )
-                return response.choices[0].message.content
-            except Exception as e:
-                last_error = e
-                err_str = str(e).lower()
-                # Don't retry on rate limits or size errors — go straight to fallback
-                if '413' in err_str or 'rate_limit' in err_str or 'too large' in err_str:
-                    break
-                if attempt < 1:
-                    time.sleep(3)
-
-        # If we're on the last provider, raise. Otherwise try next.
-        if provider == clients[-1][0]:
-            hint = ''
-            if len(clients) == 1:
-                hint = ' (no fallback configured — add DEEPSEEK_API_KEY for automatic failover)'
-            raise Exception(f"AI API error ({provider}){hint}: {str(last_error)}")
-
-    raise Exception("AI API error: all providers exhausted")
-
-
-def call_ai_deepseek(system_prompt, user_message, max_tokens=16384):
-    """Call DeepSeek directly for large-context creative synthesis."""
+    """Call DeepSeek for all text generation. Single provider, no fallback chain."""
     import time
     if not deepseek_client:
-        raise Exception("DeepSeek API key not configured")
+        raise Exception("DeepSeek API key not configured. Set DEEPSEEK_API_KEY.")
     for attempt in range(2):
         try:
             response = deepseek_client.chat.completions.create(
@@ -701,11 +673,7 @@ def generate_package():
         )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
 
-        # Send directly to DeepSeek for large-context creative synthesis
-        if not deepseek_client:
-            result = call_ai(system_prompt, user_message, max_tokens=16384)
-        else:
-            result = call_ai_deepseek(system_prompt, user_message, max_tokens=16384)
+        result = call_ai(system_prompt, user_message, max_tokens=16384)
 
         use_credit(token)
         last_generated_package = {'content': result, 'title': chosen_title}
@@ -831,9 +799,8 @@ def admin_diag():
 
     # Test AI connectivity
     for name, client, model in [
-        ('groq', groq_client, 'llama-3.3-70b-versatile'),
         ('deepseek', deepseek_client, 'deepseek-chat'),
-        ('openai', openai_client, 'gpt-4o-mini'),
+        ('groq', groq_client, 'llama-3.3-70b-versatile'),
     ]:
         if client:
             try:
