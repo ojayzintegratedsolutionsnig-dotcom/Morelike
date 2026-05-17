@@ -75,6 +75,7 @@ function Paywall({ onTokenValidated, onCancel }) {
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPlans, setShowPlans] = useState(false)
 
   const handleValidate = async (e) => {
     e.preventDefault()
@@ -105,30 +106,53 @@ function Paywall({ onTokenValidated, onCancel }) {
         <div className="text-4xl mb-3">&#128274;</div>
         <h2 className="text-xl font-bold mb-2">Unlock Your Script Package</h2>
         <p className="text-purple-200 text-sm">
-          Analysis is free. Choose your plan — 3 credits each.
+          Analysis is free. Unlock 3 script packages to get started.
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <a
-          href={LEMON_SQUEEZY_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
+      {!showPlans ? (
+        <button
+          onClick={() => setShowPlans(true)}
+          className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 shadow-lg text-lg"
         >
-          <span className="block text-lg">Basic — $8</span>
-          <span className="block text-xs text-purple-200 mt-1">3 min max · 3 videos</span>
-        </a>
-        <a
-          href={LEMON_SQUEEZY_URL_PRO}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
-        >
-          <span className="block text-lg">Pro — $10</span>
-          <span className="block text-xs text-pink-200 mt-1">5 min max · 5 videos</span>
-        </a>
-      </div>
+          Our Plans
+        </button>
+      ) : (
+        <div className="space-y-3 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a
+              href={LEMON_SQUEEZY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
+            >
+              <span className="block text-lg">Basic — $8</span>
+              <span className="block text-xs text-purple-200 mt-2">3 min max per video</span>
+              <span className="block text-xs text-purple-200">Analyze up to 3 videos</span>
+              <span className="block text-xs text-purple-200">Full script + image + video prompts</span>
+              <span className="block text-xs text-purple-200">Thumbnail A/B + voice direction</span>
+            </a>
+            <a
+              href={LEMON_SQUEEZY_URL_PRO}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
+            >
+              <span className="block text-lg">Pro — $10</span>
+              <span className="block text-xs text-pink-200 mt-2">5 min max per video</span>
+              <span className="block text-xs text-pink-200">Analyze up to 5 videos</span>
+              <span className="block text-xs text-pink-200">Full script + image + video prompts</span>
+              <span className="block text-xs text-pink-200">Thumbnail A/B + voice direction</span>
+            </a>
+          </div>
+          <button
+            onClick={() => setShowPlans(false)}
+            className="w-full py-2 text-gray-400 hover:text-white text-sm transition-colors"
+          >
+            Hide plans
+          </button>
+        </div>
+      )}
 
       <div className="border-t border-gray-700 pt-6">
         <p className="text-sm text-gray-400 mb-4 text-center">Already paid? Enter your token:</p>
