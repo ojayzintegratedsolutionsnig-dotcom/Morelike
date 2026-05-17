@@ -13,14 +13,13 @@ const getApiHeaders = (token) => ({
 /* ── Animated progress bar ──────────────────────────────────── */
 function ProgressBar() {
   return (
-    <div className="w-full max-w-md mx-auto py-12">
+    <div className="w-full max-w-md mx-auto py-8">
       <div className="relative w-full h-2 bg-white/10 rounded-full overflow-hidden">
         <div
           className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-[length:200%_100%] animate-shimmer rounded-full"
           style={{ width: '100%' }}
         />
       </div>
-      <p className="text-purple-200 text-sm mt-4 animate-pulse">Creating your content...</p>
     </div>
   )
 }
@@ -922,11 +921,9 @@ function Portal() {
         {/* ── GENERATING SCREEN ─────────────────────────────── */}
         {flow === 'generating' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30 text-center">
-            <div className="flex flex-col items-center justify-center gap-3 py-12 text-purple-300">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400" />
-              <span className="text-white text-lg font-semibold">Generating your content package...</span>
-              <span className="text-purple-200/50 text-sm">DeepSeek is synthesizing script + image prompts + video prompts — up to 2 minutes</span>
-            </div>
+            <h2 className="text-xl font-bold mb-2">Creating Your Package</h2>
+            <p className="text-purple-200/50 text-sm mb-8">Synthesizing script, image prompts, and video prompts...</p>
+            <ProgressBar />
           </div>
         )}
 
