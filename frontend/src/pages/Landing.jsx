@@ -15,9 +15,6 @@ function StepIcon({ icon, color }) {
 
 /* ── Landing ──────────────────────────────────────────────── */
 function Landing() {
-  const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/0772c25a-3fa9-4ca4-b229-7c7fbdd04127'
-  const LEMON_SQUEEZY_URL_PRO = import.meta.env.VITE_LEMON_SQUEEZY_URL_PRO || 'https://morelike.lemonsqueezy.com/checkout/buy/pro-product-id'
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#111111] via-[#1a1510] to-[#151018] text-white relative overflow-hidden">
       {/* Animated background blobs */}
@@ -47,22 +44,12 @@ function Landing() {
         <div className="flex gap-3 md:gap-6 items-center">
           <Link to="/portal" className="text-gray-300 hover:text-white transition-colors text-xs md:text-sm">Portal</Link>
           <Link to="/admin" className="text-gray-300 hover:text-white transition-colors text-xs md:text-sm">Admin</Link>
-          <a
-            href={LEMON_SQUEEZY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
+          <Link
+            to="/plans"
+            className="px-4 py-2 md:px-6 md:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
           >
-            Basic $8
-          </a>
-          <a
-            href={LEMON_SQUEEZY_URL_PRO}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-3 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
-          >
-            Pro $10
-          </a>
+            Plans
+          </Link>
         </div>
       </nav>
 
@@ -224,25 +211,13 @@ function Landing() {
             ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <a
-              href={LEMON_SQUEEZY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
+          <div className="flex justify-center mb-8">
+            <Link
+              to="/plans"
+              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
             >
-              <span className="block text-lg">Basic — $8</span>
-              <span className="block text-xs text-purple-200 mt-1">3 credits · 3 min max · 3 videos</span>
-            </a>
-            <a
-              href={LEMON_SQUEEZY_URL_PRO}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white font-bold rounded-xl transition-all transform hover:scale-105 shadow-lg text-center"
-            >
-              <span className="block text-lg">Pro — $10</span>
-              <span className="block text-xs text-pink-200 mt-1">3 credits · 5 min max · 5 videos</span>
-            </a>
+              View Plans
+            </Link>
           </div>
 
           <Link
