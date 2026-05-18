@@ -243,6 +243,9 @@ function Portal() {
   const [creditsAfter, setCreditsAfter] = useState(0)
   const [pipelineError, setPipelineError] = useState('')
 
+  // Per-video extraction status
+  const [extractionVideos, setExtractionVideos] = useState([])
+
   // Pending title (held during paywall)
   const pendingTitle = useRef('')
   const pendingTopic = useRef('')
@@ -262,6 +265,7 @@ function Portal() {
   // Socket ref
   const socketRef = useRef(null)
   const extractedRef = useRef('')
+  const extractedVideoIdsRef = useRef([])
 
   // ── Auto-login from localStorage ─────────────────────────────
   useEffect(() => {
@@ -368,7 +372,8 @@ function Portal() {
           topic: customTopic || '',
           video_length: videoLength,
           visual_json: visProfile || null,
-          thumbnail_json: thumbProfile || null
+          thumbnail_json: thumbProfile || null,
+          transcript_context: extractedRef.current || ''
         }),
         signal: (() => {
           const ctrl = new AbortController()
@@ -445,6 +450,30 @@ function Portal() {
     socketRef.current = sock
 
     sock.on('progress', (data) => {
+      // Build video list from extraction progress
+      if (data.current && data.total && data.total > 0) {
+        setExtractionVideos(prev => {
+          const idx = data.current - 1
+          const next = [...prev]
+          // Initialize array if needed
+          while (next.length < data.total) next.push({ title: '', status: 'pending' })
+          // Extract title from message
+          const msg = data.message || ''
+          const titleMatch = msg.match(/:\s*(.+?)(?:\.{3})?$/)
+          const title = titleMatch ? titleMatch[1].trim() : `Video ${data.current}`
+          if (data.status === 'success') {
+            next[idx] = { title, status: 'done' }
+          } else if (data.status === 'warning') {
+            next[idx] = { title, status: 'failed' }
+          } else if (data.status === 'extracting') {
+            next[idx] = { title, status: 'extracting' }
+          } else if (!next[idx].title) {
+            next[idx] = { title, status: 'pending' }
+          }
+          return next
+        })
+      }
+
       if (data.status === 'error') {
         setPipelineError(data.message || 'Extraction failed')
         setFlow('input')
@@ -457,6 +486,7 @@ function Portal() {
           .then(d => {
             if (d.content) {
               extractedRef.current = d.content
+              extractedVideoIdsRef.current = d.video_ids || []
               runPipeline(d.content)
             } else {
               setPipelineError('No transcripts found for this channel.')
@@ -563,7 +593,8 @@ function Portal() {
       if (data.success) {
         setVisualProfile(data.visual_profile)
         visualProfileRef.current = data.visual_profile
-        setFlow('thumbnail_upload')
+        // Auto-fetch thumbnails from extracted video IDs
+        handleAutoThumbnail(token, data.visual_profile)
       } else {
         throw new Error(data.error)
       }
@@ -602,6 +633,36 @@ function Portal() {
     }
   }
 
+  const handleAutoThumbnail = async (authToken, visProfile) => {
+    const vids = extractedVideoIdsRef.current
+    if (!vids.length || vids.length < 2) {
+      // Fall back to manual thumbnail upload
+      setFlow('thumbnail_upload')
+      return
+    }
+    setFlow('processing')
+    try {
+      const res = await fetch(`${API_URL}/api/analyze-thumbnails-auto`, {
+        method: 'POST',
+        headers: { ...getApiHeaders(authToken), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ video_ids: vids })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setThumbnailProfile(data.thumbnail_profile)
+        thumbnailProfileRef.current = data.thumbnail_profile
+        setFlow('generating')
+        doGeneratePackage(authToken, pendingTitle.current, pendingTopic.current, visProfile, data.thumbnail_profile)
+      } else {
+        // Fall back to manual upload
+        setFlow('thumbnail_upload')
+      }
+    } catch {
+      // Fall back to manual upload
+      setFlow('thumbnail_upload')
+    }
+  }
+
   const handleRemoveVisualImage = (index) => {
     setVisualImages((prev) => prev.filter((_, i) => i !== index))
   }
@@ -621,6 +682,7 @@ function Portal() {
     setChosenTitle('')
     setFinalPackage('')
     setPipelineError('')
+    setExtractionVideos([])
     setFeedbackMsg('')
     setVisualImages([])
     setThumbnailImages([])
@@ -630,6 +692,7 @@ function Portal() {
     thumbnailProfileRef.current = null
     setFeedbackSent(false)
     extractedRef.current = ''
+    extractedVideoIdsRef.current = []
     pendingTitle.current = ''
     pendingTopic.current = ''
   }
@@ -816,10 +879,48 @@ function Portal() {
               style={{ backgroundImage: 'url(/processor.jpg)' }}
             />
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <div className="relative z-10">
+            <div className="relative z-10 w-full max-w-md">
               <h2 className="text-2xl font-bold mb-1 text-white">Analyzing Channel</h2>
-              <p className="text-purple-200/50 text-sm mb-2">This may take up to 2 minutes</p>
+              <p className="text-purple-200/50 text-sm mb-4">This may take up to 2 minutes</p>
               <ProgressBar />
+
+              {extractionVideos.length > 0 && (
+                <div className="mt-4 space-y-2 text-left">
+                  {extractionVideos.map((vid, i) => (
+                    <div key={i} className="flex items-center gap-3 bg-white/5 rounded-lg px-3 py-2">
+                      {vid.status === 'extracting' && (
+                        <svg className="w-4 h-4 flex-shrink-0 animate-spin text-purple-400" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="50" strokeDashoffset="15" />
+                        </svg>
+                      )}
+                      {vid.status === 'done' && (
+                        <svg className="w-4 h-4 flex-shrink-0 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {vid.status === 'failed' && (
+                        <svg className="w-4 h-4 flex-shrink-0 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {vid.status === 'pending' && (
+                        <div className="w-4 h-4 flex-shrink-0 rounded-full border border-gray-500" />
+                      )}
+                      <span className={`text-sm truncate ${
+                        vid.status === 'done' ? 'text-green-300' :
+                        vid.status === 'failed' ? 'text-amber-300' :
+                        vid.status === 'extracting' ? 'text-purple-300' :
+                        'text-gray-400'
+                      }`}>
+                        {vid.title || `Video ${i + 1}...`}
+                      </span>
+                      {vid.status === 'extracting' && (
+                        <span className="text-xs text-purple-400/60 ml-auto flex-shrink-0">extracting...</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

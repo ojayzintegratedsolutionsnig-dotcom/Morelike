@@ -1,12 +1,8 @@
 import os
 import yt_dlp
-import time
-import random
-from apify_client import ApifyClient
+import re
+import tempfile
 
-# Apify API Configuration
-APIFY_API_KEY = os.environ.get('APIFY_API_KEY', '')
-APIFY_ACTOR_ID = "faVsWy9VTSNVIhWpR"  # YouTube Transcript Extractor
 
 def clean_url(url):
     """
@@ -22,13 +18,14 @@ def clean_url(url):
 
     return url
 
+
 def get_viral_videos(channel_url, limit, progress_callback=None):
     target_url = clean_url(channel_url)
 
     if progress_callback:
         progress_callback({
             'status': 'scanning',
-            'message': f'🎯 Targeted URL: {target_url}',
+            'message': f'Scanning: {target_url}',
             'progress': 5
         })
 
@@ -52,65 +49,93 @@ def get_viral_videos(channel_url, limit, progress_callback=None):
             })
         return []
 
-def get_transcript_apify(video_id, progress_callback=None):
-    """
-    Get transcript using Apify API for 100% reliability
-    Uses actor: faVsWy9VTSNVIhWpR (YouTube Transcript Extractor)
-    """
-    print(f"DEBUG: Fetching transcript via Apify for video_id: {video_id}")
 
-    try:
-        # Initialize Apify client
-        client = ApifyClient(APIFY_API_KEY)
+def _parse_vtt(raw):
+    """Strip VTT timestamps and HTML tags, return clean text."""
+    lines = raw.split('\n')
+    out = []
+    for line in lines:
+        line = line.strip()
+        # Skip headers and blank lines
+        if not line or line.startswith('WEBVTT') or line.startswith('Kind:') or line.startswith('Language:'):
+            continue
+        # Skip timestamp lines and cue numbers
+        if re.match(r'^\d{2}:\d{2}', line) or re.match(r'^NOTE', line):
+            continue
+        if line.isdigit():
+            continue
+        # Strip HTML tags and alignment markers
+        clean = re.sub(r'<[^>]+>', '', line)
+        clean = re.sub(r'&amp;', '&', clean)
+        clean = re.sub(r'&lt;', '<', clean)
+        clean = re.sub(r'&gt;', '>', clean)
+        clean = re.sub(r'&quot;', '"', clean)
+        clean = re.sub(r'&#39;', "'", clean)
+        if clean.strip():
+            out.append(clean.strip())
+    return ' '.join(out)
 
-        # Prepare the Actor input - this actor expects videoUrl (singular)
-        video_url = f"https://www.youtube.com/watch?v={video_id}"
-        run_input = {
-            "videoUrl": video_url
+
+def get_transcript(video_id, progress_callback=None):
+    """
+    Extract auto-generated English subtitles from YouTube via yt-dlp.
+    No external API required — yt-dlp handles everything natively.
+    """
+    video_url = f'https://www.youtube.com/watch?v={video_id}'
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ydl_opts = {
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'subtitleslangs': ['en', 'en-US', 'en-GB'],
+            'skip_download': True,
+            'quiet': True,
+            'no_warnings': True,
+            'outtmpl': {'default': f'{tmpdir}/sub.%(ext)s'},
         }
 
-        # Run the Actor and wait for it to finish
-        print(f"DEBUG: Starting Apify actor for {video_id} (URL: {video_url})")
-        run = client.actor(APIFY_ACTOR_ID).call(run_input=run_input)
-
-        # Fetch results from the run's dataset
-        transcript_text = ""
-        for item in client.dataset(run["defaultDatasetId"]).iterate_items():
-            print(f"DEBUG: Apify returned item keys: {item.keys()}")
-
-            # The actor returns {"data": [{"start": "...", "dur": "...", "text": "..."}, ...]}
-            if 'data' in item and isinstance(item['data'], list):
-                # Extract text from each segment and join
-                segments = [seg.get('text', '') for seg in item['data'] if seg.get('text')]
-                transcript_text = " ".join(segments)
-                print(f"DEBUG: Found {len(segments)} transcript segments")
-
-        if transcript_text:
-            print(f"DEBUG: ✅ Successfully got transcript from Apify for {video_id} ({len(transcript_text)} chars)")
-            return transcript_text
-        else:
-            print(f"DEBUG: ⚠️ No transcript data returned from Apify for {video_id}")
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([video_url])
+        except Exception as e:
+            print(f"DEBUG: yt-dlp subtitle download error for {video_id}: {e}")
             return None
 
-    except Exception as e:
-        print(f"DEBUG: ❌ Apify error for {video_id}: {str(e)}")
-        import traceback
-        print(f"DEBUG: Full traceback: {traceback.format_exc()}")
-        return None
+        # Find subtitle file in tmpdir
+        sub_files = [f for f in os.listdir(tmpdir) if os.path.isfile(os.path.join(tmpdir, f))]
+        if not sub_files:
+            print(f"DEBUG: No subtitle file produced for {video_id}")
+            return None
+
+        sub_path = os.path.join(tmpdir, sub_files[0])
+        try:
+            with open(sub_path, 'r', encoding='utf-8') as f:
+                raw = f.read()
+        except UnicodeDecodeError:
+            with open(sub_path, 'r', encoding='latin-1') as f:
+                raw = f.read()
+
+        text = _parse_vtt(raw)
+        if text and len(text) > 50:
+            print(f"DEBUG: Subtitle extracted for {video_id} ({len(text)} chars)")
+            return text
+
+    print(f"DEBUG: Insufficient subtitle text for {video_id}")
+    return None
+
 
 def extract_viral_content(channel_url, limit=20, progress_callback=None):
     """
-    Main extraction function that can report progress
-    Uses Apify for reliable transcript extraction
+    Main extraction: scan top videos → fetch auto-generated subtitles via yt-dlp.
+    No external APIs needed — yt-dlp handles both video discovery and subtitles.
     """
     if progress_callback:
         progress_callback({
             'status': 'starting',
-            'message': '🚀 Initializing Viral Extractor...',
+            'message': 'Initializing YouTube extractor...',
             'progress': 0
         })
 
-    # $8 plan: max 3 videos per channel
     effective_limit = min(limit, 3)
     videos = get_viral_videos(channel_url, effective_limit, progress_callback)
 
@@ -118,7 +143,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         if progress_callback:
             progress_callback({
                 'status': 'error',
-                'message': '❌ No videos found. Check URL.',
+                'message': 'No videos found. Check URL.',
                 'progress': 0
             })
         return None
@@ -126,11 +151,12 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     full_data = "=== CONTENT BLUEPRINT ANALYSIS ===\n(Sorted by Most Popular of All Time)\n\n"
     count = 0
     total = len(videos)
+    video_ids = []
 
     if progress_callback:
         progress_callback({
             'status': 'extracting',
-            'message': f'✅ Found {total} Viral Hits. Extracting transcripts via Apify...',
+            'message': f'Found {total} top videos. Extracting auto-generated subtitles...',
             'progress': 10
         })
 
@@ -138,39 +164,45 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         title = v.get('title', 'Unknown')
         v_id = v.get('id')
 
-        # Calculate progress (10% to 90% during extraction)
         current_progress = 10 + int((idx / total) * 80)
 
         if progress_callback:
             progress_callback({
                 'status': 'extracting',
-                'message': f'[{idx+1}/{total}] Extracting via Apify: {title[:50]}...',
+                'message': f'[{idx+1}/{total}] Extracting subtitles: {title[:50]}...',
                 'progress': current_progress,
                 'current': idx + 1,
                 'total': total
             })
 
-        text = get_transcript_apify(v_id, progress_callback)
+        text = get_transcript(v_id, progress_callback)
 
         if text:
             full_data += f"### VIDEO: {title} ###\nURL: https://youtu.be/{v_id}\n\n{text}\n\n"
             count += 1
+            video_ids.append(v_id)
             if progress_callback:
                 progress_callback({
                     'status': 'success',
-                    'message': f'✅ [{idx+1}/{total}] Successfully extracted: {title[:40]}',
+                    'message': f'[{idx+1}/{total}] Extracted: {title[:40]}',
                     'progress': current_progress
                 })
         else:
             if progress_callback:
                 progress_callback({
                     'status': 'warning',
-                    'message': f'⚠️ No subtitles found for: {title[:40]}',
+                    'message': f'[{idx+1}/{total}] No subtitles available: {title[:40]}',
                     'progress': current_progress
                 })
 
-        # Small delay between Apify calls (Apify handles rate limiting internally)
-        time.sleep(random.uniform(1, 2))
+    if count == 0:
+        if progress_callback:
+            progress_callback({
+                'status': 'error',
+                'message': 'No subtitles found on any video. The channel may have captions disabled.',
+                'progress': 0
+            })
+        return None
 
     # Save to file
     output_file = "content_blueprint.txt"
@@ -180,7 +212,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     if progress_callback:
         progress_callback({
             'status': 'complete',
-            'message': f'🎉 DONE! Saved {count} scripts to "{output_file}"',
+            'message': f'Done. Extracted subtitles from {count} video(s).',
             'progress': 100,
             'output_file': output_file,
             'videos_processed': count
@@ -190,5 +222,6 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         'success': True,
         'output_file': output_file,
         'videos_processed': count,
-        'content': full_data
+        'content': full_data,
+        'video_ids': video_ids
     }

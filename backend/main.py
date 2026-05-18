@@ -14,6 +14,7 @@ import uuid
 import base64
 import json
 import re
+import urllib.request
 from functools import wraps
 from extractor import extract_viral_content
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token
@@ -47,7 +48,8 @@ extraction_status = {
 
 extracted_subtitles = {
     'content': '',
-    'videos_processed': 0
+    'videos_processed': 0,
+    'video_ids': []
 }
 
 last_generated_package = {
@@ -138,6 +140,9 @@ You analyze, model, and recreate YouTube content styles. Match style, not phrasi
 
 ## Thumbnail Style Data (from thumbnail analysis)
 {thumbnail_json}
+
+## Transcript Excerpts (from the channel's top-performing videos)
+{transcript_context}
 
 ## Target
 Niche: {niche}
@@ -429,6 +434,7 @@ def run_extraction(channel_url, limit):
         if result and result.get('content'):
             extracted_subtitles['content'] = result['content']
             extracted_subtitles['videos_processed'] = result.get('videos_processed', 0)
+            extracted_subtitles['video_ids'] = result.get('video_ids', [])
         return result
     except Exception as e:
         extraction_status['running'] = False
@@ -602,7 +608,8 @@ def get_subtitles():
         return jsonify({'error': 'No subtitles available. Please extract videos first.'}), 404
     return jsonify({
         'content': extracted_subtitles['content'],
-        'videos_processed': extracted_subtitles['videos_processed']
+        'videos_processed': extracted_subtitles['videos_processed'],
+        'video_ids': extracted_subtitles['video_ids']
     })
 
 
@@ -664,6 +671,7 @@ def generate_package():
     video_length = data.get('video_length', 3)
     visual_json = data.get('visual_json', None)
     thumbnail_json = data.get('thumbnail_json', None)
+    transcript_context = data.get('transcript_context', '')
 
     if not viral_dna:
         return jsonify({'error': 'Viral DNA is required'}), 400
@@ -695,12 +703,22 @@ def generate_package():
         vis_str = json.dumps(visual_json, indent=2) if visual_json else 'No visual reference provided — use the Viral DNA to infer visual style.'
         thumb_str = json.dumps(thumbnail_json, indent=2) if thumbnail_json else 'No thumbnail reference provided — use the Viral DNA to infer thumbnail style.'
 
+        # Trim transcript to ~4000 chars for context window economy
+        tx_raw = transcript_context.strip() if transcript_context else ''
+        if len(tx_raw) > 4500:
+            tx_str = tx_raw[:2500] + "\n\n...[trimmed]...\n\n" + tx_raw[-2000:]
+        elif tx_raw:
+            tx_str = tx_raw
+        else:
+            tx_str = 'No transcript excerpts available — rely on Viral DNA for speech patterns.'
+
         system_prompt = MASTER_PACKAGE_SYSTEM_INSTRUCTION.format(
             viral_dna=viral_dna,
             niche=niche,
             target_length=video_length,
             visual_json=vis_str,
-            thumbnail_json=thumb_str
+            thumbnail_json=thumb_str,
+            transcript_context=tx_str
         )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
 
@@ -951,6 +969,64 @@ def analyze_thumbnails():
         return jsonify({'thumbnail_profile': merged, 'success': True})
     except Exception as e:
         return jsonify({'error': f'Thumbnail analysis failed: {str(e)}'}), 500
+
+
+@app.route('/api/analyze-thumbnails-auto', methods=['POST'])
+@require_token
+def analyze_thumbnails_auto():
+    """Auto-fetch YouTube thumbnails from video IDs and analyze via Groq Vision."""
+    if not groq_client:
+        return jsonify({'error': 'Groq API key not configured'}), 500
+
+    data = request.json or {}
+    video_ids = data.get('video_ids', [])
+
+    if not video_ids or len(video_ids) < 2:
+        return jsonify({'error': 'Minimum 2 video IDs required for thumbnail analysis'}), 400
+
+    try:
+        image_b64_list = []
+        for v_id in video_ids[:3]:
+            # Try resolutions from highest to lowest
+            img_bytes = None
+            for res in ['maxresdefault', 'hqdefault', 'mqdefault', 'default']:
+                url = f'https://img.youtube.com/vi/{v_id}/{res}.jpg'
+                try:
+                    req = urllib.request.Request(url, headers={'User-Agent': 'Morelike/1.0'})
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        if resp.status == 200:
+                            img_bytes = resp.read()
+                            if len(img_bytes) > 2000:  # skip tiny placeholder images
+                                break
+                            img_bytes = None
+                except Exception:
+                    continue
+
+            if img_bytes:
+                image_b64_list.append(base64.b64encode(img_bytes).decode('utf-8'))
+
+        if len(image_b64_list) < 2:
+            return jsonify({'error': 'Could not fetch enough thumbnails from the provided video IDs'}), 400
+
+        results = []
+        for b64 in image_b64_list:
+            analysis = call_groq_vision(
+                THUMBNAIL_ANALYSIS_SYSTEM_INSTRUCTION,
+                "Analyze this YouTube thumbnail. Return structured JSON.",
+                [b64]
+            )
+            results.append(analysis)
+
+        merged = {}
+        for r in results:
+            for key in r:
+                if key not in merged:
+                    merged[key] = r[key]
+        merged['per_thumbnail_analysis'] = results
+
+        return jsonify({'thumbnail_profile': merged, 'success': True})
+    except Exception as e:
+        return jsonify({'error': f'Auto-thumbnail analysis failed: {str(e)}'}), 500
 
 
 # ── Socket.IO ─────────────────────────────────────────────────

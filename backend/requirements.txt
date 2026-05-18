@@ -3,7 +3,6 @@ flask-cors==4.0.0
 flask-socketio==5.3.5
 yt-dlp>=2026.3.17
 python-socketio==5.11.0
-apify-client==1.7.0
 requests==2.31.0
 openai>=1.0.0
 resend>=2.0.0
