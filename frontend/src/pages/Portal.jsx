@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import io from 'socket.io-client'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002'
-const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/0772c25a-3fa9-4ca4-b229-7c7fbdd04127'
+const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/a6315998-f19d-4806-ba57-a40dd789348b'
 
 const getApiHeaders = (token) => ({
   'Content-Type': 'application/json',
@@ -69,8 +69,8 @@ function TitlePicker({ titles, onChoose, onRegenerate, loading }) {
 }
 
 /* ── Paywall modal ──────────────────────────────────────────── */
-const LEMON_SQUEEZY_URL_PRO = import.meta.env.VITE_LEMON_SQUEEZY_URL_PRO || 'https://morelike.lemonsqueezy.com/checkout/buy/pro-product-id'
-const LEMON_SQUEEZY_URL_PROMAX = import.meta.env.VITE_LEMON_SQUEEZY_URL_PROMAX || 'https://morelike.lemonsqueezy.com/checkout/buy/promax-product-id'
+const LEMON_SQUEEZY_URL_PRO = import.meta.env.VITE_LEMON_SQUEEZY_URL_PRO || 'https://morelike.lemonsqueezy.com/checkout/buy/5562929e-ce1b-4f28-a35b-90dce4371804'
+const LEMON_SQUEEZY_URL_PROMAX = import.meta.env.VITE_LEMON_SQUEEZY_URL_PROMAX || 'https://morelike.lemonsqueezy.com/checkout/buy/81b9a80c-0ac7-491c-aa37-483a0dbda94a'
 
 function Paywall({ onTokenValidated, onCancel }) {
   const [token, setToken] = useState('')
