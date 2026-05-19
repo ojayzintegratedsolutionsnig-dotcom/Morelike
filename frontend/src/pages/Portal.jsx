@@ -234,7 +234,7 @@ function Portal() {
   const [channelUrl, setChannelUrl] = useState('')
   const [limit, setLimit] = useState(3)
   const [videoLength, setVideoLength] = useState(3)
-  const [pastedSubtitles, setPastedSubtitles] = useState('')
+  const [userVideoIdea, setUserVideoIdea] = useState('')
   const [viralDNA, setViralDNA] = useState('')
   const [titles, setTitles] = useState('')
   const [parsedTitles, setParsedTitles] = useState([])
@@ -266,6 +266,7 @@ function Portal() {
   const socketRef = useRef(null)
   const extractedRef = useRef('')
   const extractedVideoIdsRef = useRef([])
+  const inputModeRef = useRef('scrape')
 
   // ── Auto-login from localStorage ─────────────────────────────
   useEffect(() => {
@@ -429,21 +430,90 @@ function Portal() {
     }
   }, [aiFetch])
 
-  // ── Paste-subtitles path ────────────────────────────────────
-  const handlePasteAndGo = () => {
-    if (!pastedSubtitles.trim()) return
+  // ── Idea mode: extract channel + viral DNA, skip titles ──────
+  const handleIdeaAndGo = () => {
+    if (!userVideoIdea.trim() || !channelUrl.trim()) return
     setPipelineError('')
+    inputModeRef.current = 'idea'
+    pendingTitle.current = userVideoIdea
     setFlow('processing')
-    setTimeout(() => {
-      extractedRef.current = pastedSubtitles
-      runPipeline(pastedSubtitles)
-    }, 500)
+
+    const sock = io(API_URL)
+    socketRef.current = sock
+
+    sock.on('progress', (data) => {
+      if (data.current && data.total && data.total > 0) {
+        setExtractionVideos(prev => {
+          const idx = data.current - 1
+          const next = [...prev]
+          while (next.length < data.total) next.push({ title: '', status: 'pending' })
+          const msg = data.message || ''
+          const titleMatch = msg.match(/:\s*(.+?)(?:\.{3})?$/)
+          const title = titleMatch ? titleMatch[1].trim() : `Video ${data.current}`
+          if (data.status === 'success') next[idx] = { title, status: 'done' }
+          else if (data.status === 'warning') next[idx] = { title, status: 'failed' }
+          else if (data.status === 'extracting') next[idx] = { title, status: 'extracting' }
+          else if (!next[idx].title) next[idx] = { title, status: 'pending' }
+          return next
+        })
+      }
+      if (data.status === 'error') {
+        setPipelineError(data.message || 'Extraction failed')
+        setFlow('input')
+        sock.close()
+      }
+      if (data.status === 'complete') {
+        sock.close()
+        fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
+          .then(r => r.json())
+          .then(async d => {
+            if (d.content) {
+              extractedRef.current = d.content
+              extractedVideoIdsRef.current = d.video_ids || []
+              // Run viral DNA only — skip title generation
+              try {
+                const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: d.content })
+                const dnaData = await dnaRes.json()
+                if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
+                setViralDNA(dnaData.viral_dna)
+                // Go directly to paywall or visual upload
+                if (tokenValidated && credits > 0) {
+                  setFlow('visual_upload')
+                } else {
+                  setFlow('paywall')
+                }
+              } catch (err) {
+                setPipelineError(err.message)
+                setFlow('input')
+              }
+            } else {
+              setPipelineError('No transcripts found for this channel.')
+              setFlow('input')
+            }
+          })
+          .catch(() => {
+            setPipelineError('Failed to retrieve transcripts.')
+            setFlow('input')
+          })
+      }
+    })
+
+    fetch(`${API_URL}/api/extract`, {
+      method: 'POST',
+      headers: getApiHeaders(token),
+      body: JSON.stringify({ channel_url: channelUrl.trim(), limit })
+    }).catch(() => {
+      sock.close()
+      setPipelineError('Failed to start extraction.')
+      setFlow('input')
+    })
   }
 
   // ── Start extraction → pipeline ─────────────────────────────
   const handleStart = async () => {
     if (!channelUrl.trim()) return
     setPipelineError('')
+    inputModeRef.current = 'scrape'
     setFlow('processing')
 
     const sock = io(API_URL)
@@ -675,7 +745,8 @@ function Portal() {
   const handleReset = () => {
     setFlow('input')
     setChannelUrl('')
-    setPastedSubtitles('')
+    setUserVideoIdea('')
+    inputModeRef.current = 'scrape'
     setViralDNA('')
     setTitles('')
     setParsedTitles([])
@@ -797,8 +868,8 @@ function Portal() {
               <button onClick={() => setInputMode('scrape')} className={`px-4 py-2 rounded-lg font-semibold transition-all ${inputMode === 'scrape' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
                 From YouTube
               </button>
-              <button onClick={() => setInputMode('paste')} className={`px-4 py-2 rounded-lg font-semibold transition-all ${inputMode === 'paste' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
-                Paste Subtitles
+              <button onClick={() => setInputMode('idea')} className={`px-4 py-2 rounded-lg font-semibold transition-all ${inputMode === 'idea' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+                I have my Video Idea
               </button>
             </div>
 
@@ -806,7 +877,7 @@ function Portal() {
               <div className="mb-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400 text-sm">{pipelineError}</div>
             )}
 
-            {inputMode === 'scrape' ? (
+            {inputMode === 'scrape' && (
               <>
                 <div className="space-y-4 mb-6">
                   <div>
@@ -849,22 +920,51 @@ function Portal() {
                   Analyze Channel (Free)
                 </button>
               </>
-            ) : (
+            )}
+
+            {inputMode === 'idea' && (
               <>
-                <textarea
-                  placeholder="Paste video subtitles here..."
-                  value={pastedSubtitles}
-                  onChange={(e) => setPastedSubtitles(e.target.value)}
-                  className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 mb-4"
-                  rows={8}
-                />
-                <div className="text-sm text-gray-400 mb-4">{pastedSubtitles.length.toLocaleString()} characters</div>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm text-purple-200 mb-1">Describe your video idea</label>
+                    <textarea
+                      placeholder="Describe your video concept, topic, or script outline..."
+                      value={userVideoIdea}
+                      onChange={(e) => setUserVideoIdea(e.target.value)}
+                      className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      rows={6}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-purple-200 mb-1">YouTube Channel for Style Reference</label>
+                    <input
+                      type="text"
+                      placeholder="https://www.youtube.com/@ChannelName"
+                      value={channelUrl}
+                      onChange={(e) => setChannelUrl(e.target.value)}
+                      className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">We'll analyze this channel's style and apply it to your idea.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-purple-200 mb-1">Target video length</label>
+                    <select
+                      value={videoLength}
+                      onChange={(e) => setVideoLength(parseInt(e.target.value))}
+                      className="bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      {Array.from({ length: planLimits.max_minutes }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>{n} minute{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <button
-                  onClick={handlePasteAndGo}
-                  disabled={!pastedSubtitles.trim()}
+                  onClick={handleIdeaAndGo}
+                  disabled={!userVideoIdea.trim() || !channelUrl.trim()}
                   className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 disabled:from-gray-600 disabled:to-gray-700 disabled:scale-100 disabled:cursor-not-allowed"
                 >
-                  Analyze Transcripts (Free)
+                  Analyze Channel & Continue (Free)
                 </button>
               </>
             )}
@@ -880,8 +980,8 @@ function Portal() {
             />
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div className="relative z-10 w-full max-w-md">
-              <h2 className="text-2xl font-bold mb-1 text-white">Analyzing Channel</h2>
-              <p className="text-purple-200/50 text-sm mb-4">This may take up to 2 minutes</p>
+              <h2 className="text-2xl font-bold mb-1 text-white">{inputModeRef.current === 'idea' ? 'Analyzing Channel Style' : 'Analyzing Channel'}</h2>
+              <p className="text-purple-200/50 text-sm mb-4">{inputModeRef.current === 'idea' ? 'Extracting style DNA to apply to your idea' : 'This may take up to 2 minutes'}</p>
               <ProgressBar />
 
               {extractionVideos.length > 0 && (

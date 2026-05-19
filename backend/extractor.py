@@ -126,8 +126,8 @@ def get_transcript(video_id, progress_callback=None):
 
 def extract_viral_content(channel_url, limit=20, progress_callback=None):
     """
-    Main extraction: scan top videos → fetch auto-generated subtitles via yt-dlp.
-    No external APIs needed — yt-dlp handles both video discovery and subtitles.
+    Main extraction: scan top videos → fetch auto-generated transcripts via yt-dlp.
+    No external APIs needed — yt-dlp handles both video discovery and transcripts.
     """
     if progress_callback:
         progress_callback({
@@ -156,7 +156,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     if progress_callback:
         progress_callback({
             'status': 'extracting',
-            'message': f'Found {total} top videos. Extracting auto-generated subtitles...',
+            'message': f'Found {total} top videos. Extracting auto-generated transcripts...',
             'progress': 10
         })
 
@@ -169,7 +169,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         if progress_callback:
             progress_callback({
                 'status': 'extracting',
-                'message': f'[{idx+1}/{total}] Extracting subtitles: {title[:50]}...',
+                'message': f'[{idx+1}/{total}] Extracting transcript: {title[:50]}...',
                 'progress': current_progress,
                 'current': idx + 1,
                 'total': total
@@ -184,14 +184,14 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
             if progress_callback:
                 progress_callback({
                     'status': 'success',
-                    'message': f'[{idx+1}/{total}] Extracted: {title[:40]}',
+                    'message': f'[{idx+1}/{total}] Transcript extracted: {title[:40]}',
                     'progress': current_progress
                 })
         else:
             if progress_callback:
                 progress_callback({
                     'status': 'warning',
-                    'message': f'[{idx+1}/{total}] No subtitles available: {title[:40]}',
+                    'message': f'[{idx+1}/{total}] No transcript available: {title[:40]}',
                     'progress': current_progress
                 })
 
@@ -199,7 +199,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         if progress_callback:
             progress_callback({
                 'status': 'error',
-                'message': 'No subtitles found on any video. The channel may have captions disabled.',
+                'message': 'No transcripts found on any video. The channel may have captions disabled.',
                 'progress': 0
             })
         return None
@@ -212,7 +212,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     if progress_callback:
         progress_callback({
             'status': 'complete',
-            'message': f'Done. Extracted subtitles from {count} video(s).',
+            'message': f'Done. Extracted transcripts from {count} video(s).',
             'progress': 100,
             'output_file': output_file,
             'videos_processed': count
