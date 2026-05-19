@@ -67,7 +67,7 @@ function Landing() {
               {' '}Again
             </h1>
             <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
-              Paste any YouTube channel you admire and get fresh title ideas, topic breakdowns, and a deep analysis of what makes their content work — completely free. When you're ready, unlock 3 full script packages starting at <strong>$8</strong> (up to 5 min with Pro).
+              Paste any YouTube channel you admire and get fresh title ideas, topic breakdowns, and a deep analysis of what makes their content work — completely free. When you're ready, unlock script packages starting at <strong>$8</strong> (up to 15 min with Pro Max).
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
@@ -84,7 +84,7 @@ function Landing() {
               </Link>
             </div>
             <p className="text-gray-500 text-sm mt-4">
-              Basic $8 = 3 credits (3 min max) &middot; Pro $10 = 3 credits (5 min max, 5 videos).
+              Basic $8 = 3 credits (3 min) &middot; Pro $10 = 3 credits (5 min) &middot; Pro Max $15 = 5 credits (15 min).
             </p>
           </div>
           <div className="hidden md:block">
@@ -173,7 +173,7 @@ function Landing() {
             />
             <h3 className="text-lg font-semibold mb-2">3. Unlock & Create</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Unlock 3 full script packages starting at $8 — each with a complete script, image prompts, video prompts, voice direction, and thumbnail design. Pro plan supports up to 5 min videos. Ready to download.
+              Unlock script packages starting at $8 — each with a complete script, image prompts, video prompts, voice direction, and thumbnail design. Pro Max supports up to 15 min videos. Ready to download.
             </p>
           </div>
         </div>
@@ -227,7 +227,7 @@ function Landing() {
             Or Analyze a Channel Free First
           </Link>
           <p className="text-gray-500 text-sm mt-4">
-            Pay when you're ready to unlock — 3 credits per plan.{' '}
+            Pay when you're ready to unlock.{' '}
             <Link to="/success" className="text-purple-400 hover:underline">Already paid? Claim your token</Link>
           </p>
         </div>

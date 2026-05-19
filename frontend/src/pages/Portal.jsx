@@ -70,6 +70,7 @@ function TitlePicker({ titles, onChoose, onRegenerate, loading }) {
 
 /* ── Paywall modal ──────────────────────────────────────────── */
 const LEMON_SQUEEZY_URL_PRO = import.meta.env.VITE_LEMON_SQUEEZY_URL_PRO || 'https://morelike.lemonsqueezy.com/checkout/buy/pro-product-id'
+const LEMON_SQUEEZY_URL_PROMAX = import.meta.env.VITE_LEMON_SQUEEZY_URL_PROMAX || 'https://morelike.lemonsqueezy.com/checkout/buy/promax-product-id'
 
 function Paywall({ onTokenValidated, onCancel }) {
   const [token, setToken] = useState('')
@@ -143,6 +144,18 @@ function Paywall({ onTokenValidated, onCancel }) {
               <span className="block text-xs text-pink-200">Analyze up to 5 videos</span>
               <span className="block text-xs text-pink-200">Full script + image + video prompts</span>
               <span className="block text-xs text-pink-200">Thumbnail A/B + voice direction</span>
+            </a>
+            <a
+              href={LEMON_SQUEEZY_URL_PROMAX}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all transform hover:scale-105 text-center"
+            >
+              <span className="block text-lg">Pro Max — $15</span>
+              <span className="block text-xs text-amber-200 mt-2">15 min max per video</span>
+              <span className="block text-xs text-amber-200">Analyze up to 5 videos</span>
+              <span className="block text-xs text-amber-200">5 credits (5 script packages)</span>
+              <span className="block text-xs text-amber-200">5 title ideas + full prompts</span>
             </a>
           </div>
           <button
@@ -416,7 +429,7 @@ function Portal() {
       if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
       setViralDNA(dnaData.viral_dna)
 
-      const titlesRes = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: dnaData.viral_dna })
+      const titlesRes = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: dnaData.viral_dna, count: tokenPlan === 'promax' ? 5 : 3 })
       const titlesData = await titlesRes.json()
       if (!titlesData.success) throw new Error(titlesData.error || 'Title generation failed')
       setTitles(titlesData.titles)
@@ -604,7 +617,7 @@ function Portal() {
   const handleRegenerateTitles = async () => {
     setFlow('processing')
     try {
-      const res = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: viralDNA })
+      const res = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: viralDNA, count: tokenPlan === 'promax' ? 5 : 3 })
       const data = await res.json()
       if (data.success) {
         setTitles(data.titles)

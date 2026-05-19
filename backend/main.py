@@ -533,14 +533,20 @@ def lemonsqueezy_webhook():
     first_item = order_data.get('first_order_item', {}) or {}
     product_id = first_item.get('product_id', '')
 
-    # Map product IDs to plans — pro product ID configurable via env
+    # Map product IDs to plans — product IDs configurable via env
     PRO_PRODUCT_ID = os.environ.get('LEMON_SQUEEZY_PRODUCT_PRO', '')
-    plan = 'pro' if (PRO_PRODUCT_ID and product_id == PRO_PRODUCT_ID) else 'basic'
+    PROMAX_PRODUCT_ID = os.environ.get('LEMON_SQUEEZY_PRODUCT_PROMAX', '')
+    if PROMAX_PRODUCT_ID and product_id == PROMAX_PRODUCT_ID:
+        plan = 'promax'
+    elif PRO_PRODUCT_ID and product_id == PRO_PRODUCT_ID:
+        plan = 'pro'
+    else:
+        plan = 'basic'
 
     if not email:
         return jsonify({'error': 'No email in order'}), 400
 
-    token = create_token(email=email, credits=3, lemon_order_id=order_id, plan=plan)
+    token = create_token(email=email, lemon_order_id=order_id, plan=plan)
     try:
         send_token_email(email, token)
     except Exception as e:
@@ -647,14 +653,15 @@ def generate_viral_dna():
 def generate_titles():
     data = request.json or {}
     viral_dna = data.get('viral_dna', '')
+    num_titles = data.get('count', 3)
 
     if not viral_dna:
         return jsonify({'error': 'Viral DNA is required. Generate analysis first.'}), 400
 
     try:
         niche = extract_niche(viral_dna)
-        system_prompt = TITLE_IDEAS_SYSTEM_INSTRUCTION.format(viral_dna=viral_dna, niche=niche)
-        result = call_ai(system_prompt, f"Generate 3 title ideas about {niche} based on the Viral DNA.")
+        system_prompt = TITLE_IDEAS_SYSTEM_INSTRUCTION.replace('Generate exactly 3 titles.', f'Generate exactly {num_titles} titles.').replace('ALL 3 titles', f'ALL {num_titles} titles').format(viral_dna=viral_dna, niche=niche)
+        result = call_ai(system_prompt, f"Generate {num_titles} title ideas about {niche} based on the Viral DNA.")
         return jsonify({'titles': result, 'success': True})
     except Exception as e:
         return jsonify({'error': f'Failed to generate titles: {str(e)}'}), 500

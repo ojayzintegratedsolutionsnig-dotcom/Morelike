@@ -18,8 +18,9 @@ def get_db():
 
 # Plan configuration
 PLAN_CONFIG = {
-    'basic': {'max_videos': 3, 'max_minutes': 3, 'price': '$8'},
-    'pro':   {'max_videos': 5, 'max_minutes': 5, 'price': '$10'},
+    'basic':  {'max_videos': 3, 'max_minutes': 3,  'price': '$8',  'credits': 3},
+    'pro':    {'max_videos': 5, 'max_minutes': 5,  'price': '$10', 'credits': 3},
+    'promax': {'max_videos': 5, 'max_minutes': 15, 'price': '$15', 'credits': 5},
 }
 
 
@@ -64,7 +65,9 @@ def init_db():
     conn.close()
 
 
-def create_token(email=None, credits=3, lemon_order_id=None, plan='basic'):
+def create_token(email=None, credits=None, lemon_order_id=None, plan='basic'):
+    if credits is None:
+        credits = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic']).get('credits', 3)
     token = uuid.uuid4().hex[:12].upper()
     conn = get_db()
     conn.execute(
