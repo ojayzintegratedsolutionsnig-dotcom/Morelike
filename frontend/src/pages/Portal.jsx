@@ -828,7 +828,7 @@ function Portal() {
       <div className="flex items-center gap-3 md:gap-4 flex-wrap">
         {tokenValidated ? (
           <>
-            <span className="text-xs md:text-sm text-gray-400">{tokenEmail && `${tokenEmail} | `}{tokenPlan === 'pro' ? 'Pro' : 'Basic'} · Credits: <strong className="text-white">{credits}</strong></span>
+            <span className="text-xs md:text-sm text-gray-400">{tokenEmail && `${tokenEmail} | `}{tokenPlan === 'promax' ? 'Pro Max' : tokenPlan === 'pro' ? 'Pro' : 'Basic'} · Credits: <strong className="text-white">{credits}</strong></span>
             <button onClick={handleLogout} className="text-xs md:text-sm text-gray-400 hover:text-white transition-colors">Logout</button>
           </>
         ) : (
@@ -875,7 +875,13 @@ function Portal() {
         {flow === 'input' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
             <h2 className="text-xl md:text-2xl font-bold mb-2">Generate Content Ideas</h2>
-            <p className="text-purple-200 mb-6">Paste a YouTube channel you admire. We'll reverse-engineer what works and give you fresh ideas — free.</p>
+            <p className="text-purple-200 mb-2">Paste a YouTube channel you admire. We'll reverse-engineer what works and give you fresh ideas — free.</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="text-xs bg-purple-900/40 border border-purple-500/30 rounded-full px-3 py-1 text-purple-200">Basic: 3 min &middot; 3 videos</span>
+              <span className="text-xs bg-pink-900/40 border border-pink-500/30 rounded-full px-3 py-1 text-pink-200">Pro: 5 min &middot; 5 videos</span>
+              <span className="text-xs bg-amber-900/40 border border-amber-500/30 rounded-full px-3 py-1 text-amber-200">Pro Max: 15 min &middot; 5 videos</span>
+              <Link to="/plans" className="text-xs text-gray-400 hover:text-white underline underline-offset-2 transition-colors self-center">Compare plans</Link>
+            </div>
 
             <div className="flex gap-2 mb-6">
               <button onClick={() => setInputMode('scrape')} className={`px-4 py-2 rounded-lg font-semibold transition-all ${inputMode === 'scrape' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
@@ -1047,7 +1053,7 @@ function Portal() {
               onRegenerate={handleRegenerateTitles}
               loading={false}
             />
-            <p className="text-gray-500 text-xs mt-4">Selecting a title will prompt you to unlock the full script package — $8 for 3 credits (up to 3 min per video).</p>
+            <p className="text-gray-500 text-xs mt-4">Selecting a title will prompt you to unlock the full script package — plans start at $8. Basic: 3 min per video &middot; Pro: 5 min &middot; Pro Max: 15 min.</p>
             <button onClick={handleReset} className="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all text-sm">
               Start Over
             </button>

@@ -173,7 +173,7 @@ function Landing() {
             />
             <h3 className="text-lg font-semibold mb-2">3. Unlock & Create</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Unlock script packages starting at $8 — each with a complete script, image prompts, video prompts, voice direction, and thumbnail design. Pro Max supports up to 15 min videos. Ready to download.
+              Unlock script packages starting at $8 — each with a complete script, image prompts, video prompts, voice direction, and thumbnail design. Pro supports 5 min videos, Pro Max supports up to 15 min. Ready to download.
             </p>
           </div>
         </div>
