@@ -244,8 +244,8 @@ function Portal() {
   const [inputMode, setInputMode] = useState('scrape')
 
   // Pipeline
+  const EXTRACT_LIMIT = 3
   const [channelUrl, setChannelUrl] = useState('')
-  const [limit, setLimit] = useState(3)
   const [videoLength, setVideoLength] = useState(3)
   const [userVideoIdea, setUserVideoIdea] = useState('')
   const [viralDNA, setViralDNA] = useState('')
@@ -298,7 +298,6 @@ function Portal() {
           setTokenPlan(data.plan || 'basic')
           setPlanLimits(data.limits || { max_videos: 3, max_minutes: 3 })
           setTokenValidated(true)
-          setLimit(data.limits?.max_videos || 3)
           setVideoLength(data.limits?.max_minutes || 3)
         } else {
           localStorage.removeItem('morelike_token')
@@ -326,7 +325,6 @@ function Portal() {
         setPlanLimits(data.limits || { max_videos: 3, max_minutes: 3 })
         setTokenValidated(true)
         setShowLogin(false)
-        setLimit(data.limits?.max_videos || 3)
         setVideoLength(data.limits?.max_minutes || 3)
         localStorage.setItem('morelike_token', token.trim())
         localStorage.setItem('morelike_credits', String(data.credits))
@@ -347,7 +345,6 @@ function Portal() {
     setTokenPlan(plan || 'basic')
     setPlanLimits(limits || { max_videos: 3, max_minutes: 3 })
     setTokenValidated(true)
-    setLimit(limits?.max_videos || 3)
     setVideoLength(limits?.max_minutes || 3)
     localStorage.setItem('morelike_token', validatedToken)
     localStorage.setItem('morelike_credits', String(creds))
@@ -514,7 +511,7 @@ function Portal() {
     fetch(`${API_URL}/api/extract`, {
       method: 'POST',
       headers: getApiHeaders(token),
-      body: JSON.stringify({ channel_url: channelUrl.trim(), limit })
+      body: JSON.stringify({ channel_url: channelUrl.trim(), limit: EXTRACT_LIMIT })
     }).catch(() => {
       sock.close()
       setPipelineError('Failed to start extraction.')
@@ -587,7 +584,7 @@ function Portal() {
       await fetch(`${API_URL}/api/extract`, {
         method: 'POST',
         headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit })
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: EXTRACT_LIMIT })
       })
     } catch {
       sock.close()
@@ -875,13 +872,7 @@ function Portal() {
         {flow === 'input' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
             <h2 className="text-xl md:text-2xl font-bold mb-2">Generate Content Ideas</h2>
-            <p className="text-purple-200 mb-2">Paste a YouTube channel you admire. We'll reverse-engineer what works and give you fresh ideas — free.</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="text-xs bg-purple-900/40 border border-purple-500/30 rounded-full px-3 py-1 text-purple-200">Basic: 3 min &middot; 3 videos</span>
-              <span className="text-xs bg-pink-900/40 border border-pink-500/30 rounded-full px-3 py-1 text-pink-200">Pro: 5 min &middot; 5 videos</span>
-              <span className="text-xs bg-amber-900/40 border border-amber-500/30 rounded-full px-3 py-1 text-amber-200">Pro Max: 15 min &middot; 5 videos</span>
-              <Link to="/plans" className="text-xs text-gray-400 hover:text-white underline underline-offset-2 transition-colors self-center">Compare plans</Link>
-            </div>
+            <p className="text-purple-200 mb-6">Paste a YouTube channel you admire. We'll reverse-engineer what works and give you fresh ideas — free.</p>
 
             <div className="flex gap-2 mb-6">
               <button onClick={() => setInputMode('scrape')} className={`px-4 py-2 rounded-lg font-semibold transition-all ${inputMode === 'scrape' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
@@ -908,27 +899,6 @@ function Portal() {
                       onChange={(e) => setChannelUrl(e.target.value)}
                       className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-purple-200 mb-1">Videos to analyze (max {planLimits.max_videos})</label>
-                    <input
-                      type="number" min="1" max={planLimits.max_videos}
-                      value={limit}
-                      onChange={(e) => setLimit(Math.min(planLimits.max_videos, Math.max(1, parseInt(e.target.value) || 1)))}
-                      className="w-24 bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-purple-200 mb-1">Target video length</label>
-                    <select
-                      value={videoLength}
-                      onChange={(e) => setVideoLength(parseInt(e.target.value))}
-                      className="bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      {Array.from({ length: planLimits.max_minutes }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>{n} minute{n > 1 ? 's' : ''}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
                 <button
@@ -964,18 +934,6 @@ function Portal() {
                       className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">We'll analyze this channel's style and apply it to your idea.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-purple-200 mb-1">Target video length</label>
-                    <select
-                      value={videoLength}
-                      onChange={(e) => setVideoLength(parseInt(e.target.value))}
-                      className="bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      {Array.from({ length: planLimits.max_minutes }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>{n} minute{n > 1 ? 's' : ''}</option>
-                      ))}
-                    </select>
                   </div>
                 </div>
                 <button
