@@ -6,6 +6,76 @@ import json
 import requests
 
 
+def _extract_transcript_via_innertube(video_id):
+    """
+    Fetch captions via YouTube InnerTube API with Google API key.
+    Authenticated — won't get blocked from datacenter IPs.
+    """
+    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip() or os.environ.get('GEMINI_API_KEY', '').strip()
+    if not api_key:
+        return None
+
+    try:
+        resp = requests.post(
+            f'https://youtubei.googleapis.com/youtubei/v1/player?key={api_key}',
+            json={
+                'context': {
+                    'client': {
+                        'clientName': 'WEB',
+                        'clientVersion': '2.20250522.00.00',
+                        'hl': 'en',
+                        'gl': 'US'
+                    }
+                },
+                'videoId': video_id
+            },
+            timeout=10
+        )
+        if resp.status_code != 200:
+            print(f"DEBUG: InnerTube API HTTP {resp.status_code} for {video_id}")
+            return None
+
+        data = resp.json()
+    except Exception as e:
+        print(f"DEBUG: InnerTube API error for {video_id}: {e}")
+        return None
+
+    captions = data.get('captions', {}).get('playerCaptionsTracklistRenderer', {})
+    caption_tracks = captions.get('captionTracks', [])
+
+    if not caption_tracks:
+        print(f"DEBUG: No caption tracks in InnerTube response for {video_id}")
+        return None
+
+    # Prefer English
+    best_url = None
+    for track in caption_tracks:
+        lang = track.get('languageCode', '')
+        if lang in ('en', 'en-US', 'en-GB'):
+            best_url = track.get('baseUrl', '')
+            break
+    if not best_url:
+        best_url = caption_tracks[0].get('baseUrl', '')
+
+    if not best_url:
+        return None
+
+    try:
+        resp = requests.get(best_url, timeout=15, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        if resp.status_code != 200:
+            return None
+        text = _parse_xml_transcript(resp.text)
+        if text and len(text) > 50:
+            print(f"DEBUG: InnerTube transcript extracted for {video_id} ({len(text)} chars)")
+            return text
+    except Exception as e:
+        print(f"DEBUG: InnerTube caption fetch error for {video_id}: {e}")
+
+    return None
+
+
 def _extract_transcript_from_watch_page(video_id):
     """
     Parse captions straight from the watch page HTML — no yt-dlp, no InnerTube.
@@ -272,12 +342,17 @@ def get_transcript(video_id, progress_callback=None, fast_only=False):
     """
     video_url = f'https://www.youtube.com/watch?v={video_id}'
 
-    # ── Method 0: parse captions from watch page (fast, ~1-3s) ──
+    # ── Method 0: InnerTube API with Google API key (authenticated, ~1-2s) ──
+    text = _extract_transcript_via_innertube(video_id)
+    if text:
+        return text, False
+
+    # ── Method 1: parse captions from watch page (fast, ~1-3s) ──
     text = _extract_transcript_from_watch_page(video_id)
     if text:
         return text, False
 
-    # ── Method 3: youtube-transcript-api (fast, ~2-5s) ─────────
+    # ── Method 2: youtube-transcript-api (fast, ~2-5s) ─────────
     try:
         import threading
         from youtube_transcript_api import YouTubeTranscriptApi
