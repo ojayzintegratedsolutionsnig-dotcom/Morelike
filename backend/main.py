@@ -36,17 +36,21 @@ def add_security_headers(response):
 
 CORS(app, origins=[
     'https://morelikecreator.com',
+    'https://www.morelikecreator.com',
     'https://morelike.vercel.app',
     'https://morelike-morelike.up.railway.app',
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:3100',
 ])
 socketio = SocketIO(app, cors_allowed_origins=[
     'https://morelikecreator.com',
+    'https://www.morelikecreator.com',
     'https://morelike.vercel.app',
     'https://morelike-morelike.up.railway.app',
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:3100',
 ])
 
 init_db()
