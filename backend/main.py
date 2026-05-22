@@ -611,6 +611,7 @@ Return ONLY a JSON object with these exact keys:
   "visual_hooks": ["specific visual element that grabs attention 1", "specific visual element that grabs attention 2", "specific visual element that grabs attention 3"],
   "ctr_factors": ["specific reason this drives clicks 1", "specific reason this drives clicks 2"],
   "art_style": "photorealistic / 3D render / stylized illustration / painterly / vector graphic / photo composite / screenshot",
+  "image_style": "overall visual treatment — photo manipulation with heavy retouching / clean vector illustration / gritty screenshot with text overlay / cinematic still with color grade / AI-generated composite / mixed-media collage / minimalist with negative space / maximalist with multiple elements",
   "lighting": "key light source + direction + quality (soft/hard) + color temperature + any rim/backlight + volumetric effects",
   "post_processing": "visible editing techniques — color grading, vignette, bloom/glow, sharpening, saturation boost, HDR tone mapping"
 }
