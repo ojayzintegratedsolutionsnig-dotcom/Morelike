@@ -25,19 +25,53 @@ from emailer import send_token_email, send_reply_email
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+CORS(app, origins=[
+    'https://morelikecreator.com',
+    'https://morelike.vercel.app',
+    'https://morelike-morelike.up.railway.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+])
+socketio = SocketIO(app, cors_allowed_origins=[
+    'https://morelikecreator.com',
+    'https://morelike.vercel.app',
+    'https://morelike-morelike.up.railway.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+])
 
 init_db()
 
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
+if not ADMIN_PASSWORD:
+    raise RuntimeError('ADMIN_PASSWORD environment variable is required')
 
 deepseek_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com") if DEEPSEEK_API_KEY else None
 groq_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1") if GROQ_API_KEY else None
 
-admin_sessions = set()
+admin_sessions = {}  # token -> expiry_timestamp
+
+# Rate limiting — simple in-memory by IP
+import time as _time
+from collections import defaultdict
+_rate_limits = defaultdict(list)  # IP -> list of timestamps
+
+def _rate_limit(max_requests=30, window=60):
+    """Decorator: limit to max_requests per window seconds per IP."""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr) or 'unknown'
+            now = _time.time()
+            _rate_limits[ip] = [t for t in _rate_limits[ip] if now - t < window]
+            if len(_rate_limits[ip]) >= max_requests:
+                return jsonify({'error': 'Too many requests. Slow down.'}), 429
+            _rate_limits[ip].append(now)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 extraction_status = {
     'running': False,
@@ -73,8 +107,12 @@ def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         admin_token = request.headers.get('X-Admin-Token', '')
-        if admin_token not in admin_sessions:
+        expiry = admin_sessions.get(admin_token)
+        if expiry is None:
             return jsonify({'error': 'Admin access required'}), 401
+        if _time.time() > expiry:
+            del admin_sessions[admin_token]
+            return jsonify({'error': 'Admin session expired. Please login again.'}), 401
         return f(*args, **kwargs)
     return decorated
 
@@ -579,9 +617,10 @@ def run_extraction(channel_url, limit):
         return result
     except Exception as e:
         extraction_status['running'] = False
+        print(f"Extraction error: {e}")
         socketio.emit('progress', {
             'status': 'error',
-            'message': f'Error: {str(e)}',
+            'message': 'Extraction failed. Please try again.',
             'progress': 0
         })
 
@@ -589,6 +628,7 @@ def run_extraction(channel_url, limit):
 # ── Public endpoints ──────────────────────────────────────────
 
 @app.route('/api/validate-token', methods=['POST'])
+@_rate_limit(30, 60)
 def validate_token():
     data = request.json or {}
     token = data.get('token', '')
@@ -697,12 +737,13 @@ def lemonsqueezy_webhook():
 
 
 @app.route('/api/admin/login', methods=['POST'])
+@_rate_limit(5, 60)
 def admin_login():
     data = request.json or {}
     password = data.get('password', '')
     if password == ADMIN_PASSWORD:
         session_token = uuid.uuid4().hex
-        admin_sessions.add(session_token)
+        admin_sessions[session_token] = _time.time() + 86400  # 24h expiry
         return jsonify({'success': True, 'admin_token': session_token})
     return jsonify({'error': 'Invalid password'}), 401
 
@@ -721,21 +762,27 @@ def credits():
 
 
 @app.route('/api/extract', methods=['POST'])
+@_rate_limit(5, 60)
 def extract():
     if extraction_status['running']:
         return jsonify({'error': 'Extraction already running'}), 400
 
     data = request.json
-    channel_url = data.get('channel_url')
-    limit = data.get('limit', 20)
+    channel_url = data.get('channel_url', '')
+    limit = data.get('limit', 3)
 
     if not channel_url:
         return jsonify({'error': 'Channel URL is required'}), 400
 
+    # Strict YouTube URL validation — HTTPS only, no SSRF
     import re
-    yt_pattern = r'^https?://(www\.)?(youtube\.com|youtu\.be)/(@|channel/|c/|user/)?[\w\-]+'
+    if not channel_url.startswith('https://'):
+        return jsonify({'error': 'Only HTTPS YouTube URLs are accepted'}), 400
+    yt_pattern = r'^https://(www\.)?(youtube\.com|youtu\.be)/(@|channel/|c/|user/)?[\w\-]+'
     if not re.match(yt_pattern, channel_url.strip()):
-        return jsonify({'error': 'Invalid YouTube channel URL. Expected format: https://www.youtube.com/@ChannelName'}), 400
+        return jsonify({'error': 'Invalid YouTube URL format'}), 400
+
+    limit = max(1, min(5, int(limit) if str(limit).isdigit() else 3))
 
     thread = threading.Thread(target=run_extraction, args=(channel_url, limit))
     thread.daemon = True
@@ -744,10 +791,11 @@ def extract():
     return jsonify({'message': 'Extraction started', 'status': 'started'})
 
 
-@app.route('/api/debug-transcript', methods=['GET'])
+@app.route('/api/admin/debug-transcript', methods=['GET'])
+@require_admin
 def debug_transcript():
-    """Test transcript extraction on a known-good video and report per-method results."""
-    test_video_id = 'YWbBrbOaz58'  # Known to have English captions
+    """Admin-only: test transcript extraction on a known-good video and report per-method results."""
+    test_video_id = 'YWbBrbOaz58'
     results = {'video_id': test_video_id}
 
     # Method 1: yt-dlp download
@@ -767,31 +815,19 @@ def debug_transcript():
                 for f in files:
                     if f.endswith(('.vtt', '.srt')):
                         found.append(os.path.join(root, f))
-            results['method1_ytdlp'] = f'OK: {len(found)} files' if found else 'FAIL: no subtitle files produced'
+            results['method1_ytdlp'] = 'OK' if found else 'no files'
     except Exception as e:
-        results['method1_ytdlp'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+        results['method1_ytdlp'] = f'FAIL: {type(e).__name__}'
 
-    # Method 2: yt-dlp extract_info + URL fetch
+    # Method 2: extract_info
     try:
         import yt_dlp
-        ydl_opts2 = {
-            'writesubtitles': True, 'writeautomaticsub': True,
-            'subtitleslangs': ['en'], 'skip_download': True,
-            'quiet': True, 'no_warnings': True,
-        }
+        ydl_opts2 = {'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['en'], 'skip_download': True, 'quiet': True, 'no_warnings': True}
         with yt_dlp.YoutubeDL(ydl_opts2) as ydl:
             info = ydl.extract_info(f'https://www.youtube.com/watch?v={test_video_id}', download=False)
-            subtitles = info.get('subtitles', {}) or {}
-            auto_captions = info.get('automatic_captions', {}) or {}
-            found_url = None
-            for lang_key in ['en', 'en-US', 'en-GB']:
-                sub_list = subtitles.get(lang_key) or auto_captions.get(lang_key)
-                if sub_list:
-                    found_url = sub_list[0].get('url') if sub_list else None
-                    break
-            results['method2_extractinfo'] = f'OK: found URL' if found_url else f'FAIL: no subtitle URL in info. subs={list(subtitles.keys())}, auto={list(auto_captions.keys())}'
+        results['method2_extractinfo'] = 'OK'
     except Exception as e:
-        results['method2_extractinfo'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+        results['method2_extractinfo'] = f'FAIL: {type(e).__name__}'
 
     # Method 3: youtube-transcript-api
     try:
@@ -799,18 +835,17 @@ def debug_transcript():
         api = YouTubeTranscriptApi()
         transcript = api.fetch(test_video_id, languages=['en', 'en-US', 'en-GB'])
         text = ' '.join([snippet.text for snippet in transcript])
-        results['method3_transcriptapi'] = f'OK: {len(transcript)} snippets, {len(text)} chars'
+        results['method3_transcriptapi'] = f'OK: {len(transcript)} snippets'
     except Exception as e:
-        results['method3_transcriptapi'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+        results['method3_transcriptapi'] = f'FAIL: {type(e).__name__}'
 
-    # Method 4: raw HTTP fetch of YouTube watch page
+    # Method 4: raw HTTP
     try:
         import requests as req
-        resp = req.get(f'https://www.youtube.com/watch?v={test_video_id}', timeout=15,
-                       headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
-        results['method4_rawhttp'] = f'OK: {resp.status_code}, {len(resp.text)} chars'
+        resp = req.get(f'https://www.youtube.com/watch?v={test_video_id}', timeout=15)
+        results['method4_rawhttp'] = f'OK: {resp.status_code}'
     except Exception as e:
-        results['method4_rawhttp'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+        results['method4_rawhttp'] = f'FAIL: {type(e).__name__}'
 
     return jsonify(results)
 
@@ -897,7 +932,8 @@ def generate_viral_dna():
         viral_dna = call_ai(VIRAL_DNA_SYSTEM_INSTRUCTION, trimmed)
         return jsonify({'viral_dna': viral_dna, 'success': True})
     except Exception as e:
-        return jsonify({'error': f'Failed to generate Viral DNA: {str(e)}'}), 500
+        print(f"Viral DNA generation error: {e}")
+        return jsonify({'error': 'Failed to analyze channel style. Please try again.'}), 500
 
 
 @app.route('/api/generate-titles', methods=['POST'])
@@ -915,7 +951,8 @@ def generate_titles():
         result = call_ai(system_prompt, f"Generate {num_titles} title ideas about {niche} based on the Viral DNA.")
         return jsonify({'titles': result, 'success': True})
     except Exception as e:
-        return jsonify({'error': f'Failed to generate titles: {str(e)}'}), 500
+        print(f"Title generation error: {e}")
+        return jsonify({'error': 'Failed to generate titles. Please try again.'}), 500
 
 
 @app.route('/api/generate-package', methods=['POST'])
@@ -993,7 +1030,8 @@ def generate_package():
             'success': True
         })
     except Exception as e:
-        return jsonify({'error': f'Failed to generate package: {str(e)}'}), 500
+        print(f"Package generation error: {e}")
+        return jsonify({'error': 'Failed to generate script package. Please try again.'}), 500
 
 
 @app.route('/api/download-package', methods=['GET'])
@@ -1201,7 +1239,8 @@ def analyze_visuals():
 
         return jsonify({'visual_profile': merged, 'success': True})
     except Exception as e:
-        return jsonify({'error': f'Vision analysis failed: {str(e)}'}), 500
+        print(f"Vision analysis error: {e}")
+        return jsonify({'error': 'Image analysis failed. Please try again.'}), 500
 
 
 @app.route('/api/analyze-thumbnails', methods=['POST'])
@@ -1246,7 +1285,8 @@ def analyze_thumbnails():
 
         return jsonify({'thumbnail_profile': merged, 'success': True})
     except Exception as e:
-        return jsonify({'error': f'Thumbnail analysis failed: {str(e)}'}), 500
+        print(f"Thumbnail analysis error: {e}")
+        return jsonify({'error': 'Thumbnail analysis failed. Please try again.'}), 500
 
 
 @app.route('/api/analyze-thumbnails-auto', methods=['POST'])
@@ -1304,7 +1344,8 @@ def analyze_thumbnails_auto():
 
         return jsonify({'thumbnail_profile': merged, 'success': True})
     except Exception as e:
-        return jsonify({'error': f'Auto-thumbnail analysis failed: {str(e)}'}), 500
+        print(f"Auto-thumbnail error: {e}")
+        return jsonify({'error': 'Thumbnail analysis failed. Please try again.'}), 500
 
 
 # ── Socket.IO ─────────────────────────────────────────────────

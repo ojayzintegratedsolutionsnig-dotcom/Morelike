@@ -283,10 +283,10 @@ function Portal() {
   const extractedVideoIdsRef = useRef([])
   const inputModeRef = useRef('scrape')
 
-  // ── Auto-login from localStorage ─────────────────────────────
+  // ── Auto-login from sessionStorage ─────────────────────────────
   useEffect(() => {
-    const stored = localStorage.getItem('morelike_token')
-    const storedCreds = localStorage.getItem('morelike_credits')
+    const stored = sessionStorage.getItem('morelike_token')
+    const storedCreds = sessionStorage.getItem('morelike_credits')
     if (stored && storedCreds && parseInt(storedCreds) > 0) {
       fetch(`${API_URL}/api/validate-token`, {
         method: 'POST',
@@ -302,9 +302,9 @@ function Portal() {
           setTokenValidated(true)
           setVideoLength(data.limits?.max_minutes || 3)
         } else {
-          localStorage.removeItem('morelike_token')
-          localStorage.removeItem('morelike_credits')
-          localStorage.removeItem('morelike_plan')
+          sessionStorage.removeItem('morelike_token')
+          sessionStorage.removeItem('morelike_credits')
+          sessionStorage.removeItem('morelike_plan')
         }
       }).catch(() => {})
     }
@@ -328,9 +328,9 @@ function Portal() {
         setTokenValidated(true)
         setShowLogin(false)
         setVideoLength(data.limits?.max_minutes || 3)
-        localStorage.setItem('morelike_token', token.trim())
-        localStorage.setItem('morelike_credits', String(data.credits))
-        localStorage.setItem('morelike_plan', data.plan || 'basic')
+        sessionStorage.setItem('morelike_token', token.trim())
+        sessionStorage.setItem('morelike_credits', String(data.credits))
+        sessionStorage.setItem('morelike_plan', data.plan || 'basic')
       } else {
         alert('Invalid or expired token.')
       }
@@ -348,9 +348,9 @@ function Portal() {
     setPlanLimits(limits || { max_videos: 3, max_minutes: 3 })
     setTokenValidated(true)
     setVideoLength(limits?.max_minutes || 3)
-    localStorage.setItem('morelike_token', validatedToken)
-    localStorage.setItem('morelike_credits', String(creds))
-    localStorage.setItem('morelike_plan', plan || 'basic')
+    sessionStorage.setItem('morelike_token', validatedToken)
+    sessionStorage.setItem('morelike_credits', String(creds))
+    sessionStorage.setItem('morelike_plan', plan || 'basic')
     setFlow('visual_upload')
   }, [])
 
@@ -399,14 +399,14 @@ function Portal() {
         setFinalPackage(data.package)
         setCreditsAfter(data.credits_remaining)
         setCredits(data.credits_remaining)
-        localStorage.setItem('morelike_credits', String(data.credits_remaining))
+        sessionStorage.setItem('morelike_credits', String(data.credits_remaining))
         setFlow('result')
       } else {
         if (res.status === 401 || res.status === 402) {
           setTokenValidated(false)
           setToken('')
-          localStorage.removeItem('morelike_token')
-          localStorage.removeItem('morelike_credits')
+          sessionStorage.removeItem('morelike_token')
+          sessionStorage.removeItem('morelike_credits')
           setFlow('paywall')
           alert(data.error || 'Token expired or no credits.')
         } else {
@@ -840,9 +840,9 @@ function Portal() {
     setTokenPlan('basic')
     setPlanLimits({ max_videos: 3, max_minutes: 3 })
     setTokenValidated(false)
-    localStorage.removeItem('morelike_token')
-    localStorage.removeItem('morelike_credits')
-    localStorage.removeItem('morelike_plan')
+    sessionStorage.removeItem('morelike_token')
+    sessionStorage.removeItem('morelike_credits')
+    sessionStorage.removeItem('morelike_plan')
   }
 
   // Cleanup socket on unmount

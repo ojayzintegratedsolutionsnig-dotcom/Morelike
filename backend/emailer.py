@@ -16,7 +16,7 @@ def _ensure_configured():
 
 def send_token_email(to_email, token):
     if not RESEND_API_KEY:
-        print(f"[EMAIL SKIP] No RESEND_API_KEY set. Token for {to_email}: {token}")
+        print(f"[EMAIL SKIP] No RESEND_API_KEY set. Token generated for {to_email}")
         return
 
     _ensure_configured()

@@ -73,7 +73,7 @@ def init_db():
 def create_token(email=None, credits=None, lemon_order_id=None, plan='basic', custom_limits=None):
     if credits is None:
         credits = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic']).get('credits', 3)
-    token = uuid.uuid4().hex[:12].upper()
+    token = uuid.uuid4().hex.upper()  # Full 32 hex chars = 128 bits
     conn = get_db()
     conn.execute(
         'INSERT INTO tokens (token, credits, email, lemon_order_id, plan) VALUES (?, ?, ?, ?, ?)',
