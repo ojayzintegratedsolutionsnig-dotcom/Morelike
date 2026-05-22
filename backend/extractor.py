@@ -173,20 +173,43 @@ def _parse_vtt(raw):
     return ' '.join(out)
 
 
-def get_transcript(video_id, progress_callback=None):
+def get_transcript(video_id, progress_callback=None, fast_only=False):
     """
     Extract English subtitles from YouTube.
-    Tries watch-page parsing first (works on datacenter IPs),
-    then yt-dlp download, extract_info, and youtube-transcript-api as fallbacks.
+    Tries fast methods first (watch-page, transcript-api).
+    Only falls back to slow yt-dlp methods if fast_only=False.
+    Returns (text, was_bot_blocked) — was_bot_blocked=True if YouTube rejected the request.
     """
     video_url = f'https://www.youtube.com/watch?v={video_id}'
 
-    # ── Method 0: parse captions from watch page (bot-proof) ──────
+    # ── Method 0: parse captions from watch page (fast, ~1-3s) ──
     text = _extract_transcript_from_watch_page(video_id)
     if text:
-        return text
+        return text, False
 
-    # ── Method 1: yt-dlp download subtitles to temp dir ───────────
+    # ── Method 3: youtube-transcript-api (fast, ~2-5s) ─────────
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        from youtube_transcript_api._errors import RequestBlocked, IpBlocked
+        api = YouTubeTranscriptApi()
+        transcript = api.fetch(video_id, languages=['en', 'en-US', 'en-GB'])
+        if transcript:
+            text = ' '.join([snippet.text for snippet in transcript])
+            if text and len(text) > 50:
+                print(f"DEBUG: Subtitle extracted via API for {video_id} ({len(text)} chars)")
+                return text, False
+    except (RequestBlocked, IpBlocked) as e:
+        print(f"DEBUG: Bot-blocked for {video_id}: {e}")
+        return None, True
+    except Exception as e:
+        print(f"DEBUG: transcript-api error for {video_id}: {e}")
+
+    # If we got here and fast_only, skip the slow yt-dlp methods
+    if fast_only:
+        print(f"DEBUG: Skipping slow methods for {video_id} (fast_only)")
+        return None, False
+
+    # ── Method 1: yt-dlp download subtitles to temp dir (slow, ~10-30s) ──
     with tempfile.TemporaryDirectory() as tmpdir:
         ydl_opts = {
             'writesubtitles': True,
@@ -204,7 +227,6 @@ def get_transcript(video_id, progress_callback=None):
         except Exception as e:
             print(f"DEBUG: yt-dlp download error for {video_id}: {e}")
 
-        # Recursive search for subtitle file
         sub_files = []
         for root, dirs, files in os.walk(tmpdir):
             for f in files:
@@ -219,68 +241,44 @@ def get_transcript(video_id, progress_callback=None):
             except UnicodeDecodeError:
                 with open(sub_path, 'r', encoding='latin-1') as f:
                     raw = f.read()
-
             text = _parse_vtt(raw)
             if text and len(text) > 50:
                 print(f"DEBUG: Subtitle extracted for {video_id} ({len(text)} chars)")
-                return text
+                return text, False
 
-    # ── Method 2: use extract_info to get direct subtitle URLs ────
+    # ── Method 2: extract_info to get direct subtitle URLs (slow, ~10-20s) ──
     try:
         ydl_opts2 = {
-            'writesubtitles': True,
-            'writeautomaticsub': True,
+            'writesubtitles': True, 'writeautomaticsub': True,
             'subtitleslangs': ['en', 'en-US', 'en-GB'],
-            'skip_download': True,
-            'quiet': True,
-            'no_warnings': True,
+            'skip_download': True, 'quiet': True, 'no_warnings': True,
         }
         with yt_dlp.YoutubeDL(ydl_opts2) as ydl:
             info = ydl.extract_info(video_url, download=False)
             subtitles = info.get('subtitles', {}) or {}
             auto_captions = info.get('automatic_captions', {}) or {}
-
             for lang_key in ['en', 'en-US', 'en-GB']:
                 sub_list = subtitles.get(lang_key) or auto_captions.get(lang_key)
                 if sub_list:
-                    sub_url = None
-                    for fmt in sub_list:
-                        if fmt.get('ext') in ('vtt', 'srv1', 'srv2', 'srv3'):
-                            sub_url = fmt.get('url')
-                            break
-                    if not sub_url and sub_list:
-                        sub_url = sub_list[0].get('url')
+                    sub_url = sub_list[0].get('url') if sub_list else None
                     if sub_url:
-                        import requests
                         try:
-                            resp = requests.get(sub_url, timeout=30, headers={
+                            resp = requests.get(sub_url, timeout=15, headers={
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                             })
                             if resp.status_code == 200:
                                 text = _parse_vtt(resp.text)
                                 if text and len(text) > 50:
                                     print(f"DEBUG: Subtitle extracted via URL for {video_id} ({len(text)} chars)")
-                                    return text
+                                    return text, False
                         except Exception as e:
-                            print(f"DEBUG: URL subtitle fetch error for {video_id}: {e}")
+                            print(f"DEBUG: URL fetch error for {video_id}: {e}")
+                    break
     except Exception as e:
         print(f"DEBUG: extract_info fallback error for {video_id}: {e}")
 
-    # ── Method 3: youtube-transcript-api (direct timedtext) ──────
-    try:
-        from youtube_transcript_api import YouTubeTranscriptApi
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, languages=['en', 'en-US', 'en-GB'])
-        if transcript:
-            text = ' '.join([snippet.text for snippet in transcript])
-            if text and len(text) > 50:
-                print(f"DEBUG: Subtitle extracted via API for {video_id} ({len(text)} chars)")
-                return text
-    except Exception as e:
-        print(f"DEBUG: transcript-api error for {video_id}: {e}")
-
     print(f"DEBUG: No transcript for {video_id}")
-    return None
+    return None, False
 
 
 def extract_viral_content(channel_url, limit=20, progress_callback=None):
@@ -320,6 +318,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
             'progress': 10
         })
 
+    bot_blocked = False
     for idx, v in enumerate(videos):
         title = v.get('title', 'Unknown')
         v_id = v.get('id')
@@ -336,7 +335,19 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
                 'total': total
             })
 
-        text = get_transcript(v_id, progress_callback)
+        # If first video was bot-blocked, skip remaining videos entirely
+        if bot_blocked:
+            if progress_callback:
+                progress_callback({
+                    'status': 'warning',
+                    'message': f'[{idx+1}/{total}] Skipped (bot-blocked): {title[:40]}',
+                    'progress': current_progress
+                })
+            continue
+
+        text, was_blocked = get_transcript(v_id, progress_callback, fast_only=bot_blocked)
+        if was_blocked:
+            bot_blocked = True
 
         if text:
             full_data += f"### VIDEO: {title} ###\nURL: https://youtu.be/{v_id}\n\n{text}\n\n"
