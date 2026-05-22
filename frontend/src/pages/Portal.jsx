@@ -1067,7 +1067,7 @@ function Portal() {
             <p className="text-purple-200 text-sm mb-6">
               YouTube blocks automated transcript downloads from cloud servers.
               Please manually copy and paste the transcripts for at least 2 of the top-performing videos below.
-              <a href="https://youtranscript.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline ml-1">Open youtranscript.com</a> to easily get transcripts.
+              <span className="block mt-2 text-gray-400">How to get transcripts: Open the video on YouTube → click the <strong>••• More</strong> button below the video → <strong>Show transcript</strong> → select all text → paste here.</span>
             </p>
 
             <div className="space-y-6 mb-6">
