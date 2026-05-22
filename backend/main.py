@@ -53,6 +53,17 @@ socketio = SocketIO(app, cors_allowed_origins=[
     'http://localhost:3100',
 ])
 
+# Global error handler — return JSON on all unhandled exceptions so the
+# frontend never receives an unparseable HTML 500 page.
+@app.errorhandler(Exception)
+def handle_unhandled(error):
+    code = getattr(error, 'code', 500)
+    if code < 400:
+        code = 500
+    import traceback
+    traceback.print_exc()
+    return jsonify({'error': 'Internal server error. Please try again.'}), code
+
 init_db()
 
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
@@ -705,6 +716,7 @@ def validate_token():
 
 
 @app.route('/api/claim-token', methods=['POST'])
+@_rate_limit(10, 60)
 def claim_token():
     data = request.json or {}
     email = data.get('email', '').strip().lower()
@@ -782,7 +794,19 @@ def lemonsqueezy_webhook():
     if not email:
         return jsonify({'error': 'No email in order'}), 400
 
-    token = create_token(email=email, lemon_order_id=order_id, plan=plan)
+    # Prevent duplicate tokens from webhook retries
+    if order_id:
+        existing = get_db().execute(
+            'SELECT token FROM tokens WHERE lemon_order_id = ?', (order_id,)
+        ).fetchone()
+        if existing:
+            return jsonify({'success': True, 'token': existing['token'], 'plan': plan, 'duplicate': True})
+
+    try:
+        token = create_token(email=email, lemon_order_id=order_id, plan=plan)
+    except Exception as e:
+        print(f"[CRITICAL] Token creation failed for order {order_id}, email {email}: {e}")
+        return jsonify({'error': 'Token creation failed. Order will be processed manually.'}), 500
     try:
         send_token_email(email, token)
     except Exception as e:
@@ -822,7 +846,7 @@ def extract():
     if extraction_status['running']:
         return jsonify({'error': 'Extraction already running'}), 400
 
-    data = request.json
+    data = request.json or {}
     channel_url = data.get('channel_url', '')
     limit = data.get('limit', 3)
 
@@ -961,6 +985,7 @@ def manual_transcripts():
 
 
 @app.route('/api/generate-viral-dna', methods=['POST'])
+@_rate_limit(10, 60)
 def generate_viral_dna():
     data = request.json or {}
     subtitles = data.get('subtitles', extracted_subtitles.get('content', ''))
@@ -992,6 +1017,7 @@ def generate_viral_dna():
 
 
 @app.route('/api/generate-titles', methods=['POST'])
+@_rate_limit(10, 60)
 def generate_titles():
     data = request.json or {}
     viral_dna = data.get('viral_dna', '')
@@ -1074,9 +1100,18 @@ def generate_package():
         )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
 
-        result = call_ai(system_prompt, user_message, max_tokens=16384)
-
+        # Deduct credit BEFORE calling AI — if credit deduction fails,
+        # we don't burn API budget on an unpaid request.
         use_credit(token)
+
+        try:
+            result = call_ai(system_prompt, user_message, max_tokens=16384)
+        except Exception:
+            # AI call failed after credit was deducted — the credit is consumed
+            # but the user sees an error and can retry. This prevents AI budget
+            # waste while still being fair to the user.
+            return jsonify({'error': 'AI generation failed. Your credit has been used — please try again or contact support if the issue persists.'}), 500
+
         last_generated_package = {'content': result, 'title': chosen_title}
         remaining = get_credits(token)
         return jsonify({
@@ -1100,22 +1135,27 @@ def download_package():
 
     safe_name = title[:50].replace(' ', '_').replace('/', '-').replace('\\', '-')
     filename = f"{safe_name}.pdf"
-    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
 
-    from fpdf import FPDF
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    # Use built-in Courier for monospace (no external font files needed)
-    pdf.set_font('Courier', size=8)
+    try:
+        from fpdf import FPDF
+        import tempfile
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.set_font('Courier', size=8)
 
-    for line in content.split('\n'):
-        # Replace Unicode chars that Courier can't render with ASCII equivalents
-        safe_line = line.encode('latin-1', errors='replace').decode('latin-1')
-        pdf.cell(0, 4.2, text=safe_line, new_x="LMARGIN", new_y="NEXT")
+        for line in content.split('\n'):
+            safe_line = line.encode('latin-1', errors='replace').decode('latin-1')
+            pdf.cell(0, 4.2, text=safe_line, new_x="LMARGIN", new_y="NEXT")
 
-    pdf.output(filepath)
-    return send_file(filepath, as_attachment=True, download_name=filename)
+        # Write to BytesIO to avoid disk I/O and cleanup issues
+        buf = io.BytesIO()
+        pdf.output(buf)
+        buf.seek(0)
+        return send_file(buf, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception as e:
+        print(f"PDF generation error: {e}")
+        return jsonify({'error': 'Failed to generate PDF. Please try again.'}), 500
 
 
 @app.route('/api/feedback', methods=['POST'])
@@ -1230,16 +1270,17 @@ def admin_promo():
     message = data.get('message', '').strip()
     if not message:
         return jsonify({'error': 'Promo message is required'}), 400
-    promo_message = {'code': code, 'text': message}
-    # Persist to DB
+    # Persist to DB first — if it fails, don't update in-memory state
     try:
         conn = get_db()
         conn.execute('CREATE TABLE IF NOT EXISTS promo (id INTEGER PRIMARY KEY, code TEXT, message TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
         conn.execute('INSERT INTO promo (code, message) VALUES (?, ?)', (code, message))
         conn.commit()
         conn.close()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Promo DB write failed: {e}")
+        return jsonify({'error': 'Failed to save promo. Please try again.'}), 500
+    promo_message = {'code': code, 'text': message}
     return jsonify({'success': True, 'promo': promo_message})
 
 

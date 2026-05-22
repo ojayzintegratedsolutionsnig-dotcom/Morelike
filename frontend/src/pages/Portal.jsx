@@ -672,14 +672,21 @@ function Portal() {
   // ── Feedback ────────────────────────────────────────────────
   const handleFeedback = async () => {
     if (!feedbackMsg.trim()) return
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 15000)
     try {
       await fetch(`${API_URL}/api/feedback`, {
         method: 'POST',
         headers: getApiHeaders(token),
-        body: JSON.stringify({ message: feedbackMsg })
+        body: JSON.stringify({ message: feedbackMsg }),
+        signal: ctrl.signal
       })
       setFeedbackSent(true)
-    } catch {}
+    } catch {
+      alert('Failed to send feedback. Please try again.')
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   // ── Visual upload handlers ──────────────────────────────────
@@ -689,19 +696,21 @@ function Portal() {
       return
     }
     setFlow('processing')
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 120000)
     try {
       const form = new FormData()
       visualImages.forEach((f) => form.append('images', f))
       const res = await fetch(`${API_URL}/api/analyze-visuals`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
-        body: form
+        body: form,
+        signal: ctrl.signal
       })
       const data = await res.json()
       if (data.success) {
         setVisualProfile(data.visual_profile)
         visualProfileRef.current = data.visual_profile
-        // Always go to manual thumbnail upload for richer analysis
         setFlow('thumbnail_upload')
       } else {
         throw new Error(data.error)
@@ -709,6 +718,8 @@ function Portal() {
     } catch (e) {
       alert('Visual analysis failed: ' + (e.message || 'Server error'))
       setFlow('visual_upload')
+    } finally {
+      clearTimeout(timer)
     }
   }
 
@@ -718,13 +729,16 @@ function Portal() {
       return
     }
     setFlow('processing')
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 120000)
     try {
       const form = new FormData()
       thumbnailImages.forEach((f) => form.append('images', f))
       const res = await fetch(`${API_URL}/api/analyze-thumbnails`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
-        body: form
+        body: form,
+        signal: ctrl.signal
       })
       const data = await res.json()
       if (data.success) {
@@ -738,22 +752,26 @@ function Portal() {
     } catch (e) {
       alert('Thumbnail analysis failed: ' + (e.message || 'Server error'))
       setFlow('thumbnail_upload')
+    } finally {
+      clearTimeout(timer)
     }
   }
 
   const handleAutoThumbnail = async (authToken, visProfile) => {
     const vids = extractedVideoIdsRef.current
     if (!vids.length || vids.length < 2) {
-      // Fall back to manual thumbnail upload
       setFlow('thumbnail_upload')
       return
     }
     setFlow('processing')
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 60000)
     try {
       const res = await fetch(`${API_URL}/api/analyze-thumbnails-auto`, {
         method: 'POST',
         headers: { ...getApiHeaders(authToken), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_ids: vids })
+        body: JSON.stringify({ video_ids: vids }),
+        signal: ctrl.signal
       })
       const data = await res.json()
       if (data.success) {
@@ -762,12 +780,12 @@ function Portal() {
         setFlow('generating')
         doGeneratePackage(authToken, pendingTitle.current, pendingTopic.current, visProfile, data.thumbnail_profile)
       } else {
-        // Fall back to manual upload
         setFlow('thumbnail_upload')
       }
     } catch {
-      // Fall back to manual upload
       setFlow('thumbnail_upload')
+    } finally {
+      clearTimeout(timer)
     }
   }
 

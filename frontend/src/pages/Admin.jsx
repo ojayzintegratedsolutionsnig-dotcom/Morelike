@@ -105,10 +105,11 @@ function Admin() {
       const res = await fetch(`${API_URL}/api/admin/feedback`, {
         headers: { 'X-Admin-Token': token }
       })
+      if (!res.ok) throw new Error('Server error')
       const data = await res.json()
       setFeedback(data.feedback || [])
     } catch {
-      // silent
+      setFeedback([])
     }
   }
 
@@ -116,7 +117,7 @@ function Admin() {
     if (!replies[fb.id]?.trim()) return
     setSending((prev) => ({ ...prev, [fb.id]: true }))
     try {
-      await fetch(`${API_URL}/api/admin/reply`, {
+      const res = await fetch(`${API_URL}/api/admin/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,10 +129,12 @@ function Admin() {
           email: fb.email
         })
       })
+      if (!res.ok) throw new Error('Server error')
+      // Only clear and reload on confirmed success
       setReplies((prev) => ({ ...prev, [fb.id]: '' }))
       loadFeedback(adminToken)
     } catch {
-      // silent
+      alert('Failed to send reply. Please try again.')
     }
     setSending((prev) => ({ ...prev, [fb.id]: false }))
   }
@@ -145,8 +148,11 @@ function Admin() {
     setStatsLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/admin/stats`, { headers: { 'X-Admin-Token': adminToken } })
+      if (!res.ok) throw new Error('Server error')
       setStats(await res.json())
-    } catch {}
+    } catch {
+      setStats({ error: 'Failed to load stats' })
+    }
     setStatsLoading(false)
   }
 
@@ -156,7 +162,9 @@ function Admin() {
       const d = await res.json()
       setPromoCode(d.code || '')
       setPromoMessage(d.text || '')
-    } catch {}
+    } catch {
+      // Promo is non-critical; silent failure is acceptable
+    }
   }
 
   const handlePromoSave = async () => {
