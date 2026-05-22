@@ -456,10 +456,29 @@ function Portal() {
     let pollTimer2 = null
     let socketOk2 = false
 
-    sock.on('connect', () => { socketOk2 = true })
+    sock.on('connect', () => {
+      socketOk2 = true
+      fetch(`${API_URL}/api/extract`, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
+      }).catch(() => {
+        sock.close()
+        setPipelineError('Failed to start extraction.')
+        setFlow('input')
+      })
+    })
 
     sock.on('connect_error', () => {
       if (pollTimer2) return
+      fetch(`${API_URL}/api/extract`, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
+      }).catch(() => {
+        setPipelineError('Failed to start extraction.')
+        setFlow('input')
+      })
       pollTimer2 = setInterval(async () => {
         try {
           const r = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
@@ -569,16 +588,6 @@ function Portal() {
       }
     })
 
-    fetch(`${API_URL}/api/extract`, {
-      method: 'POST',
-      headers: getApiHeaders(token),
-      body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
-    }).catch(() => {
-      if (pollTimer2) clearInterval(pollTimer2)
-      sock.close()
-      setPipelineError('Failed to start extraction.')
-      setFlow('input')
-    })
   }
 
   // ── Start extraction → pipeline ─────────────────────────────
@@ -603,11 +612,33 @@ function Portal() {
 
     sock.on('connect', () => {
       socketOk = true
+      // Only start extraction AFTER socket is connected
+      fetch(`${API_URL}/api/extract`, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
+      }).catch(() => {
+        clearTimeout(extractTimeoutRef.current)
+        sock.close()
+        setPipelineError('Failed to start extraction.')
+        setFlow('input')
+      })
     })
 
     sock.on('connect_error', () => {
       // Socket.IO failed — fall back to polling /api/status
       if (pollTimer) return
+      // Start extraction first
+      fetch(`${API_URL}/api/extract`, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
+      }).catch(() => {
+        clearTimeout(extractTimeoutRef.current)
+        setPipelineError('Failed to start extraction.')
+        setFlow('input')
+      })
+      // Then poll for status
       pollTimer = setInterval(async () => {
         try {
           const r = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
@@ -717,19 +748,6 @@ function Portal() {
       }
     })
 
-    try {
-      await fetch(`${API_URL}/api/extract`, {
-        method: 'POST',
-        headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
-      })
-    } catch {
-      clearTimeout(extractTimeoutRef.current)
-      if (pollTimer) clearInterval(pollTimer)
-      sock.close()
-      setPipelineError('Failed to start extraction.')
-      setFlow('input')
-    }
   }
 
   // ── Title chosen ────────────────────────────────────────────
