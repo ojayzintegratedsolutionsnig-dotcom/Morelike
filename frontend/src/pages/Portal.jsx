@@ -701,8 +701,8 @@ function Portal() {
       if (data.success) {
         setVisualProfile(data.visual_profile)
         visualProfileRef.current = data.visual_profile
-        // Auto-fetch thumbnails from extracted video IDs
-        handleAutoThumbnail(token, data.visual_profile)
+        // Always go to manual thumbnail upload for richer analysis
+        setFlow('thumbnail_upload')
       } else {
         throw new Error(data.error)
       }
