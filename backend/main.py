@@ -603,6 +603,77 @@ def extract():
     return jsonify({'message': 'Extraction started', 'status': 'started'})
 
 
+@app.route('/api/debug-transcript', methods=['GET'])
+def debug_transcript():
+    """Test transcript extraction on a known-good video and report per-method results."""
+    test_video_id = 'YWbBrbOaz58'  # Known to have English captions
+    results = {'video_id': test_video_id}
+
+    # Method 1: yt-dlp download
+    try:
+        import yt_dlp, tempfile, os
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ydl_opts = {
+                'writesubtitles': True, 'writeautomaticsub': True,
+                'subtitleslangs': ['en', 'en-US', 'en-GB', 'en-orig'],
+                'skip_download': True, 'quiet': True, 'no_warnings': True,
+                'outtmpl': {'default': f'{tmpdir}/sub.%(ext)s'},
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([f'https://www.youtube.com/watch?v={test_video_id}'])
+            found = []
+            for root, dirs, files in os.walk(tmpdir):
+                for f in files:
+                    if f.endswith(('.vtt', '.srt')):
+                        found.append(os.path.join(root, f))
+            results['method1_ytdlp'] = f'OK: {len(found)} files' if found else 'FAIL: no subtitle files produced'
+    except Exception as e:
+        results['method1_ytdlp'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+
+    # Method 2: yt-dlp extract_info + URL fetch
+    try:
+        import yt_dlp
+        ydl_opts2 = {
+            'writesubtitles': True, 'writeautomaticsub': True,
+            'subtitleslangs': ['en'], 'skip_download': True,
+            'quiet': True, 'no_warnings': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts2) as ydl:
+            info = ydl.extract_info(f'https://www.youtube.com/watch?v={test_video_id}', download=False)
+            subtitles = info.get('subtitles', {}) or {}
+            auto_captions = info.get('automatic_captions', {}) or {}
+            found_url = None
+            for lang_key in ['en', 'en-US', 'en-GB']:
+                sub_list = subtitles.get(lang_key) or auto_captions.get(lang_key)
+                if sub_list:
+                    found_url = sub_list[0].get('url') if sub_list else None
+                    break
+            results['method2_extractinfo'] = f'OK: found URL' if found_url else f'FAIL: no subtitle URL in info. subs={list(subtitles.keys())}, auto={list(auto_captions.keys())}'
+    except Exception as e:
+        results['method2_extractinfo'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+
+    # Method 3: youtube-transcript-api
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        api = YouTubeTranscriptApi()
+        transcript = api.fetch(test_video_id, languages=['en', 'en-US', 'en-GB'])
+        text = ' '.join([snippet.text for snippet in transcript])
+        results['method3_transcriptapi'] = f'OK: {len(transcript)} snippets, {len(text)} chars'
+    except Exception as e:
+        results['method3_transcriptapi'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+
+    # Method 4: raw HTTP fetch of YouTube watch page
+    try:
+        import requests as req
+        resp = req.get(f'https://www.youtube.com/watch?v={test_video_id}', timeout=15,
+                       headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+        results['method4_rawhttp'] = f'OK: {resp.status_code}, {len(resp.text)} chars'
+    except Exception as e:
+        results['method4_rawhttp'] = f'FAIL: {type(e).__name__}: {str(e)[:200]}'
+
+    return jsonify(results)
+
+
 @app.route('/api/status', methods=['GET'])
 def status():
     return jsonify(extraction_status)
