@@ -6,72 +6,49 @@ import json
 import requests
 
 
-def _extract_transcript_via_innertube(video_id):
+def _extract_transcript_via_ytdlp_android(video_id):
     """
-    Fetch captions via YouTube InnerTube API with Google API key.
-    Authenticated — won't get blocked from datacenter IPs.
+    Fetch auto-generated transcript via yt-dlp using Android InnerTube client.
+    Android client is much less likely to be blocked from datacenter IPs.
     """
-    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip() or os.environ.get('GEMINI_API_KEY', '').strip()
-    if not api_key:
-        return None
+    video_url = f'https://www.youtube.com/watch?v={video_id}'
 
-    try:
-        resp = requests.post(
-            f'https://youtubei.googleapis.com/youtubei/v1/player?key={api_key}',
-            json={
-                'context': {
-                    'client': {
-                        'clientName': 'WEB',
-                        'clientVersion': '2.20250522.00.00',
-                        'hl': 'en',
-                        'gl': 'US'
-                    }
-                },
-                'videoId': video_id
-            },
-            timeout=10
-        )
-        if resp.status_code != 200:
-            print(f"DEBUG: InnerTube API HTTP {resp.status_code} for {video_id}")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        ydl_opts = {
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'subtitleslangs': ['en', 'en-US', 'en-GB', 'en-orig'],
+            'skip_download': True,
+            'quiet': True,
+            'no_warnings': True,
+            'socket_timeout': 30,
+            'extractor_retries': 1,
+            'retries': 1,
+            'outtmpl': {'default': f'{tmpdir}/sub.%(ext)s'},
+            'extractor_args': {'youtube': {'player_client': ['android']}},
+        }
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([video_url])
+        except Exception as e:
+            print(f"DEBUG: yt-dlp android download error for {video_id}: {e}")
             return None
 
-        data = resp.json()
-    except Exception as e:
-        print(f"DEBUG: InnerTube API error for {video_id}: {e}")
-        return None
-
-    captions = data.get('captions', {}).get('playerCaptionsTracklistRenderer', {})
-    caption_tracks = captions.get('captionTracks', [])
-
-    if not caption_tracks:
-        print(f"DEBUG: No caption tracks in InnerTube response for {video_id}")
-        return None
-
-    # Prefer English
-    best_url = None
-    for track in caption_tracks:
-        lang = track.get('languageCode', '')
-        if lang in ('en', 'en-US', 'en-GB'):
-            best_url = track.get('baseUrl', '')
-            break
-    if not best_url:
-        best_url = caption_tracks[0].get('baseUrl', '')
-
-    if not best_url:
-        return None
-
-    try:
-        resp = requests.get(best_url, timeout=15, headers={
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        })
-        if resp.status_code != 200:
-            return None
-        text = _parse_xml_transcript(resp.text)
-        if text and len(text) > 50:
-            print(f"DEBUG: InnerTube transcript extracted for {video_id} ({len(text)} chars)")
-            return text
-    except Exception as e:
-        print(f"DEBUG: InnerTube caption fetch error for {video_id}: {e}")
+        for root, dirs, files in os.walk(tmpdir):
+            for f in files:
+                if f.endswith(('.vtt', '.srt')):
+                    sub_path = os.path.join(root, f)
+                    try:
+                        with open(sub_path, 'r', encoding='utf-8') as fh:
+                            raw = fh.read()
+                    except UnicodeDecodeError:
+                        with open(sub_path, 'r', encoding='latin-1') as fh:
+                            raw = fh.read()
+                    text = _parse_vtt(raw)
+                    if text and len(text) > 50:
+                        print(f"DEBUG: yt-dlp android transcript for {video_id} ({len(text)} chars)")
+                        return text
 
     return None
 
@@ -342,8 +319,8 @@ def get_transcript(video_id, progress_callback=None, fast_only=False):
     """
     video_url = f'https://www.youtube.com/watch?v={video_id}'
 
-    # ── Method 0: InnerTube API with Google API key (authenticated, ~1-2s) ──
-    text = _extract_transcript_via_innertube(video_id)
+    # ── Method 0: yt-dlp with Android client (fast, ~3-8s, less blocked) ──
+    text = _extract_transcript_via_ytdlp_android(video_id)
     if text:
         return text, False
 
@@ -406,7 +383,11 @@ def get_transcript(video_id, progress_callback=None, fast_only=False):
             'skip_download': True,
             'quiet': True,
             'no_warnings': True,
+            'socket_timeout': 30,
+            'extractor_retries': 1,
+            'retries': 1,
             'outtmpl': {'default': f'{tmpdir}/sub.%(ext)s'},
+            'extractor_args': {'youtube': {'player_client': ['android']}},
         }
 
         try:
@@ -440,6 +421,10 @@ def get_transcript(video_id, progress_callback=None, fast_only=False):
             'writesubtitles': True, 'writeautomaticsub': True,
             'subtitleslangs': ['en', 'en-US', 'en-GB'],
             'skip_download': True, 'quiet': True, 'no_warnings': True,
+            'socket_timeout': 30,
+            'extractor_retries': 1,
+            'retries': 1,
+            'extractor_args': {'youtube': {'player_client': ['android']}},
         }
         with yt_dlp.YoutubeDL(ydl_opts2) as ydl:
             info = ydl.extract_info(video_url, download=False)
