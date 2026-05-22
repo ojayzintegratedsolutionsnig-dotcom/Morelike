@@ -18,10 +18,15 @@ def get_db():
 
 # Plan configuration
 PLAN_CONFIG = {
-    'basic':  {'max_videos': 3, 'max_minutes': 3,  'price': '$8',  'credits': 3},
-    'pro':    {'max_videos': 5, 'max_minutes': 5,  'price': '$10', 'credits': 3},
-    'promax': {'max_videos': 5, 'max_minutes': 15, 'price': '$15', 'credits': 5},
+    'basic':     {'max_videos': 3, 'max_minutes': 3,  'price': '$8',  'credits': 3},
+    'pro':       {'max_videos': 5, 'max_minutes': 5,  'price': '$10', 'credits': 3},
+    'promax':    {'max_videos': 5, 'max_minutes': 15, 'price': '$15', 'credits': 5},
+    'unlimited': {'max_videos': 5, 'max_minutes': 60, 'price': '—',   'credits': 9999},
+    'custom':    {'max_videos': 5, 'max_minutes': 15, 'price': '—',   'credits': 1},
 }
+
+# Plans not shown on the public website or API responses
+HIDDEN_PLANS = {'unlimited', 'custom'}
 
 
 def init_db():
@@ -65,7 +70,7 @@ def init_db():
     conn.close()
 
 
-def create_token(email=None, credits=None, lemon_order_id=None, plan='basic'):
+def create_token(email=None, credits=None, lemon_order_id=None, plan='basic', custom_limits=None):
     if credits is None:
         credits = PLAN_CONFIG.get(plan, PLAN_CONFIG['basic']).get('credits', 3)
     token = uuid.uuid4().hex[:12].upper()
@@ -74,18 +79,41 @@ def create_token(email=None, credits=None, lemon_order_id=None, plan='basic'):
         'INSERT INTO tokens (token, credits, email, lemon_order_id, plan) VALUES (?, ?, ?, ?, ?)',
         (token, credits, email, lemon_order_id, plan)
     )
+    # Store custom plan limits as JSON in a separate table or as metadata
+    if custom_limits:
+        try:
+            conn.execute(
+                'CREATE TABLE IF NOT EXISTS token_limits (token TEXT PRIMARY KEY, max_videos INTEGER, max_minutes INTEGER, FOREIGN KEY(token) REFERENCES tokens(token))'
+            )
+            conn.execute(
+                'INSERT OR REPLACE INTO token_limits (token, max_videos, max_minutes) VALUES (?, ?, ?)',
+                (token, custom_limits.get('max_videos', 5), custom_limits.get('max_minutes', 15))
+            )
+        except Exception:
+            pass
     conn.commit()
     conn.close()
     return token
 
 
 def get_plan_limits(token):
-    """Return max_videos and max_minutes for the token's plan."""
+    """Return max_videos and max_minutes for the token's plan. Checks custom limits first."""
     conn = get_db()
     row = conn.execute('SELECT plan FROM tokens WHERE token = ?', (token,)).fetchone()
+    if row:
+        plan = row['plan']
+        # Check for custom limit overrides
+        if plan in ('custom', 'unlimited'):
+            custom_row = conn.execute(
+                'SELECT max_videos, max_minutes FROM token_limits WHERE token = ?', (token,)
+            ).fetchone()
+            conn.close()
+            if custom_row:
+                return {'max_videos': custom_row['max_videos'], 'max_minutes': custom_row['max_minutes']}
+        conn.close()
+        return PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
     conn.close()
-    plan = row['plan'] if row else 'basic'
-    return PLAN_CONFIG.get(plan, PLAN_CONFIG['basic'])
+    return PLAN_CONFIG['basic']
 
 
 def is_token_valid(token):

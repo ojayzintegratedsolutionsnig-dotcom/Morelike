@@ -11,10 +11,22 @@ function Admin() {
 
   // Token generator
   const [genEmail, setGenEmail] = useState('')
+  const [genPlan, setGenPlan] = useState('basic')
   const [genCredits, setGenCredits] = useState(3)
   const [genResult, setGenResult] = useState(null)
   const [genError, setGenError] = useState('')
   const [genLoading, setGenLoading] = useState(false)
+  // Custom plan
+  const [customVideos, setCustomVideos] = useState(5)
+  const [customMinutes, setCustomMinutes] = useState(15)
+
+  const PLAN_CONFIG = {
+    basic:     { max_videos: 3,  max_minutes: 3,  price: '$8',  credits: 3,  label: 'Basic',     color: 'purple', hidden: false },
+    pro:       { max_videos: 5,  max_minutes: 5,  price: '$10', credits: 3,  label: 'Pro',       color: 'pink',   hidden: false },
+    promax:    { max_videos: 5,  max_minutes: 15, price: '$15', credits: 5,  label: 'Pro Max',   color: 'amber',  hidden: false },
+    unlimited: { max_videos: 5,  max_minutes: 60, price: '—',   credits: 9999, label: 'Unlimited', color: 'green', hidden: true },
+    custom:    { max_videos: 5,  max_minutes: 15, price: '—',   credits: 1,   label: 'Custom',   color: 'gray',  hidden: true },
+  }
 
   // Feedback
   const [feedback, setFeedback] = useState([])
@@ -47,17 +59,22 @@ function Admin() {
     setGenLoading(true)
     setGenError('')
     setGenResult(null)
+
+    const body = { email: genEmail.trim(), credits: genCredits, plan: genPlan }
+    if (genPlan === 'custom') {
+      body.custom_limits = { max_videos: customVideos, max_minutes: customMinutes }
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/admin/generate-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
-        body: JSON.stringify({ email: genEmail.trim(), credits: genCredits })
+        body: JSON.stringify(body)
       })
       const data = await res.json()
       if (data.success) {
         setGenResult(data)
         setGenEmail('')
-        setGenCredits(3)
       } else {
         setGenError(data.error || 'Failed')
       }
@@ -65,6 +82,12 @@ function Admin() {
       setGenError('Cannot reach server')
     }
     setGenLoading(false)
+  }
+
+  const handlePlanChange = (plan) => {
+    setGenPlan(plan)
+    const cfg = PLAN_CONFIG[plan]
+    if (cfg && cfg.credits) setGenCredits(cfg.credits)
   }
 
   const loadFeedback = async (token) => {
@@ -174,46 +197,135 @@ function Admin() {
 
         {/* Token Generator Tab */}
         {tab === 'tokens' && (
-          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-green-500/30 p-6">
-            <h2 className="text-xl font-bold mb-4">Generate Access Token</h2>
-            <p className="text-gray-400 text-sm mb-6">Create tokens with any email and credit count. These bypass the @gmail.com restriction.</p>
-            <form onSubmit={handleGenerateToken} className="flex gap-4 flex-wrap items-end">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm text-purple-200 mb-1">Email</label>
-                <input
-                  type="email"
-                  placeholder="user@example.com"
-                  value={genEmail}
-                  onChange={(e) => setGenEmail(e.target.value)}
-                  className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  required
-                />
+          <div className="space-y-6">
+            {/* Plan Reference */}
+            <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-purple-500/30 p-6">
+              <h2 className="text-xl font-bold mb-4">Plan Reference</h2>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {Object.entries(PLAN_CONFIG).map(([key, cfg]) => (
+                  <div key={key} className={`bg-gray-900/50 border rounded-lg p-3 text-center ${
+                    key === 'unlimited' ? 'border-green-500/50 bg-green-900/10' :
+                    key === 'custom' ? 'border-gray-500/50' :
+                    'border-gray-700'
+                  }`}>
+                    <span className={`text-xs font-bold uppercase ${
+                      key === 'unlimited' ? 'text-green-400' :
+                      key === 'custom' ? 'text-gray-400' :
+                      key === 'promax' ? 'text-amber-400' :
+                      key === 'pro' ? 'text-pink-400' : 'text-purple-400'
+                    }`}>
+                      {cfg.label}
+                      {cfg.hidden && <span className="ml-1 text-[10px] opacity-50">(hidden)</span>}
+                    </span>
+                    <div className="text-white text-sm mt-1 font-mono">{cfg.max_videos}v &middot; {cfg.max_minutes}m</div>
+                    <div className="text-gray-400 text-xs">{cfg.credits} credits &middot; {cfg.price}</div>
+                  </div>
+                ))}
               </div>
-              <div className="w-32">
-                <label className="block text-sm text-purple-200 mb-1">Credits</label>
-                <input
-                  type="number" min="1" max="100"
-                  value={genCredits}
-                  onChange={(e) => setGenCredits(Math.min(100, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+            </div>
+
+            {/* Generate Token */}
+            <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-green-500/30 p-6">
+              <h2 className="text-xl font-bold mb-4">Generate Access Token</h2>
+              <p className="text-gray-400 text-sm mb-6">Create tokens with any email, plan, and credit count. Hidden plans (Unlimited, Custom) are not visible on the public website.</p>
+
+              {/* Plan Selector */}
+              <div className="mb-4">
+                <label className="block text-sm text-purple-200 mb-2">Plan</label>
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                  {Object.entries(PLAN_CONFIG).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handlePlanChange(key)}
+                      className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                        genPlan === key
+                          ? key === 'unlimited' ? 'bg-green-600 border-green-400 text-white' :
+                            key === 'custom' ? 'bg-gray-600 border-gray-400 text-white' :
+                            key === 'promax' ? 'bg-amber-600 border-amber-400 text-white' :
+                            key === 'pro' ? 'bg-pink-600 border-pink-400 text-white' :
+                            'bg-purple-600 border-purple-400 text-white'
+                          : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                      }`}
+                    >
+                      {cfg.label}
+                      {cfg.hidden && <div className="text-[10px] opacity-70">hidden</div>}
+                      <div className="text-[10px] opacity-70">{cfg.max_videos}v · {cfg.max_minutes}m</div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <button
-                type="submit"
-                disabled={genLoading || !genEmail.trim()}
-                className="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all disabled:opacity-50"
-              >
-                {genLoading ? 'Generating...' : 'Generate'}
-              </button>
-            </form>
-            {genError && <p className="mt-3 text-red-400 text-sm">{genError}</p>}
-            {genResult && (
-              <div className="mt-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                <p className="text-green-400 text-sm">Token created!</p>
-                <p className="text-white font-mono text-lg mt-1">{genResult.token}</p>
-                <p className="text-gray-400 text-sm mt-1">{genResult.email} &middot; {genResult.credits} credits</p>
-              </div>
-            )}
+
+              {/* Custom Plan Settings */}
+              {genPlan === 'custom' && (
+                <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-4 mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Max Videos</label>
+                    <input type="number" min="1" max="20" value={customVideos}
+                      onChange={(e) => setCustomVideos(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+                      className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Max Minutes</label>
+                    <input type="number" min="1" max="120" value={customMinutes}
+                      onChange={(e) => setCustomMinutes(Math.min(120, Math.max(1, parseInt(e.target.value) || 1)))}
+                      className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Credits</label>
+                    <input type="number" min="1" max="9999" value={genCredits}
+                      onChange={(e) => setGenCredits(Math.min(9999, Math.max(1, parseInt(e.target.value) || 1)))}
+                      className="w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleGenerateToken} className="flex gap-4 flex-wrap items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-sm text-purple-200 mb-1">Email</label>
+                  <input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={genEmail}
+                    onChange={(e) => setGenEmail(e.target.value)}
+                    className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    required
+                  />
+                </div>
+                {genPlan !== 'custom' && (
+                  <div className="w-32">
+                    <label className="block text-sm text-purple-200 mb-1">Credits</label>
+                    <input
+                      type="number" min="1" max="9999"
+                      value={genCredits}
+                      onChange={(e) => setGenCredits(Math.min(9999, Math.max(1, parseInt(e.target.value) || 1)))}
+                      className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={genLoading || !genEmail.trim()}
+                  className={`px-6 py-2 text-white font-bold rounded-lg transition-all disabled:opacity-50 ${
+                    genPlan === 'unlimited' ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' :
+                    genPlan === 'custom' ? 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700' :
+                    'bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700'
+                  }`}
+                >
+                  {genLoading ? 'Generating...' : 'Generate'}
+                </button>
+              </form>
+              {genError && <p className="mt-3 text-red-400 text-sm">{genError}</p>}
+              {genResult && (
+                <div className="mt-4 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                  <p className="text-green-400 text-sm">Token created!</p>
+                  <p className="text-white font-mono text-lg mt-1">{genResult.token}</p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    {genResult.email} &middot; {genResult.plan}{genResult.custom_limits ? ` (${genResult.custom_limits.max_videos}v · ${genResult.custom_limits.max_minutes}m)` : ''} &middot; {genResult.credits} credits
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

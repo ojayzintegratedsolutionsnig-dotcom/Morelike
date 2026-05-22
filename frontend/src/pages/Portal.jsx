@@ -244,7 +244,7 @@ function Portal() {
   const [inputMode, setInputMode] = useState('scrape')
 
   // Pipeline
-  const EXTRACT_LIMIT = 3
+  const extractLimit = planLimits.max_videos || 3
   const [channelUrl, setChannelUrl] = useState('')
   const [videoMeta, setVideoMeta] = useState([])  // For manual transcript fallback
   const [manualTranscripts, setManualTranscripts] = useState({})
@@ -517,7 +517,7 @@ function Portal() {
     fetch(`${API_URL}/api/extract`, {
       method: 'POST',
       headers: getApiHeaders(token),
-      body: JSON.stringify({ channel_url: channelUrl.trim(), limit: EXTRACT_LIMIT })
+      body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
     }).catch(() => {
       sock.close()
       setPipelineError('Failed to start extraction.')
@@ -594,7 +594,7 @@ function Portal() {
       await fetch(`${API_URL}/api/extract`, {
         method: 'POST',
         headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: EXTRACT_LIMIT })
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
       })
     } catch {
       sock.close()

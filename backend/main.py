@@ -19,7 +19,7 @@ from functools import wraps
 from extractor import extract_viral_content
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token
 from tokens import claim_token_by_email, log_action, save_feedback, get_all_feedback, save_reply
-from tokens import get_plan_limits, PLAN_CONFIG
+from tokens import get_plan_limits, PLAN_CONFIG, HIDDEN_PLANS
 from emailer import send_token_email, send_reply_email
 
 load_dotenv()
@@ -255,6 +255,143 @@ ALIGNMENT SUMMARY
 Beat 1 → Voice: "[line]" → Image: [scene] → Video: [motion]
 Beat 2 → Voice: "[line]" → Image: [scene] → Video: [motion]
 (All beats mapped. Shows visual-audio sync.)"""
+
+
+UNLIMITED_PACKAGE_SYSTEM_INSTRUCTION = """# ROLE: AI YouTube Content Engine — UNLIMITED PROFILE
+You analyze, model, and recreate YouTube content styles at cinema-grade quality. Match style, not phrasing. Outputs are fully original. This is the maximum-tier production package with timeline-synced cinematography.
+
+# CONTEXT
+## Viral DNA (Channel Style Blueprint)
+{viral_dna}
+
+## Visual Style Profile (from reference image analysis)
+{visual_json}
+
+## Thumbnail Style Data (from thumbnail analysis)
+{thumbnail_json}
+
+## Transcript Excerpts (from the channel's top-performing videos)
+{transcript_context}
+
+## Target
+Niche: {niche}
+Duration: {target_length} minutes (~{target_length} × 150 words)
+
+# OUTPUT FORMAT
+Produce the following sections in order. Every section is mandatory.
+
+═══════════════════════════════════
+USER PLAN: Unlimited
+SCRIPT DURATION: [X] min [Y] sec (Formula: [W] words ÷ 150 words/min)
+═══════════════════════════════════
+
+SCRIPT DNA
+    Niche: [one-line niche statement]
+    Target word count: [number] (±5%)
+    Pacing: [words/sec, sentence rhythm from DNA]
+    Hook style: [how the DNA hooks, applied to this script]
+    Emotional flow: [tension arc across the script]
+    Global Visual Style: [from Visual Style Profile — art style, color palette, lighting setup, render quality, atmosphere. This exact style is fully embedded in every image and video prompt below.]
+
+    ────────────────────────────────────────
+    FINAL SEO TITLE
+    (after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
+
+    DESCRIPTION
+    - Above-fold hook (first 2 lines): [hook using high-search-volume keywords]
+    - Body: [3-5 sentences describing the video, max 2 relevant emojis as visual anchors]
+    - Hashtags: #tag1 #tag2 #tag3
+
+    TAGS/KEYWORDS
+    tag1, tag2, tag3
+
+    ════════════════════════════════════════
+    THUMBNAIL DESIGN
+    ════════════════════════════════════════
+    Design as a cinematic movie poster using thumbnail style data above.
+
+    Concept A — Emotion-Forward:
+      Focal Point: [exactly what the viewer sees — character close-up or epic scene]
+      Emotional Hook: [the question this image plants]
+      Composition: [foreground frame → midground subject → background atmosphere]
+      Text Overlay: [wording (1-4 words), cinematic serif font, gold/emboss texture, drop shadow, position]
+      Color + Lighting: [palette + key light + rim + volumetrics]
+
+    Concept B — CTR-Optimized Alternative:
+      (Different composition, different emotional angle, different text treatment)
+
+    A/B Analysis:
+      Concept A strength: [which CTR lever]
+      Concept B strength: [which CTR lever]
+      Final Recommendation: [winner + niche-specific reasoning]
+
+    ════════════════════════════════════════
+    CINEMATIC TIMELINE (Voice + Cinematography per Beat, max 8 seconds each)
+    ════════════════════════════════════════
+    Generate the full script as a CINEMATIC TIMELINE. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
+
+    CRITICAL: Every cinematography prompt is a fusion of image + video direction — the visual scene AND the camera movement are described together as one unified, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt.
+
+    TIMELINE FORMAT — Each beat follows this structure:
+
+    [00:00 → 00:08] BEAT 1 — [Hook Moment]
+    VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
+    CINEMATOGRAPHY PROMPT: [Unified image+video prompt. Include ALL of the following in detailed prose:
+    • Shot Type & Framing: extreme close-up / close-up / medium / wide / establishing — with exact framing description
+    • Camera Movement: static lock-off / slow push-in / dolly left-right / crane up-down / handheld float / whip pan / rack focus / parallax slide — with speed and easing
+    • Subject Action & Blocking: exact pose, expression, gesture, movement path, interaction with environment
+    • Lighting Design: key light source/direction/quality/color temp + fill ratio + rim/backlight + practicals in scene + volumetric/atmospheric light
+    • Color Palette: 4-6 named colors with hex-like descriptors (e.g. "deep indigo shadow #1a1a2e", "warm amber key #d4a574")
+    • Environment & Set Dressing: location details, props, atmosphere elements (fog, dust, particles, water, fire)
+    • Depth & Parallax: foreground/midground/background separation, which layers move independently for 2.5D effect
+    • Art Style & Render: photorealistic / stylized / painterly / 3D render — with render engine reference if relevant
+    • Aspect Ratio: 16:9
+    • Transition Out: how this shot transitions to the next beat (dissolve / whip / match cut / hard cut / fade)]
+
+    [00:08 → 00:16] BEAT 2 — [Beat Name]
+    VOICE OVER: [...]
+    CINEMATOGRAPHY PROMPT: [Same unified structure as above — shot, camera movement, subject, lighting, color, environment, depth, art style, ratio, transition. All fully detailed prose, no shorthand.]
+
+    (Continue ALL beats with timeline markers — [00:16 → 00:24] BEAT 3, [00:24 → 00:32] BEAT 4... all the way to the final beat. EVERY beat gets Voice Over + Cinematography Prompt. NO skipping. NO truncation. NO "(Continue...)". Each cinematography prompt is a fully self-contained fusion of image+video direction — the camera IS the visual, the visual IS the camera.)
+
+═══════════════════════════════════
+INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
+═══════════════════════════════════
+Before finalizing, review every section above (Title, Description, Thumbnail, ALL Timeline Beats) against these 5 hostile critics:
+
+1. THE ENDLESS SCROLLER — Would they leave in 2 seconds? Is the hook a generic question or a genuine pattern interrupt? If the first beat doesn't create a curiosity gap, it fails.
+
+2. THE SEEN-IT-ALL CYNIC — What feels derivative, recycled, or AI-slop? Where did you default to "delve into" / "unlock the secrets" / "in a world where"? Flag every cliché phrase and every beat that sounds like every other video in this niche.
+
+3. THE SILENT JUDGE — What is unclear, confusing, or wasting time? Flag any beat where the viewer's mental response is "get to the point." Flag any voice-over line that would sound unnatural spoken aloud.
+
+4. THE SHARE-GATEKEEPER — Why would someone feel embarrassed to share this? Is the emotional tone cringe, try-hard, or inauthentic? Does it match how real humans in this niche actually talk?
+
+5. THE PLATFORM NATIVE — Where does retention drop? Flag the exact timestamp where pacing dies, where the middle sags, where the payoff disappoints. Is there a pattern interrupt every 15-20 seconds? Does the ending earn the watch?
+
+For each critic, identify at least one CRITICAL FAILURE. Then REBUILD:
+- Hook weak? Replace it with a specific, visual, surprising pattern interrupt from the Viral DNA.
+- Middle dragging? Cut filler beats, inject a retention loop (open loop, stakes raise, or format twist).
+- Ending flat? Add a twist, an emotional payoff, or a specific call-to-comment tied to the topic.
+- Cliché phrases? Rewrite with concrete, niche-specific language the original creator would actually use.
+
+Output ONLY the final, post-review version. Never show the draft or the critique.
+
+═══════════════════════════════
+VOICE PROMPT
+═══════════════════════════════
+Tone: [vocal tone — warm, urgent, mysterious, authoritative]
+Mood Arc: [how emotion shifts — curious → tense → relieved]
+Pacing: [tempo — rapid opening, slow contemplation, building urgency]
+Vocal Register: [pitch, breathiness, projection]
+{{if multiple characters, include per character: Character [Name]: [vocal quality, accent, age feel, personality in voice]}}
+
+═══════════════════════════════
+ALIGNMENT SUMMARY
+═══════════════════════════════
+[00:00 → 00:08] Beat 1 → Voice: "[line]" → Image: [scene] → Video: [motion]
+[00:08 → 00:16] Beat 2 → Voice: "[line]" → Image: [scene] → Video: [motion]
+(All beats mapped with timestamps. Shows visual-audio-temporal sync.)"""
 
 
 # ── Helpers ────────────────────────────────────────────────────
@@ -833,7 +970,9 @@ def generate_package():
         else:
             tx_str = 'No transcript excerpts available — rely on Viral DNA for speech patterns.'
 
-        system_prompt = MASTER_PACKAGE_SYSTEM_INSTRUCTION.format(
+        # Use unlimited prompt for unlimited/custom plans
+        template = UNLIMITED_PACKAGE_SYSTEM_INSTRUCTION if plan in ('unlimited', 'custom') else MASTER_PACKAGE_SYSTEM_INSTRUCTION
+        system_prompt = template.format(
             viral_dna=viral_dna,
             niche=niche,
             target_length=video_length,
@@ -929,6 +1068,7 @@ def admin_generate_token():
     email = data.get('email', '').strip()
     credits = data.get('credits', 3)
     plan = data.get('plan', 'basic')
+    custom_limits = data.get('custom_limits', None)  # {max_videos, max_minutes}
 
     if not email:
         return jsonify({'error': 'Email is required'}), 400
@@ -936,17 +1076,34 @@ def admin_generate_token():
         return jsonify({'error': f'Invalid plan. Choose: {", ".join(PLAN_CONFIG.keys())}'}), 400
 
     try:
-        credits = max(1, min(100, int(credits)))
+        credits = max(1, min(9999, int(credits)))
     except (ValueError, TypeError):
         credits = 3
 
-    token = create_token(email=email, credits=credits, plan=plan)
+    token = create_token(email=email, credits=credits, plan=plan, custom_limits=custom_limits)
     try:
         send_token_email(email, token)
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-    return jsonify({'success': True, 'token': token, 'email': email, 'credits': credits, 'plan': plan})
+    return jsonify({
+        'success': True,
+        'token': token,
+        'email': email,
+        'credits': credits,
+        'plan': plan,
+        'custom_limits': custom_limits
+    })
+
+
+@app.route('/api/admin/plans', methods=['GET'])
+@require_admin
+def admin_list_plans():
+    """Return all plans including hidden ones for admin reference."""
+    return jsonify({
+        'plans': {k: v for k, v in PLAN_CONFIG.items()},
+        'hidden': list(HIDDEN_PLANS)
+    })
 
 
 @app.route('/api/admin/diag', methods=['GET'])
