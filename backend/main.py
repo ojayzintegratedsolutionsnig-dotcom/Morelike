@@ -16,7 +16,7 @@ import json
 import re
 import urllib.request
 from functools import wraps
-from extractor import extract_viral_content
+from extractor import extract_viral_content, _extract_transcript_via_ytdlp_android, _extract_transcript_from_watch_page
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token, get_db
 from tokens import claim_token_by_email, log_action, save_feedback, get_all_feedback, save_reply
 from tokens import get_plan_limits, PLAN_CONFIG, HIDDEN_PLANS, get_admin_stats
@@ -879,7 +879,6 @@ def debug_transcript():
 
     # Method 0: yt-dlp with Android client
     try:
-        from extractor import _extract_transcript_via_ytdlp_android
         text = _extract_transcript_via_ytdlp_android(test_video_id)
         if text:
             results['method0_ytdlp_android'] = f'OK: {len(text)} chars'
@@ -890,7 +889,6 @@ def debug_transcript():
 
     # Method 1: watch-page scraping
     try:
-        from extractor import _extract_transcript_from_watch_page
         text = _extract_transcript_from_watch_page(test_video_id)
         if text:
             results['method1_watchpage'] = f'OK: {len(text)} chars'
