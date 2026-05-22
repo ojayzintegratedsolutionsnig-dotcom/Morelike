@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import io from 'socket.io-client'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002'
+const API_URL = import.meta.env.VITE_API_URL || 'https://morelike-morelike.up.railway.app'
 const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/a6315998-f19d-4806-ba57-a40dd789348b'
 
 const getApiHeaders = (token) => ({
@@ -453,8 +453,60 @@ function Portal() {
 
     const sock = io(API_URL)
     socketRef.current = sock
+    let pollTimer2 = null
+    let socketOk2 = false
+
+    sock.on('connect', () => { socketOk2 = true })
+
+    sock.on('connect_error', () => {
+      if (pollTimer2) return
+      pollTimer2 = setInterval(async () => {
+        try {
+          const r = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
+          const data = await r.json()
+          if (data.status === 'complete') {
+            clearInterval(pollTimer2)
+            sock.close()
+            fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
+              .then(r => r.json())
+              .then(async d => {
+                if (d.content) {
+                  extractedRef.current = d.content
+                  extractedVideoIdsRef.current = d.video_ids || []
+                  try {
+                    const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: d.content })
+                    const dnaData = await dnaRes.json()
+                    if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
+                    setViralDNA(dnaData.viral_dna)
+                    if (tokenValidated && credits > 0) {
+                      setFlow('visual_upload')
+                    } else {
+                      setFlow('paywall')
+                    }
+                  } catch (err) {
+                    setPipelineError(err.message)
+                    setFlow('input')
+                  }
+                } else if (d.needs_manual) {
+                  setVideoMeta(d.video_meta || [])
+                  setManualTranscripts({})
+                  setFlow('manual_transcripts')
+                } else {
+                  setPipelineError('No transcripts found for this channel.')
+                  setFlow('input')
+                }
+              })
+          } else if (data.status === 'error') {
+            clearInterval(pollTimer2)
+            setPipelineError(data.message || 'Extraction failed')
+            setFlow('input')
+          }
+        } catch {}
+      }, 2000)
+    })
 
     sock.on('progress', (data) => {
+      if (!socketOk2) return
       if (data.current && data.total && data.total > 0) {
         setExtractionVideos(prev => {
           const idx = data.current - 1
@@ -471,11 +523,13 @@ function Portal() {
         })
       }
       if (data.status === 'error') {
+        if (pollTimer2) clearInterval(pollTimer2)
         setPipelineError(data.message || 'Extraction failed')
         setFlow('input')
         sock.close()
       }
       if (data.status === 'complete') {
+        if (pollTimer2) clearInterval(pollTimer2)
         sock.close()
         fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
           .then(r => r.json())
@@ -520,6 +574,7 @@ function Portal() {
       headers: getApiHeaders(token),
       body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
     }).catch(() => {
+      if (pollTimer2) clearInterval(pollTimer2)
       sock.close()
       setPipelineError('Failed to start extraction.')
       setFlow('input')
@@ -535,15 +590,75 @@ function Portal() {
 
     const sock = io(API_URL)
     socketRef.current = sock
+    let pollTimer = null
+    let socketOk = false
 
     // Safety timeout — abort if extraction takes > 90s
     extractTimeoutRef.current = setTimeout(() => {
       sock.close()
+      if (pollTimer) clearInterval(pollTimer)
       setPipelineError('Extraction timed out. YouTube may be blocking requests from our server. Please try again or paste transcripts manually.')
       setFlow('input')
     }, 90000)
 
+    sock.on('connect', () => {
+      socketOk = true
+    })
+
+    sock.on('connect_error', () => {
+      // Socket.IO failed — fall back to polling /api/status
+      if (pollTimer) return
+      pollTimer = setInterval(async () => {
+        try {
+          const r = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
+          const data = await r.json()
+          if (data.status === 'complete') {
+            clearInterval(pollTimer)
+            sock.close()
+            clearTimeout(extractTimeoutRef.current)
+            fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
+              .then(r => r.json())
+              .then(d => {
+                if (d.content) {
+                  extractedRef.current = d.content
+                  extractedVideoIdsRef.current = d.video_ids || []
+                  runPipeline(d.content)
+                } else if (d.needs_manual) {
+                  setVideoMeta(d.video_meta || [])
+                  setManualTranscripts({})
+                  setFlow('manual_transcripts')
+                } else {
+                  setPipelineError('No transcripts found for this channel.')
+                  setFlow('input')
+                }
+              })
+          } else if (data.status === 'error') {
+            clearInterval(pollTimer)
+            setPipelineError(data.message || 'Extraction failed')
+            setFlow('input')
+          } else if (data.current && data.total) {
+            setExtractionVideos(prev => {
+              const next = Array(data.total).fill(null).map((_, i) => {
+                if (i < prev.length && prev[i].title) return prev[i]
+                return { title: `Video ${i + 1}`, status: 'pending' }
+              })
+              if (data.videos) {
+                data.videos.forEach((v, i) => {
+                  const msg = v.title || ''
+                  if (i < next.length) {
+                    next[i] = { title: msg, status: 'done' }
+                  }
+                })
+              }
+              return next
+            })
+          }
+        } catch {}
+      }, 2000)
+    })
+
     sock.on('progress', (data) => {
+      if (!socketOk) return
       // Build video list from extraction progress
       if (data.current && data.total && data.total > 0) {
         setExtractionVideos(prev => {
@@ -570,12 +685,14 @@ function Portal() {
 
       if (data.status === 'error') {
         clearTimeout(extractTimeoutRef.current)
+        if (pollTimer) clearInterval(pollTimer)
         setPipelineError(data.message || 'Extraction failed')
         setFlow('input')
         sock.close()
       }
       if (data.status === 'complete') {
         clearTimeout(extractTimeoutRef.current)
+        if (pollTimer) clearInterval(pollTimer)
         sock.close()
         fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
           .then(r => r.json())
@@ -608,6 +725,7 @@ function Portal() {
       })
     } catch {
       clearTimeout(extractTimeoutRef.current)
+      if (pollTimer) clearInterval(pollTimer)
       sock.close()
       setPipelineError('Failed to start extraction.')
       setFlow('input')

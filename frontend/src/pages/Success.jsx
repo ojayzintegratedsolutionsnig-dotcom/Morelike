@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002'
+const API_URL = import.meta.env.VITE_API_URL || 'https://morelike-morelike.up.railway.app'
 
 function Success() {
   const [email, setEmail] = useState('')
