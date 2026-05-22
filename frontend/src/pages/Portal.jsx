@@ -282,6 +282,7 @@ function Portal() {
   const extractedRef = useRef('')
   const extractedVideoIdsRef = useRef([])
   const inputModeRef = useRef('scrape')
+  const extractTimeoutRef = useRef(null)
 
   // ── Auto-login from sessionStorage ─────────────────────────────
   useEffect(() => {
@@ -535,6 +536,13 @@ function Portal() {
     const sock = io(API_URL)
     socketRef.current = sock
 
+    // Safety timeout — abort if extraction takes > 90s
+    extractTimeoutRef.current = setTimeout(() => {
+      sock.close()
+      setPipelineError('Extraction timed out. YouTube may be blocking requests from our server. Please try again or paste transcripts manually.')
+      setFlow('input')
+    }, 90000)
+
     sock.on('progress', (data) => {
       // Build video list from extraction progress
       if (data.current && data.total && data.total > 0) {
@@ -561,11 +569,13 @@ function Portal() {
       }
 
       if (data.status === 'error') {
+        clearTimeout(extractTimeoutRef.current)
         setPipelineError(data.message || 'Extraction failed')
         setFlow('input')
         sock.close()
       }
       if (data.status === 'complete') {
+        clearTimeout(extractTimeoutRef.current)
         sock.close()
         fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
           .then(r => r.json())
@@ -597,6 +607,7 @@ function Portal() {
         body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
       })
     } catch {
+      clearTimeout(extractTimeoutRef.current)
       sock.close()
       setPipelineError('Failed to start extraction.')
       setFlow('input')

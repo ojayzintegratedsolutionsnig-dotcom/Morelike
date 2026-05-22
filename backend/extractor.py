@@ -130,6 +130,10 @@ def get_viral_videos(channel_url, limit, progress_callback=None):
         'extract_flat': True,
         'playlistend': limit,
         'quiet': True,
+        'socket_timeout': 30,
+        'extractor_retries': 1,
+        'fragment_retries': 1,
+        'retries': 1,
     }
 
     try:
@@ -332,41 +336,85 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     count = 0
     total = len(videos)
     video_ids = []
-    video_meta = []  # Always collected for manual fallback
+    video_meta = []
+    bot_blocked = False
 
     if progress_callback:
         progress_callback({
             'status': 'extracting',
-            'message': f'Found {total} top videos. Extracting auto-generated transcripts...',
+            'message': f'Found {total} top videos. Extracting transcripts...',
             'progress': 10
         })
 
-    # Always collect video metadata, go straight to manual mode
     for idx, v in enumerate(videos):
         title = v.get('title', 'Unknown')
         v_id = v.get('id')
+        if not v_id:
+            continue
         video_meta.append({'id': v_id, 'title': title, 'url': f'https://youtu.be/{v_id}'})
 
         current_progress = 10 + int((idx / total) * 80)
 
+        # Try fast transcript extraction (watch-page scrape, ~1-3s)
+        transcript, was_blocked = get_transcript(v_id, fast_only=True)
+
+        if was_blocked:
+            bot_blocked = True
+
+        if transcript:
+            count += 1
+            video_ids.append(v_id)
+            full_data += f"\n{'='*80}\n"
+            full_data += f"VIDEO {count}: {title}\n"
+            full_data += f"URL: https://youtu.be/{v_id}\n"
+            full_data += f"{'='*80}\n"
+            full_data += transcript + "\n\n"
+
+            if progress_callback:
+                progress_callback({
+                    'status': 'success',
+                    'message': f'[{idx+1}/{total}] Extracted: {title[:50]}',
+                    'progress': current_progress,
+                    'current': idx + 1,
+                    'total': total
+                })
+        else:
+            if progress_callback:
+                progress_callback({
+                    'status': 'warning',
+                    'message': f'[{idx+1}/{total}] No transcript: {title[:50]}',
+                    'progress': current_progress,
+                    'current': idx + 1,
+                    'total': total
+                })
+
+    # If we got at least 1 transcript, return them
+    if count > 0:
         if progress_callback:
             progress_callback({
-                'status': 'success',
-                'message': f'[{idx+1}/{total}] Found: {title[:50]}',
-                'progress': current_progress,
-                'current': idx + 1,
-                'total': total
+                'status': 'complete',
+                'message': f'Done. Extracted transcripts from {count}/{total} video(s).',
+                'progress': 100,
+                'videos_processed': count
             })
+        return {
+            'success': True,
+            'content': full_data,
+            'videos_processed': count,
+            'video_ids': video_ids,
+            'needs_manual': False,
+            'video_meta': video_meta
+        }
 
+    # No transcripts — fall back to manual
     if progress_callback:
         progress_callback({
             'status': 'needs_manual',
-            'message': 'Top videos found. Paste transcripts manually for 2+ videos.',
+            'message': 'Transcripts not available. Paste manually for 2+ videos.',
             'progress': 95,
             'videos': video_meta,
             'total': total
         })
-        # Send complete so frontend fetches /api/subtitles
         progress_callback({
             'status': 'complete',
             'message': f'Done. Found {total} video(s) — manual transcripts needed.',
@@ -380,26 +428,4 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         'video_ids': [],
         'needs_manual': True,
         'video_meta': video_meta
-    }
-
-    # Save to file
-    output_file = "content_blueprint.txt"
-    with open(output_file, "w", encoding="utf-8") as f:
-        f.write(full_data)
-
-    if progress_callback:
-        progress_callback({
-            'status': 'complete',
-            'message': f'Done. Extracted transcripts from {count} video(s).',
-            'progress': 100,
-            'output_file': output_file,
-            'videos_processed': count
-        })
-
-    return {
-        'success': True,
-        'output_file': output_file,
-        'videos_processed': count,
-        'content': full_data,
-        'video_ids': video_ids
     }
