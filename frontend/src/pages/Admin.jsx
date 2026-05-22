@@ -28,6 +28,16 @@ function Admin() {
     custom:    { max_videos: 5,  max_minutes: 15, price: '—',   credits: 1,   label: 'Custom',   color: 'gray',  hidden: true },
   }
 
+  // Dashboard
+  const [stats, setStats] = useState(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+
+  // Promo
+  const [promoCode, setPromoCode] = useState('')
+  const [promoMessage, setPromoMessage] = useState('')
+  const [promoResult, setPromoResult] = useState(null)
+  const [promoLoading, setPromoLoading] = useState(false)
+
   // Feedback
   const [feedback, setFeedback] = useState([])
   const [replies, setReplies] = useState({})
@@ -131,6 +141,42 @@ function Admin() {
     return new Date(ts).toLocaleString()
   }
 
+  const loadStats = async () => {
+    setStatsLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/stats`, { headers: { 'X-Admin-Token': adminToken } })
+      setStats(await res.json())
+    } catch {}
+    setStatsLoading(false)
+  }
+
+  const loadPromo = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/promo`, { headers: { 'X-Admin-Token': adminToken } })
+      const d = await res.json()
+      setPromoCode(d.code || '')
+      setPromoMessage(d.text || '')
+    } catch {}
+  }
+
+  const handlePromoSave = async () => {
+    if (!promoMessage.trim()) return
+    setPromoLoading(true)
+    setPromoResult(null)
+    try {
+      const res = await fetch(`${API_URL}/api/admin/promo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+        body: JSON.stringify({ code: promoCode.trim(), message: promoMessage.trim() })
+      })
+      const d = await res.json()
+      setPromoResult(d.success ? 'Promo updated!' : (d.error || 'Failed'))
+    } catch {
+      setPromoResult('Network error')
+    }
+    setPromoLoading(false)
+  }
+
   // ── Login screen ──────────────────────────────────────────
   if (!adminToken) {
     return (
@@ -180,20 +226,98 @@ function Admin() {
         </div>
 
         {/* Tabs */}
-        <div className="flex flex-col sm:flex-row gap-2 mb-8">
+        <div className="flex flex-wrap gap-2 mb-8">
+          <button
+            onClick={() => { setTab('dashboard'); loadStats() }}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${tab === 'dashboard' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+          >
+            Dashboard
+          </button>
           <button
             onClick={() => setTab('tokens')}
-            className={`px-6 py-2 rounded-lg font-semibold transition-all ${tab === 'tokens' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${tab === 'tokens' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
           >
             Generate Tokens
           </button>
           <button
             onClick={() => { setTab('feedback'); loadFeedback(adminToken) }}
-            className={`px-6 py-2 rounded-lg font-semibold transition-all ${tab === 'feedback' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${tab === 'feedback' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
           >
             Feedback
           </button>
+          <button
+            onClick={() => { setTab('promo'); loadPromo() }}
+            className={`px-4 py-2 rounded-lg font-semibold transition-all text-sm ${tab === 'promo' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+          >
+            Promo
+          </button>
         </div>
+
+        {/* Dashboard Tab */}
+        {tab === 'dashboard' && (
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold">Dashboard</h2>
+            {statsLoading ? (
+              <p className="text-gray-400">Loading...</p>
+            ) : stats ? (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-purple-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-purple-400">{stats.total_tokens}</div>
+                    <div className="text-xs text-gray-400 mt-1">Total Tokens</div>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-green-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-green-400">{stats.active_tokens}</div>
+                    <div className="text-xs text-gray-400 mt-1">Active Tokens</div>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-amber-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-amber-400">{stats.credits_consumed}</div>
+                    <div className="text-xs text-gray-400 mt-1">Credits Used</div>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-pink-500/30 p-4 text-center">
+                    <div className="text-3xl font-bold text-pink-400">{stats.total_usage}</div>
+                    <div className="text-xs text-gray-400 mt-1">Total Generations</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-gray-700 p-4 text-center">
+                    <div className="text-2xl font-bold text-white">{stats.recent_usage_24h}</div>
+                    <div className="text-xs text-gray-400 mt-1">Generations (24h)</div>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-gray-700 p-4 text-center">
+                    <div className="text-2xl font-bold text-white">{stats.feedback_total}</div>
+                    <div className="text-xs text-gray-400 mt-1">Feedback Total</div>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-yellow-500/30 p-4 text-center">
+                    <div className="text-2xl font-bold text-yellow-400">{stats.feedback_pending}</div>
+                    <div className="text-xs text-gray-400 mt-1">Pending Replies</div>
+                  </div>
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-gray-700 p-4 text-center">
+                    <div className="text-2xl font-bold text-white">{stats.feedback_recent_7d}</div>
+                    <div className="text-xs text-gray-400 mt-1">Feedback (7d)</div>
+                  </div>
+                </div>
+                {stats.by_plan && (
+                  <div className="bg-gray-800/80 backdrop-blur-lg rounded-xl border border-purple-500/30 p-4">
+                    <h3 className="text-sm font-semibold mb-3 text-purple-200">Tokens by Plan</h3>
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                      {Object.entries(stats.by_plan).map(([plan, count]) => (
+                        <div key={plan} className="text-center bg-gray-900/50 rounded-lg p-2">
+                          <div className="text-lg font-bold text-white">{count}</div>
+                          <div className="text-[10px] text-gray-400 uppercase">{plan}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-10 text-gray-400">
+                <button onClick={loadStats} className="px-4 py-2 bg-purple-600 text-white rounded-lg">Load Stats</button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Token Generator Tab */}
         {tab === 'tokens' && (
@@ -396,6 +520,46 @@ function Admin() {
               </div>
             )}
           </>
+        )}
+
+        {/* Promo Tab */}
+        {tab === 'promo' && (
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl border border-amber-500/30 p-6">
+            <h2 className="text-xl font-bold mb-4">Promo Code / Announcement</h2>
+            <p className="text-gray-400 text-sm mb-6">Set a promo code and message. It will appear as a moving marquee on the landing page.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-purple-200 mb-1">Promo Code (optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. LAUNCH20"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  className="w-full max-w-md bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-purple-200 mb-1">Message</label>
+                <textarea
+                  placeholder="e.g. Use code LAUNCH20 for 20% off your first purchase!"
+                  value={promoMessage}
+                  onChange={(e) => setPromoMessage(e.target.value)}
+                  className="w-full max-w-md bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  rows={3}
+                />
+              </div>
+              <button
+                onClick={handlePromoSave}
+                disabled={promoLoading || !promoMessage.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all disabled:opacity-50"
+              >
+                {promoLoading ? 'Saving...' : 'Update Promo'}
+              </button>
+              {promoResult && (
+                <p className={`text-sm mt-2 ${promoResult.includes('updated') ? 'text-green-400' : 'text-red-400'}`}>{promoResult}</p>
+              )}
+            </div>
+          </div>
         )}
 
         <p className="text-center mt-8 text-gray-500 text-sm">

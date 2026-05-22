@@ -212,3 +212,39 @@ def save_reply(feedback_id, reply_text):
     conn.commit()
     conn.close()
     return True
+
+
+def get_admin_stats():
+    """Return dashboard stats: token counts, usage, feedback."""
+    conn = get_db()
+    total_tokens = conn.execute('SELECT COUNT(*) as n FROM tokens').fetchone()['n']
+    active_tokens = conn.execute('SELECT COUNT(*) as n FROM tokens WHERE credits > 0').fetchone()['n']
+    by_plan = conn.execute('SELECT plan, COUNT(*) as n FROM tokens GROUP BY plan').fetchall()
+    total_usage = conn.execute('SELECT COUNT(*) as n FROM usage_log').fetchone()['n']
+    feedback_count = conn.execute('SELECT COUNT(*) as n FROM feedback').fetchone()['n']
+    feedback_pending = conn.execute('SELECT COUNT(*) as n FROM feedback WHERE reply IS NULL').fetchone()['n']
+    # Total credits consumed = total tokens generated credits - remaining credits
+    total_credits_issued = conn.execute('SELECT COALESCE(SUM(credits), 0) as n FROM tokens').fetchone()['n']
+    total_credits_remaining = conn.execute('SELECT COALESCE(SUM(credits), 0) as n FROM tokens WHERE credits > 0').fetchone()['n']
+    # Recent 24h usage
+    recent_usage = conn.execute(
+        "SELECT COUNT(*) as n FROM usage_log WHERE created_at > datetime('now', '-1 day')"
+    ).fetchone()['n']
+    # Recent feedback
+    recent_feedback = conn.execute(
+        "SELECT COUNT(*) as n FROM feedback WHERE created_at > datetime('now', '-7 day')"
+    ).fetchone()['n']
+    conn.close()
+    return {
+        'total_tokens': total_tokens,
+        'active_tokens': active_tokens,
+        'by_plan': {r['plan']: r['n'] for r in by_plan},
+        'total_usage': total_usage,
+        'recent_usage_24h': recent_usage,
+        'credits_issued': total_credits_issued,
+        'credits_remaining': total_credits_remaining,
+        'credits_consumed': total_credits_issued - total_credits_remaining,
+        'feedback_total': feedback_count,
+        'feedback_pending': feedback_pending,
+        'feedback_recent_7d': recent_feedback,
+    }

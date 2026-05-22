@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 /* ── Step Icon SVG ─────────────────────────────────────────── */
@@ -15,6 +15,15 @@ function StepIcon({ icon, color }) {
 
 /* ── Landing ──────────────────────────────────────────────── */
 function Landing() {
+  const [promo, setPromo] = useState(null)
+
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || 'https://morelike-morelike.up.railway.app'
+    fetch(`${API_URL}/api/promo`).then(r => r.json()).then(d => {
+      if (d && d.text) setPromo(d)
+    }).catch(() => {})
+  }, [])
+
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
       {/* Background image */}
@@ -60,6 +69,25 @@ function Landing() {
           </Link>
         </div>
       </nav>
+
+      {/* Promo Marquee */}
+      {promo && promo.text && (
+        <div className="relative z-20 bg-gradient-to-r from-purple-900/60 via-purple-800/40 to-pink-900/60 border-b border-purple-500/30 overflow-hidden">
+          <div className="py-2.5 whitespace-nowrap flex">
+            <div className="animate-marquee flex gap-8 text-sm text-purple-200 font-medium shrink-0">
+              {[...Array(4)].map((_, i) => (
+                <span key={i} className="shrink-0">
+                  {promo.code ? (
+                    <>Use code <strong className="text-white bg-purple-600 px-2 py-0.5 rounded">{promo.code}</strong> — {promo.text}</>
+                  ) : (
+                    promo.text
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="relative z-10 container mx-auto px-4 pt-8 md:pt-16 pb-8 md:pb-12 max-w-6xl">

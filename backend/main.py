@@ -17,9 +17,9 @@ import re
 import urllib.request
 from functools import wraps
 from extractor import extract_viral_content
-from tokens import init_db, is_token_valid, get_credits, use_credit, create_token
+from tokens import init_db, is_token_valid, get_credits, use_credit, create_token, get_db
 from tokens import claim_token_by_email, log_action, save_feedback, get_all_feedback, save_reply
-from tokens import get_plan_limits, PLAN_CONFIG, HIDDEN_PLANS
+from tokens import get_plan_limits, PLAN_CONFIG, HIDDEN_PLANS, get_admin_stats
 from emailer import send_token_email, send_reply_email
 
 load_dotenv()
@@ -86,6 +86,24 @@ extracted_subtitles = {
     'videos_processed': 0,
     'video_ids': []
 }
+
+# Promo code — stored in memory + DB for persistence
+promo_message = {'text': '', 'code': ''}
+
+def _load_promo():
+    """Load promo from DB on startup."""
+    try:
+        conn = get_db()
+        conn.execute('CREATE TABLE IF NOT EXISTS promo (id INTEGER PRIMARY KEY, code TEXT, message TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+        row = conn.execute('SELECT code, message FROM promo ORDER BY id DESC LIMIT 1').fetchone()
+        conn.close()
+        if row:
+            promo_message['text'] = row['message'] or ''
+            promo_message['code'] = row['code'] or ''
+    except Exception:
+        pass
+
+_load_promo()
 
 last_generated_package = {
     'content': '',
@@ -1155,6 +1173,44 @@ def admin_list_plans():
         'plans': {k: v for k, v in PLAN_CONFIG.items()},
         'hidden': list(HIDDEN_PLANS)
     })
+
+
+@app.route('/api/admin/stats', methods=['GET'])
+@require_admin
+def admin_stats():
+    """Dashboard stats: tokens, usage, feedback counts."""
+    return jsonify(get_admin_stats())
+
+
+@app.route('/api/admin/promo', methods=['GET', 'POST'])
+@require_admin
+def admin_promo():
+    """GET: return current promo. POST: set new promo."""
+    global promo_message
+    if request.method == 'GET':
+        return jsonify(promo_message)
+    data = request.json or {}
+    code = data.get('code', '').strip()
+    message = data.get('message', '').strip()
+    if not message:
+        return jsonify({'error': 'Promo message is required'}), 400
+    promo_message = {'code': code, 'text': message}
+    # Persist to DB
+    try:
+        conn = get_db()
+        conn.execute('CREATE TABLE IF NOT EXISTS promo (id INTEGER PRIMARY KEY, code TEXT, message TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)')
+        conn.execute('INSERT INTO promo (code, message) VALUES (?, ?)', (code, message))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+    return jsonify({'success': True, 'promo': promo_message})
+
+
+@app.route('/api/promo', methods=['GET'])
+def public_promo():
+    """Public endpoint — returns current promo for the landing page marquee."""
+    return jsonify(promo_message)
 
 
 @app.route('/api/admin/diag', methods=['GET'])
