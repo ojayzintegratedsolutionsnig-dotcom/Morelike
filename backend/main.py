@@ -59,16 +59,17 @@ from collections import defaultdict
 _rate_limits = defaultdict(list)  # IP -> list of timestamps
 
 def _rate_limit(max_requests=30, window=60):
-    """Decorator: limit to max_requests per window seconds per IP."""
+    """Decorator: limit to max_requests per window seconds per IP, per endpoint."""
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
             ip = request.headers.get('X-Forwarded-For', request.remote_addr) or 'unknown'
+            key = f"{ip}:{f.__name__}"
             now = _time.time()
-            _rate_limits[ip] = [t for t in _rate_limits[ip] if now - t < window]
-            if len(_rate_limits[ip]) >= max_requests:
+            _rate_limits[key] = [t for t in _rate_limits[key] if now - t < window]
+            if len(_rate_limits[key]) >= max_requests:
                 return jsonify({'error': 'Too many requests. Slow down.'}), 429
-            _rate_limits[ip].append(now)
+            _rate_limits[key].append(now)
             return f(*args, **kwargs)
         return wrapped
     return decorator
