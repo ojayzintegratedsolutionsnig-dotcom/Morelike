@@ -189,20 +189,43 @@ def get_transcript(video_id, progress_callback=None, fast_only=False):
 
     # ── Method 3: youtube-transcript-api (fast, ~2-5s) ─────────
     try:
+        import threading
         from youtube_transcript_api import YouTubeTranscriptApi
         from youtube_transcript_api._errors import RequestBlocked, IpBlocked
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, languages=['en', 'en-US', 'en-GB'])
+
+        result = {'transcript': None, 'blocked': False, 'done': False}
+
+        def _fetch():
+            try:
+                api = YouTubeTranscriptApi()
+                result['transcript'] = api.fetch(video_id, languages=['en', 'en-US', 'en-GB'])
+            except (RequestBlocked, IpBlocked):
+                result['blocked'] = True
+            except Exception:
+                result['blocked'] = True
+            result['done'] = True
+
+        t = threading.Thread(target=_fetch, daemon=True)
+        t.start()
+        t.join(timeout=15)
+
+        if result['blocked'] or (result['done'] and not result['transcript']):
+            print(f"DEBUG: Bot-blocked for {video_id}")
+            return None, True
+
+        if not result['done']:
+            print(f"DEBUG: transcript-api timed out for {video_id}")
+            return None, True
+
+        transcript = result['transcript']
         if transcript:
             text = ' '.join([snippet.text for snippet in transcript])
             if text and len(text) > 50:
                 print(f"DEBUG: Subtitle extracted via API for {video_id} ({len(text)} chars)")
                 return text, False
-    except (RequestBlocked, IpBlocked) as e:
-        print(f"DEBUG: Bot-blocked for {video_id}: {e}")
-        return None, True
     except Exception as e:
-        print(f"DEBUG: transcript-api error for {video_id}: {e}")
+        print(f"DEBUG: transcript-api outer error for {video_id}: {e}")
+        return None, True
 
     # If we got here and fast_only, skip the slow yt-dlp methods
     if fast_only:
@@ -318,7 +341,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
             'progress': 10
         })
 
-    bot_blocked = False
+    # Always collect video metadata, go straight to manual mode
     for idx, v in enumerate(videos):
         title = v.get('title', 'Unknown')
         v_id = v.get('id')
@@ -328,62 +351,29 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
 
         if progress_callback:
             progress_callback({
-                'status': 'extracting',
-                'message': f'[{idx+1}/{total}] Extracting transcript: {title[:50]}...',
+                'status': 'success',
+                'message': f'[{idx+1}/{total}] Found: {title[:50]}',
                 'progress': current_progress,
                 'current': idx + 1,
                 'total': total
             })
 
-        # If first video was bot-blocked, skip remaining videos entirely
-        if bot_blocked:
-            if progress_callback:
-                progress_callback({
-                    'status': 'warning',
-                    'message': f'[{idx+1}/{total}] Skipped (bot-blocked): {title[:40]}',
-                    'progress': current_progress
-                })
-            continue
-
-        text, was_blocked = get_transcript(v_id, progress_callback, fast_only=bot_blocked)
-        if was_blocked:
-            bot_blocked = True
-
-        if text:
-            full_data += f"### VIDEO: {title} ###\nURL: https://youtu.be/{v_id}\n\n{text}\n\n"
-            count += 1
-            video_ids.append(v_id)
-            if progress_callback:
-                progress_callback({
-                    'status': 'success',
-                    'message': f'[{idx+1}/{total}] Transcript extracted: {title[:40]}',
-                    'progress': current_progress
-                })
-        else:
-            if progress_callback:
-                progress_callback({
-                    'status': 'warning',
-                    'message': f'[{idx+1}/{total}] No transcript available: {title[:40]}',
-                    'progress': current_progress
-                })
-
-    if count == 0:
-        if progress_callback:
-            progress_callback({
-                'status': 'needs_manual',
-                'message': 'Auto-extraction blocked. Paste transcripts manually for these videos.',
-                'progress': 100,
-                'videos': video_meta,
-                'total': total
-            })
-        return {
-            'success': True,
-            'content': None,
-            'videos_processed': 0,
-            'video_ids': [],
-            'needs_manual': True,
-            'video_meta': video_meta
-        }
+    if progress_callback:
+        progress_callback({
+            'status': 'needs_manual',
+            'message': 'Top videos found. Paste transcripts manually for 2+ videos.',
+            'progress': 100,
+            'videos': video_meta,
+            'total': total
+        })
+    return {
+        'success': True,
+        'content': None,
+        'videos_processed': 0,
+        'video_ids': [],
+        'needs_manual': True,
+        'video_meta': video_meta
+    }
 
     # Save to file
     output_file = "content_blueprint.txt"
