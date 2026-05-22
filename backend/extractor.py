@@ -116,7 +116,93 @@ def clean_url(url):
     return url
 
 
+def _extract_channel_handle(url):
+    """Extract YouTube channel handle or ID from a URL."""
+    # Direct channel ID: youtube.com/channel/UC...
+    m = re.match(r'https://(?:www\.)?youtube\.com/channel/(UC[\w\-]+)', url)
+    if m:
+        return ('id', m.group(1))
+
+    # @handle format
+    m = re.match(r'https://(?:www\.)?youtube\.com/(@[\w.\-]+)', url)
+    if m:
+        return ('handle', m.group(1))
+
+    return (None, None)
+
+
+def _get_viral_videos_api(channel_url, limit, progress_callback=None):
+    """Fetch top videos via YouTube Data API v3. Returns list of {id, title} dicts or None on failure."""
+    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip() or os.environ.get('GEMINI_API_KEY', '').strip()
+    if not api_key:
+        return None
+
+    kind, value = _extract_channel_handle(channel_url)
+    if not kind:
+        return None
+
+    try:
+        # Step 1: Resolve channel ID from handle if needed
+        if kind == 'handle':
+            resp = requests.get(
+                'https://www.googleapis.com/youtube/v3/channels',
+                params={'part': 'id', 'forHandle': value, 'key': api_key},
+                timeout=10
+            )
+            data = resp.json()
+            if 'error' in data:
+                print(f"YouTube API error resolving handle: {data['error'].get('message', 'unknown')}")
+                return None
+            items = data.get('items', [])
+            if not items:
+                return None
+            channel_id = items[0]['id']
+        else:
+            channel_id = value
+
+        # Step 2: Get top videos by view count
+        resp = requests.get(
+            'https://www.googleapis.com/youtube/v3/search',
+            params={
+                'part': 'snippet',
+                'channelId': channel_id,
+                'type': 'video',
+                'order': 'viewCount',
+                'maxResults': min(limit, 50),
+                'key': api_key
+            },
+            timeout=10
+        )
+        data = resp.json()
+        if 'error' in data:
+            print(f"YouTube API error searching videos: {data['error'].get('message', 'unknown')}")
+            return None
+
+        items = data.get('items', [])
+        if not items:
+            return None
+
+        if progress_callback:
+            progress_callback({
+                'status': 'scanning',
+                'message': f'YouTube API: found {len(items)} top videos',
+                'progress': 5
+            })
+
+        return [{'id': item['id']['videoId'], 'title': item['snippet']['title']} for item in items]
+
+    except Exception as e:
+        print(f"YouTube API error: {e}")
+        return None
+
+
 def get_viral_videos(channel_url, limit, progress_callback=None):
+    # Try YouTube Data API first — won't get blocked from datacenter IPs
+    api_result = _get_viral_videos_api(channel_url, limit, progress_callback)
+    if api_result:
+        return api_result
+
+    # Fall back to yt-dlp scraping
     target_url = clean_url(channel_url)
 
     if progress_callback:
