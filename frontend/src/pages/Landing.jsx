@@ -52,7 +52,6 @@ function Landing() {
         </div>
         <div className="flex gap-3 md:gap-6 items-center">
           <Link to="/portal" className="text-gray-300 hover:text-white transition-colors text-xs md:text-sm">Portal</Link>
-          <Link to="/admin" className="text-gray-300 hover:text-white transition-colors text-xs md:text-sm">Admin</Link>
           <Link
             to="/plans"
             className="px-4 py-2 md:px-6 md:py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg transition-all transform hover:scale-105 text-xs md:text-sm whitespace-nowrap"
