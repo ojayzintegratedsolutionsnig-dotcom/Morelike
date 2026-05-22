@@ -479,19 +479,12 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         return None
 
     full_data = "=== CONTENT BLUEPRINT ANALYSIS ===\n(Sorted by Most Popular of All Time)\n\n"
-    count = 0
     total = len(videos)
-    video_ids = []
     video_meta = []
-    bot_blocked = False
 
-    if progress_callback:
-        progress_callback({
-            'status': 'extracting',
-            'message': f'Found {total} top videos. Extracting transcripts...',
-            'progress': 10
-        })
-
+    # Collect video metadata for manual transcript fallback.
+    # YouTube blocks transcript scraping from datacenter IPs, so we skip
+    # auto-extraction and go straight to manual mode.
     for idx, v in enumerate(videos):
         title = v.get('title', 'Unknown')
         v_id = v.get('id')
@@ -499,74 +492,30 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
             continue
         video_meta.append({'id': v_id, 'title': title, 'url': f'https://youtu.be/{v_id}'})
 
-        current_progress = 10 + int((idx / total) * 80)
-
-        # Try fast transcript extraction (watch-page scrape, ~1-3s)
-        transcript, was_blocked = get_transcript(v_id, fast_only=True)
-
-        if was_blocked:
-            bot_blocked = True
-
-        if transcript:
-            count += 1
-            video_ids.append(v_id)
-            full_data += f"\n{'='*80}\n"
-            full_data += f"VIDEO {count}: {title}\n"
-            full_data += f"URL: https://youtu.be/{v_id}\n"
-            full_data += f"{'='*80}\n"
-            full_data += transcript + "\n\n"
-
-            if progress_callback:
-                progress_callback({
-                    'status': 'success',
-                    'message': f'[{idx+1}/{total}] Extracted: {title[:50]}',
-                    'progress': current_progress,
-                    'current': idx + 1,
-                    'total': total
-                })
-        else:
-            if progress_callback:
-                progress_callback({
-                    'status': 'warning',
-                    'message': f'[{idx+1}/{total}] No transcript: {title[:50]}',
-                    'progress': current_progress,
-                    'current': idx + 1,
-                    'total': total
-                })
-
-    # If we got at least 1 transcript, return them
-    if count > 0:
         if progress_callback:
             progress_callback({
-                'status': 'complete',
-                'message': f'Done. Extracted transcripts from {count}/{total} video(s).',
-                'progress': 100,
-                'videos_processed': count
+                'status': 'success',
+                'message': f'[{idx+1}/{total}] Found: {title[:60]}',
+                'progress': 10 + int(((idx + 1) / total) * 80),
+                'current': idx + 1,
+                'total': total
             })
-        return {
-            'success': True,
-            'content': full_data,
-            'videos_processed': count,
-            'video_ids': video_ids,
-            'needs_manual': False,
-            'video_meta': video_meta
-        }
 
-    # No transcripts — fall back to manual
     if progress_callback:
         progress_callback({
             'status': 'needs_manual',
-            'message': 'Transcripts not available. Paste manually for 2+ videos.',
+            'message': f'Top {total} videos found. Paste transcripts below.',
             'progress': 95,
             'videos': video_meta,
             'total': total
         })
         progress_callback({
             'status': 'complete',
-            'message': f'Done. Found {total} video(s) — manual transcripts needed.',
+            'message': f'Done. Found {total} video(s) — paste transcripts to continue.',
             'progress': 100,
             'videos_processed': 0
         })
+
     return {
         'success': True,
         'content': None,

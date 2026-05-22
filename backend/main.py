@@ -16,7 +16,7 @@ import json
 import re
 import urllib.request
 from functools import wraps
-from extractor import extract_viral_content, _extract_transcript_via_ytdlp_android, _extract_transcript_from_watch_page
+from extractor import extract_viral_content
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token, get_db
 from tokens import claim_token_by_email, log_action, save_feedback, get_all_feedback, save_reply
 from tokens import get_plan_limits, PLAN_CONFIG, HIDDEN_PLANS, get_admin_stats
@@ -873,39 +873,42 @@ def extract():
 @app.route('/api/admin/debug-transcript', methods=['GET'])
 @require_admin
 def debug_transcript():
-    """Admin-only: test transcript extraction on a given video and report per-method results."""
+    """Admin-only: test transcript extraction methods on a given video."""
     test_video_id = request.args.get('video_id', 'YWbBrbOaz58')
     results = {'video_id': test_video_id}
 
     # Method 0: yt-dlp with Android client
     try:
-        text = _extract_transcript_via_ytdlp_android(test_video_id)
-        if text:
-            results['method0_ytdlp_android'] = f'OK: {len(text)} chars'
-        else:
-            results['method0_ytdlp_android'] = 'None (no transcript returned)'
+        import yt_dlp, tempfile, os
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ydl_opts = {
+                'writesubtitles': True, 'writeautomaticsub': True,
+                'subtitleslangs': ['en', 'en-US', 'en-GB', 'en-orig'],
+                'skip_download': True, 'quiet': True, 'no_warnings': True,
+                'socket_timeout': 30, 'extractor_retries': 1, 'retries': 1,
+                'outtmpl': {'default': f'{tmpdir}/sub.%(ext)s'},
+                'extractor_args': {'youtube': {'player_client': ['android']}},
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([f'https://www.youtube.com/watch?v={test_video_id}'])
+            found = []
+            for root, dirs, files in os.walk(tmpdir):
+                for f in files:
+                    if f.endswith(('.vtt', '.srt')):
+                        found.append(os.path.join(root, f))
+            results['method0_ytdlp_android'] = 'OK' if found else 'no files'
     except Exception as e:
-        results['method0_ytdlp_android'] = f'FAIL: {type(e).__name__}: {e}'
+        results['method0_ytdlp_android'] = f'FAIL: {type(e).__name__}'
 
-    # Method 1: watch-page scraping
-    try:
-        text = _extract_transcript_from_watch_page(test_video_id)
-        if text:
-            results['method1_watchpage'] = f'OK: {len(text)} chars'
-        else:
-            results['method1_watchpage'] = 'None (no transcript returned)'
-    except Exception as e:
-        results['method1_watchpage'] = f'FAIL: {type(e).__name__}: {e}'
-
-    # Method 2: youtube-transcript-api
+    # Method 1: youtube-transcript-api
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
         api = YouTubeTranscriptApi()
         transcript = api.fetch(test_video_id, languages=['en', 'en-US', 'en-GB'])
         text = ' '.join([snippet.text for snippet in transcript])
-        results['method2_transcriptapi'] = f'OK: {len(transcript)} snippets, {len(text)} chars'
+        results['method1_transcriptapi'] = f'OK: {len(transcript)} snippets'
     except Exception as e:
-        results['method2_transcriptapi'] = f'FAIL: {type(e).__name__}: {e}'
+        results['method1_transcriptapi'] = f'FAIL: {type(e).__name__}'
 
     return jsonify(results)
 
