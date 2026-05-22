@@ -595,20 +595,27 @@ Return ONLY a JSON object with these exact keys:
 }
 Be extremely detailed and objective. No creative writing. No storytelling. Just visual facts."""
 
-THUMBNAIL_ANALYSIS_SYSTEM_INSTRUCTION = """Analyze this YouTube thumbnail image. Extract objective design data.
+THUMBNAIL_ANALYSIS_SYSTEM_INSTRUCTION = """Analyze this YouTube thumbnail image in extreme detail. Extract objective visual design data for AI recreation.
 Return ONLY a JSON object with these exact keys:
+
 {
-  "text_style": "font family feel, size, weight, color, effects (emboss/shadow/gradient)",
-  "text_placement": "top center / bottom center / upper third / etc.",
-  "composition": "focal point placement, depth layers, rule of thirds usage",
-  "color_contrast": "dominant contrast strategy — warm subject + cool bg / complementary / monochromatic",
-  "emotion_trigger": "what emotion does this thumbnail provoke — curiosity, awe, urgency, fear, hope",
-  "visual_hooks": ["hook1", "hook2"],
-  "art_style": "same categories as video reference",
-  "lighting": "thumbnail-specific lighting treatment",
-  "color_palette": "dominant 3-5 colors"
+  "subject_description": "main subject(s) — who/what is shown, pose, expression, distinguishing features, props",
+  "facial_expression": "emotion on face(s) — shocked, intense, joyful, sorrowful, smug, angry, neutral",
+  "text_style": "font family feel (bold sans-serif / serif / handwritten / display), size category (large/medium/small), weight, color, effects (emboss, drop shadow, outer glow, gradient fill, stroke outline)",
+  "text_placement": "top center / bottom center / upper third / lower third / middle / split across frame",
+  "text_readability": "how readable at thumbnail size (strong/medium/weak) — contrast with background, busy-ness behind text",
+  "composition": "focal point placement (center / rule-of-thirds intersection / edge-weighted), depth layers (foreground subject + midground context + background environment), negative space usage",
+  "color_contrast": "dominant contrast strategy — warm subject + cool background / complementary colors / monochromatic / high-saturation pop against muted / dark subject against bright glow",
+  "color_palette": ["color1_name #hexapproximation", "color2_name #hexapproximation", "color3_name #hexapproximation", "color4_name #hexapproximation", "color5_name #hexapproximation"],
+  "emotion_trigger": "primary emotion this thumbnail provokes — curiosity gap, awe, urgency, fear, hope, outrage, surprise, desire",
+  "visual_hooks": ["specific visual element that grabs attention 1", "specific visual element that grabs attention 2", "specific visual element that grabs attention 3"],
+  "ctr_factors": ["specific reason this drives clicks 1", "specific reason this drives clicks 2"],
+  "art_style": "photorealistic / 3D render / stylized illustration / painterly / vector graphic / photo composite / screenshot",
+  "lighting": "key light source + direction + quality (soft/hard) + color temperature + any rim/backlight + volumetric effects",
+  "post_processing": "visible editing techniques — color grading, vignette, bloom/glow, sharpening, saturation boost, HDR tone mapping"
 }
-Be detailed and objective. Focus on what drives CTR — emotion, contrast, readability, curiosity gap."""
+
+Be extremely detailed and objective. No creative writing. No storytelling. Every field must be populated. Focus on what drives CTR — emotion, contrast, readability, curiosity gap."""
 
 
 # ── Extraction ────────────────────────────────────────────────
