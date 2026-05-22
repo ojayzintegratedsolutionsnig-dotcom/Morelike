@@ -2,6 +2,9 @@
 builder = "nixpacks"
 buildCommand = "pip install -r requirements.txt"
 
+[nix]
+packages = "deno"
+
 [deploy]
 startCommand = "cd backend && gunicorn main:app -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -b 0.0.0.0:${PORT:-5002} --timeout 300"
 

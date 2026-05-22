@@ -79,15 +79,16 @@ def _parse_vtt(raw):
 def get_transcript(video_id, progress_callback=None):
     """
     Extract auto-generated English subtitles from YouTube via yt-dlp.
-    No external API required — yt-dlp handles everything natively.
+    Tries download first, falls back to extract_info for direct subtitle URLs.
     """
     video_url = f'https://www.youtube.com/watch?v={video_id}'
 
+    # ── Method 1: download subtitles to temp dir ──────────────────
     with tempfile.TemporaryDirectory() as tmpdir:
         ydl_opts = {
             'writesubtitles': True,
             'writeautomaticsub': True,
-            'subtitleslangs': ['en', 'en-US', 'en-GB'],
+            'subtitleslangs': ['en', 'en-US', 'en-GB', 'en-orig'],
             'skip_download': True,
             'quiet': True,
             'no_warnings': True,
@@ -98,29 +99,71 @@ def get_transcript(video_id, progress_callback=None):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([video_url])
         except Exception as e:
-            print(f"DEBUG: yt-dlp subtitle download error for {video_id}: {e}")
-            return None
+            print(f"DEBUG: yt-dlp download error for {video_id}: {e}")
 
-        # Find subtitle file in tmpdir
-        sub_files = [f for f in os.listdir(tmpdir) if os.path.isfile(os.path.join(tmpdir, f))]
-        if not sub_files:
-            print(f"DEBUG: No subtitle file produced for {video_id}")
-            return None
+        # Recursive search for subtitle file
+        sub_files = []
+        for root, dirs, files in os.walk(tmpdir):
+            for f in files:
+                if f.endswith(('.vtt', '.srt')):
+                    sub_files.append(os.path.join(root, f))
 
-        sub_path = os.path.join(tmpdir, sub_files[0])
-        try:
-            with open(sub_path, 'r', encoding='utf-8') as f:
-                raw = f.read()
-        except UnicodeDecodeError:
-            with open(sub_path, 'r', encoding='latin-1') as f:
-                raw = f.read()
+        if sub_files:
+            sub_path = sub_files[0]
+            try:
+                with open(sub_path, 'r', encoding='utf-8') as f:
+                    raw = f.read()
+            except UnicodeDecodeError:
+                with open(sub_path, 'r', encoding='latin-1') as f:
+                    raw = f.read()
 
-        text = _parse_vtt(raw)
-        if text and len(text) > 50:
-            print(f"DEBUG: Subtitle extracted for {video_id} ({len(text)} chars)")
-            return text
+            text = _parse_vtt(raw)
+            if text and len(text) > 50:
+                print(f"DEBUG: Subtitle extracted for {video_id} ({len(text)} chars)")
+                return text
 
-    print(f"DEBUG: Insufficient subtitle text for {video_id}")
+    # ── Method 2: use extract_info to get direct subtitle URLs ────
+    try:
+        ydl_opts2 = {
+            'writesubtitles': True,
+            'writeautomaticsub': True,
+            'subtitleslangs': ['en', 'en-US', 'en-GB'],
+            'skip_download': True,
+            'quiet': True,
+            'no_warnings': True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts2) as ydl:
+            info = ydl.extract_info(video_url, download=False)
+            subtitles = info.get('subtitles', {}) or {}
+            auto_captions = info.get('automatic_captions', {}) or {}
+
+            for lang_key in ['en', 'en-US', 'en-GB']:
+                sub_list = subtitles.get(lang_key) or auto_captions.get(lang_key)
+                if sub_list:
+                    sub_url = None
+                    for fmt in sub_list:
+                        if fmt.get('ext') in ('vtt', 'srv1', 'srv2', 'srv3'):
+                            sub_url = fmt.get('url')
+                            break
+                    if not sub_url and sub_list:
+                        sub_url = sub_list[0].get('url')
+                    if sub_url:
+                        import requests
+                        try:
+                            resp = requests.get(sub_url, timeout=30, headers={
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                            })
+                            if resp.status_code == 200:
+                                text = _parse_vtt(resp.text)
+                                if text and len(text) > 50:
+                                    print(f"DEBUG: Subtitle extracted via URL for {video_id} ({len(text)} chars)")
+                                    return text
+                        except Exception as e:
+                            print(f"DEBUG: URL subtitle fetch error for {video_id}: {e}")
+    except Exception as e:
+        print(f"DEBUG: extract_info fallback error for {video_id}: {e}")
+
+    print(f"DEBUG: No transcript for {video_id}")
     return None
 
 
