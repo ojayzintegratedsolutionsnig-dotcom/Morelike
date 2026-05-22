@@ -218,7 +218,7 @@ function ResultView({ content, title, onDownload, onCopy, creditsAfter }) {
 
       <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
         <button onClick={onDownload} className="px-6 py-3 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-bold rounded-lg transition-all">
-          Download .txt
+          Download PDF
         </button>
         <button onClick={onCopy} className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-all">
           Copy All
@@ -641,14 +641,32 @@ function Portal() {
   }
 
   // ── Download ────────────────────────────────────────────────
-  const handleDownload = () => {
-    const blob = new Blob([finalPackage], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${chosenTitle.slice(0, 40).replace(/[\/:*?"<>|]/g, '-')}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+  const handleDownload = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/download-package`, {
+        headers: getApiHeaders(token)
+      })
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${chosenTitle.slice(0, 40).replace(/[\/:*?"<>|]/g, '-')}.pdf`
+        a.click()
+        URL.revokeObjectURL(url)
+      } else {
+        // Fallback to client-side text download
+        const blob = new Blob([finalPackage], { type: 'text/plain' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${chosenTitle.slice(0, 40).replace(/[\/:*?"<>|]/g, '-')}.txt`
+        a.click()
+        URL.revokeObjectURL(url)
+      }
+    } catch {
+      alert('Failed to download')
+    }
   }
 
   // ── Feedback ────────────────────────────────────────────────

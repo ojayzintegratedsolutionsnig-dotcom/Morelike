@@ -1044,11 +1044,23 @@ def download_package():
     if not content:
         return jsonify({'error': 'No package generated yet. Generate a script first.'}), 404
 
-    filename = f"{title[:50].replace(' ', '_').replace('/', '-')}.txt"
+    safe_name = title[:50].replace(' ', '_').replace('/', '-').replace('\\', '-')
+    filename = f"{safe_name}.pdf"
     filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
 
+    from fpdf import FPDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    # Use built-in Courier for monospace (no external font files needed)
+    pdf.set_font('Courier', size=8)
+
+    for line in content.split('\n'):
+        # Replace Unicode chars that Courier can't render with ASCII equivalents
+        safe_line = line.encode('latin-1', errors='replace').decode('latin-1')
+        pdf.cell(0, 4.2, text=safe_line, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.output(filepath)
     return send_file(filepath, as_attachment=True, download_name=filename)
 
 
