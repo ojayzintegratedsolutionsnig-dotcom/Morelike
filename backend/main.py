@@ -226,39 +226,52 @@ SCRIPT DNA
 	(after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
 
 	DESCRIPTION
-	- Above-fold hook (first 2 lines): [hook using high-search-volume keywords]
-	- Body: [3-5 sentences describing the video, max 2 relevant emojis as visual anchors]
-	- Hashtags: #tag1 #tag2 #tag3
+	- First 2 lines (above-fold on mobile): Primary keyword + curiosity statement + CTA. These 2 lines determine CTR from search results.
+	- Body (3-5 sentences): Natural keyword density. Include LSI/secondary keywords. Answer the question the title poses.
+	- Timestamp chapters: 0:00 Hook | 0:30 Section 1 | etc.
+	- Hashtags: 3 hashtags — broad niche, specific topic, trending/discovery. Never more than 3.
 
-	TAGS/KEYWORDS
-	tag1, tag2, tag3
+	TAGS/KEYWORDS — YouTube Search Intent Matrix
+	Return 10-15 comma-separated tags ranked by search intent:
+	- First 3: primary keyword + exact match phrases (highest search volume)
+	- Next 5: long-tail variations + question-based keywords (what people actually search)
+	- Last 5: broad niche tags for browse features & suggested video placement
+	- Include 2-3 competitor/channel name tags if niche-appropriate
 
 	════════════════════════════════════════
 	THUMBNAIL DESIGN
 	════════════════════════════════════════
-	Design as a cinematic movie poster using thumbnail style data above.
+	Design as a cinematic movie poster using thumbnail style data above, obsessively optimized to CRUSH click-through rate.
 
-	Concept A — Emotion-Forward:
-	  Focal Point: [exactly what the viewer sees — character close-up or epic scene]
-	  Emotional Hook: [the question this image plants]
-	  Composition: [foreground frame → midground subject → background atmosphere]
-	  Text Overlay: [wording (1-4 words), cinematic serif font, gold/emboss texture, drop shadow, position]
-	  Color + Lighting: [palette + key light + rim + volumetrics]
+		Concept A — Emotion-Forward (CTR Driver: Emotional Response):
+		  Focal Point: [close-up face with extreme emotion or dramatic scene]
+		  Face Expression: [specific emotion — MUST be readable at mobile thumbnail size]
+		  Emotional Hook: [the specific question this image plants — why they CANNOT scroll past]
+		  Composition: [face/subject fills 30-40% of frame. Face MUST be the dominant element]
+		  Text Overlay: [1-4 words MAX in giant bold font. Primary keyword if possible. Color MUST contrast with background. Never covering the face]
+		  Color + Lighting: [high contrast. 2 dominant colors max. Saturated warm tones for faces. Key light on face + dark vignette edges. NO flat lighting]
 
-	Concept B — CTR-Optimized Alternative:
-	  (Different composition, different emotional angle, different text treatment)
+		Concept B — Pattern Interrupt (CTR Driver: Surprise/Novelty):
+		  Radically different composition from Concept A. Different emotional angle, text placement, color strategy.
 
-	A/B Analysis:
-	  Concept A strength: [which CTR lever]
-	  Concept B strength: [which CTR lever]
-	  Final Recommendation: [winner + niche-specific reasoning]
+		A/B CTR Analysis:
+		  Concept A predicted CTR lever: [emotion/curiosity/fear/desire]
+		  Concept B predicted CTR lever: [surprise/pattern-interrupt/authority/scarcity]
+		  Mobile thumbnail test at 1/8 size: [which concept remains readable?]
+		  Final Recommendation: [winner + why it beats the other on CTR specifically]
 
 	════════════════════════════════════════
 	BEATS (Voice + Image + Video per Beat, max 8 seconds each)
 	════════════════════════════════════════
 	Generate the full script as numbered BEATS. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
 
-	CRITICAL: Every image and video prompt must be a fully detailed, self-contained, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be complete enough to paste directly into an AI image/video generator with zero context.
+		RETENTION ARCHITECTURE:
+		- Beat 1: Cold open / pattern interrupt — NO intro, NO "hey guys," NO channel name. Jump straight into the most shocking/curious moment. First 8 seconds = 60% of audience retention decision.
+		- Every 3-4 beats: Pattern interrupt — format change, visual surprise, question to camera, or stakes raise.
+		- Middle beats (40-60% mark): Open loop — tease something coming later to prevent mid-video dropoff.
+		- Final 2 beats: Payoff + emotional resolution + specific call-to-comment tied to the video topic (algorithm weights comments heavily).
+
+			CRITICAL: Every image and video prompt must be a fully detailed, self-contained, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be complete enough to paste directly into an AI image/video generator with zero context.
 
 	BEAT 1 — [Hook Moment]
 	VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
@@ -277,7 +290,7 @@ SCRIPT DNA
 ═══════════════════════════════════
 INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
 ═══════════════════════════════════
-Before finalizing, review every section above (Title, Description, Thumbnail, ALL Beats) against these 5 hostile critics:
+Before finalizing, review every section above (Title, Description, Tags, Thumbnail, ALL Beats) against these 6 hostile critics:
 
 1. THE ENDLESS SCROLLER — Would they leave in 2 seconds? Is the hook a generic question or a genuine pattern interrupt? If the first beat doesn't create a curiosity gap, it fails.
 
@@ -287,7 +300,9 @@ Before finalizing, review every section above (Title, Description, Thumbnail, AL
 
 4. THE SHARE-GATEKEEPER — Why would someone feel embarrassed to share this? Is the emotional tone cringe, try-hard, or inauthentic? Does it match how real humans in this niche actually talk?
 
-5. THE PLATFORM NATIVE — Where does retention drop? Flag the exact beat number where pacing dies, where the middle sags, where the payoff disappoints. Is there a pattern interrupt every 15-20 seconds? Does the ending earn the watch?
+5. THE ALGORITHM WHISPERER — Would YouTube's algorithm surface this? Check: Is there a primary keyword in the first 45 chars of the title? Are the first 2 description lines keyword-rich? Are tags structured for search intent (not just random words)? Does the thumbnail pass the mobile-1/8-size readability test? Does the hook work in the first 8 seconds (YouTube tracks this)? Flag every missed ranking opportunity.
+
+6. THE PLATFORM NATIVE — Where does retention drop? Flag the exact beat number where pacing dies, where the middle sags, where the payoff disappoints. Is there a pattern interrupt every 15-20 seconds? Does the ending earn the watch?
 
 For each critic, identify at least one CRITICAL FAILURE. Then REBUILD:
 - Hook weak? Replace it with a specific, visual, surprising pattern interrupt from the Viral DNA.
@@ -391,7 +406,7 @@ SCRIPT DNA
 
     TIMELINE FORMAT — Each beat follows this structure:
 
-    [00:00 → 00:08] BEAT 1 — [Hook Moment]
+    [00:00 → 00:08] BEAT 1 — [Hook Moment — NO intro, instant pattern interrupt]
     VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
     CINEMATOGRAPHY PROMPT: [Unified image+video prompt. Include ALL of the following in detailed prose:
     • Shot Type & Framing: extreme close-up / close-up / medium / wide / establishing — with exact framing description
