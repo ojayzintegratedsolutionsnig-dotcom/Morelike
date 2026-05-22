@@ -362,9 +362,16 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
         progress_callback({
             'status': 'needs_manual',
             'message': 'Top videos found. Paste transcripts manually for 2+ videos.',
-            'progress': 100,
+            'progress': 95,
             'videos': video_meta,
             'total': total
+        })
+        # Send complete so frontend fetches /api/subtitles
+        progress_callback({
+            'status': 'complete',
+            'message': f'Done. Found {total} video(s) — manual transcripts needed.',
+            'progress': 100,
+            'videos_processed': 0
         })
     return {
         'success': True,
