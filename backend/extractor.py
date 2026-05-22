@@ -313,9 +313,9 @@ def _parse_vtt(raw):
 def get_transcript(video_id, progress_callback=None, fast_only=False):
     """
     Extract English subtitles from YouTube.
-    Tries fast methods first (watch-page, transcript-api).
-    Only falls back to slow yt-dlp methods if fast_only=False.
-    Returns (text, was_bot_blocked) — was_bot_blocked=True if YouTube rejected the request.
+    Tries: yt-dlp Android client → watch-page scrape → transcript-api → yt-dlp download → extract_info.
+    Only tries fast methods if fast_only=True.
+    Returns (text, was_bot_blocked).
     """
     video_url = f'https://www.youtube.com/watch?v={video_id}'
 
