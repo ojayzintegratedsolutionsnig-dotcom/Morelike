@@ -163,6 +163,19 @@ def get_transcript(video_id, progress_callback=None):
     except Exception as e:
         print(f"DEBUG: extract_info fallback error for {video_id}: {e}")
 
+    # ── Method 3: youtube-transcript-api (direct timedtext) ──────
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        api = YouTubeTranscriptApi()
+        transcript = api.fetch(video_id, languages=['en', 'en-US', 'en-GB'])
+        if transcript:
+            text = ' '.join([snippet.text for snippet in transcript])
+            if text and len(text) > 50:
+                print(f"DEBUG: Subtitle extracted via API for {video_id} ({len(text)} chars)")
+                return text
+    except Exception as e:
+        print(f"DEBUG: transcript-api error for {video_id}: {e}")
+
     print(f"DEBUG: No transcript for {video_id}")
     return None
 
