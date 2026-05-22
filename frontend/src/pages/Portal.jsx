@@ -239,13 +239,15 @@ function Portal() {
   const [tokenValidated, setTokenValidated] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
 
-  // Flow state: 'input' | 'processing' | 'pick_title' | 'paywall' | 'visual_upload' | 'thumbnail_upload' | 'generating' | 'result'
+  // Flow state: 'input' | 'processing' | 'manual_transcripts' | 'pick_title' | 'paywall' | 'visual_upload' | 'thumbnail_upload' | 'generating' | 'result'
   const [flow, setFlow] = useState('input')
   const [inputMode, setInputMode] = useState('scrape')
 
   // Pipeline
   const EXTRACT_LIMIT = 3
   const [channelUrl, setChannelUrl] = useState('')
+  const [videoMeta, setVideoMeta] = useState([])  // For manual transcript fallback
+  const [manualTranscripts, setManualTranscripts] = useState({})
   const [videoLength, setVideoLength] = useState(3)
   const [userVideoIdea, setUserVideoIdea] = useState('')
   const [viralDNA, setViralDNA] = useState('')
@@ -496,6 +498,10 @@ function Portal() {
                 setPipelineError(err.message)
                 setFlow('input')
               }
+            } else if (d.needs_manual) {
+              setVideoMeta(d.video_meta || [])
+              setManualTranscripts({})
+              setFlow('manual_transcripts')
             } else {
               setPipelineError('No transcripts found for this channel.')
               setFlow('input')
@@ -568,6 +574,10 @@ function Portal() {
               extractedRef.current = d.content
               extractedVideoIdsRef.current = d.video_ids || []
               runPipeline(d.content)
+            } else if (d.needs_manual) {
+              setVideoMeta(d.video_meta || [])
+              setManualTranscripts({})
+              setFlow('manual_transcripts')
             } else {
               setPipelineError('No transcripts found for this channel.')
               setFlow('input')
@@ -751,6 +761,48 @@ function Portal() {
     setThumbnailImages((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // ── Manual transcript submit ──────────────────────────────────
+  const handleManualSubmit = async () => {
+    setFlow('processing')
+    try {
+      const res = await fetch(`${API_URL}/api/manual-transcripts`, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify({ transcripts: manualTranscripts, video_meta: videoMeta })
+      })
+      const data = await res.json()
+      if (data.success) {
+        // Fetch the assembled content and continue pipeline
+        const subRes = await fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
+        const subData = await subRes.json()
+        if (subData.content) {
+          extractedRef.current = subData.content
+          extractedVideoIdsRef.current = subData.video_ids || []
+          if (inputModeRef.current === 'idea') {
+            // Idea mode: run viral DNA, then go to paywall/visual
+            const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: subData.content })
+            const dnaData = await dnaRes.json()
+            if (dnaData.success) {
+              setViralDNA(dnaData.viral_dna)
+              setFlow(tokenValidated && credits > 0 ? 'visual_upload' : 'paywall')
+            } else {
+              setPipelineError(dnaData.error || 'Analysis failed')
+              setFlow('manual_transcripts')
+            }
+          } else {
+            runPipeline(subData.content)
+          }
+        }
+      } else {
+        setPipelineError(data.error || 'Failed to process transcripts')
+        setFlow('manual_transcripts')
+      }
+    } catch {
+      setPipelineError('Failed to reach server')
+      setFlow('manual_transcripts')
+    }
+  }
+
   // ── Reset ───────────────────────────────────────────────────
   const handleReset = () => {
     setFlow('input')
@@ -764,6 +816,8 @@ function Portal() {
     setFinalPackage('')
     setPipelineError('')
     setExtractionVideos([])
+    setVideoMeta([])
+    setManualTranscripts({})
     setFeedbackMsg('')
     setVisualImages([])
     setThumbnailImages([])
@@ -998,6 +1052,57 @@ function Portal() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── MANUAL TRANSCRIPT UPLOAD ────────────────────── */}
+        {flow === 'manual_transcripts' && (
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-amber-500/30">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-3 h-3 bg-amber-400 rounded-full animate-pulse" />
+              <span className="text-amber-400 font-semibold text-sm">Auto-extraction blocked by YouTube</span>
+            </div>
+            <h2 className="text-xl font-bold mb-2">Paste Transcripts Manually</h2>
+            <p className="text-purple-200 text-sm mb-6">
+              YouTube blocks automated transcript downloads from cloud servers.
+              Please manually copy and paste the transcripts for at least 2 of the top-performing videos below.
+              <a href="https://youtranscript.com" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline ml-1">Open youtranscript.com</a> to easily get transcripts.
+            </p>
+
+            <div className="space-y-6 mb-6">
+              {videoMeta.map((v, i) => (
+                <div key={v.id} className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
+                    <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white font-semibold hover:text-purple-400 transition-colors text-sm">{v.title}</a>
+                  </div>
+                  <textarea
+                    placeholder={`Paste transcript for "${v.title.slice(0, 40)}..." here...`}
+                    value={manualTranscripts[v.id] || ''}
+                    onChange={(e) => setManualTranscripts(prev => ({ ...prev, [v.id]: e.target.value }))}
+                    className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    rows={6}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-gray-400 mb-4">
+              Transcripts provided: {Object.values(manualTranscripts).filter(t => t.trim().length > 20).length} / {videoMeta.length} (at least 2 needed)
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleManualSubmit}
+                disabled={Object.values(manualTranscripts).filter(t => t.trim().length > 20).length < 2}
+                className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed"
+              >
+                Analyze Transcripts
+              </button>
+              <button onClick={() => { setFlow('input'); setPipelineError('') }} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-sm">
+                Try Different Channel
+              </button>
             </div>
           </div>
         )}

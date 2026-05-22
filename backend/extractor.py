@@ -2,6 +2,103 @@ import os
 import yt_dlp
 import re
 import tempfile
+import json
+import requests
+
+
+def _extract_transcript_from_watch_page(video_id):
+    """
+    Parse captions straight from the watch page HTML — no yt-dlp, no InnerTube.
+    This avoids the bot-detection that blocks datacenter IPs.
+    """
+    try:
+        html = requests.get(
+            f'https://www.youtube.com/watch?v={video_id}',
+            headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
+            timeout=20
+        ).text
+    except Exception as e:
+        print(f"DEBUG: Watch page fetch failed for {video_id}: {e}")
+        return None
+
+    # Extract ytInitialPlayerResponse JSON
+    match = re.search(r'(?:var\s+ytInitialPlayerResponse\s*=\s*|window\["ytInitialPlayerResponse"\]\s*=\s*)(\{.+?\});\s*(?:var\s|function\s|</script>)', html, re.DOTALL)
+    if not match:
+        match = re.search(r'ytInitialPlayerResponse\s*=\s*(\{.+?\});', html, re.DOTALL)
+    if not match:
+        # Try the JSON-in-script approach: find in any script tag
+        for m in re.finditer(r'ytInitialPlayerResponse\s*=\s*(\{.+?\});', html, re.DOTALL):
+            try:
+                data = json.loads(m.group(1))
+                if 'captions' in data:
+                    match = m
+                    break
+            except json.JSONDecodeError:
+                continue
+    if not match:
+        print(f"DEBUG: Could not find ytInitialPlayerResponse for {video_id}")
+        return None
+
+    try:
+        player_response = json.loads(match.group(1))
+    except json.JSONDecodeError as e:
+        print(f"DEBUG: JSON parse error for {video_id}: {e}")
+        return None
+
+    captions = player_response.get('captions', {}).get('playerCaptionsTracklistRenderer', {})
+    caption_tracks = captions.get('captionTracks', [])
+
+    if not caption_tracks:
+        print(f"DEBUG: No caption tracks in player response for {video_id}")
+        return None
+
+    # Prefer English, manual or auto
+    best_url = None
+    for track in caption_tracks:
+        lang = track.get('languageCode', '')
+        if lang in ('en', 'en-US', 'en-GB'):
+            best_url = track.get('baseUrl', '')
+            break
+    if not best_url:
+        # Take the first available track
+        best_url = caption_tracks[0].get('baseUrl', '')
+
+    if not best_url:
+        print(f"DEBUG: No caption URL for {video_id}")
+        return None
+
+    try:
+        resp = requests.get(best_url, timeout=15, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        })
+        if resp.status_code != 200:
+            print(f"DEBUG: Caption fetch HTTP {resp.status_code} for {video_id}")
+            return None
+        text = _parse_xml_transcript(resp.text)
+        if text and len(text) > 50:
+            print(f"DEBUG: Watch-page transcript extracted for {video_id} ({len(text)} chars)")
+            return text
+    except Exception as e:
+        print(f"DEBUG: Caption fetch error for {video_id}: {e}")
+
+    return None
+
+
+def _parse_xml_transcript(xml_str):
+    """Parse YouTube's XML transcript format into plain text."""
+    # Strip XML tags, keep text content
+    text = re.sub(r'<text[^>]*>', '', xml_str)
+    text = re.sub(r'</text>', ' ', text)
+    # Decode common entities
+    text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    text = text.replace('&quot;', '"').replace('&#39;', "'")
+    text = text.replace('\\n', ' ').replace('\n', ' ')
+    # Collapse whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 def clean_url(url):
@@ -78,12 +175,18 @@ def _parse_vtt(raw):
 
 def get_transcript(video_id, progress_callback=None):
     """
-    Extract auto-generated English subtitles from YouTube via yt-dlp.
-    Tries download first, falls back to extract_info for direct subtitle URLs.
+    Extract English subtitles from YouTube.
+    Tries watch-page parsing first (works on datacenter IPs),
+    then yt-dlp download, extract_info, and youtube-transcript-api as fallbacks.
     """
     video_url = f'https://www.youtube.com/watch?v={video_id}'
 
-    # ── Method 1: download subtitles to temp dir ──────────────────
+    # ── Method 0: parse captions from watch page (bot-proof) ──────
+    text = _extract_transcript_from_watch_page(video_id)
+    if text:
+        return text
+
+    # ── Method 1: yt-dlp download subtitles to temp dir ───────────
     with tempfile.TemporaryDirectory() as tmpdir:
         ydl_opts = {
             'writesubtitles': True,
@@ -208,6 +311,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     count = 0
     total = len(videos)
     video_ids = []
+    video_meta = []  # Always collected for manual fallback
 
     if progress_callback:
         progress_callback({
@@ -219,6 +323,7 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     for idx, v in enumerate(videos):
         title = v.get('title', 'Unknown')
         v_id = v.get('id')
+        video_meta.append({'id': v_id, 'title': title, 'url': f'https://youtu.be/{v_id}'})
 
         current_progress = 10 + int((idx / total) * 80)
 
@@ -254,11 +359,20 @@ def extract_viral_content(channel_url, limit=20, progress_callback=None):
     if count == 0:
         if progress_callback:
             progress_callback({
-                'status': 'error',
-                'message': 'No transcripts found on any video. The channel may have captions disabled.',
-                'progress': 0
+                'status': 'needs_manual',
+                'message': 'Auto-extraction blocked. Paste transcripts manually for these videos.',
+                'progress': 100,
+                'videos': video_meta,
+                'total': total
             })
-        return None
+        return {
+            'success': True,
+            'content': None,
+            'videos_processed': 0,
+            'video_ids': [],
+            'needs_manual': True,
+            'video_meta': video_meta
+        }
 
     # Save to file
     output_file = "content_blueprint.txt"

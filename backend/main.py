@@ -431,10 +431,14 @@ def run_extraction(channel_url, limit):
     try:
         result = extract_viral_content(channel_url, limit, progress_callback)
         extraction_status['running'] = False
-        if result and result.get('content'):
-            extracted_subtitles['content'] = result['content']
-            extracted_subtitles['videos_processed'] = result.get('videos_processed', 0)
-            extracted_subtitles['video_ids'] = result.get('video_ids', [])
+        if result:
+            if result.get('content'):
+                extracted_subtitles['content'] = result['content']
+                extracted_subtitles['videos_processed'] = result.get('videos_processed', 0)
+                extracted_subtitles['video_ids'] = result.get('video_ids', [])
+            if result.get('needs_manual'):
+                extracted_subtitles['needs_manual'] = True
+                extracted_subtitles['video_meta'] = result.get('video_meta', [])
         return result
     except Exception as e:
         extraction_status['running'] = False
@@ -681,12 +685,51 @@ def status():
 
 @app.route('/api/subtitles', methods=['GET'])
 def get_subtitles():
-    if not extracted_subtitles['content']:
+    resp = {
+        'videos_processed': extracted_subtitles.get('videos_processed', 0),
+        'video_ids': extracted_subtitles.get('video_ids', [])
+    }
+    if extracted_subtitles.get('content'):
+        resp['content'] = extracted_subtitles['content']
+    if extracted_subtitles.get('needs_manual'):
+        resp['needs_manual'] = True
+        resp['video_meta'] = extracted_subtitles.get('video_meta', [])
+    if not resp.get('content') and not resp.get('needs_manual'):
         return jsonify({'error': 'No subtitles available. Please extract videos first.'}), 404
+    return jsonify(resp)
+
+
+@app.route('/api/manual-transcripts', methods=['POST'])
+def manual_transcripts():
+    """Accept manually pasted transcripts and assemble the content blueprint."""
+    global extracted_subtitles
+    data = request.json or {}
+    transcripts = data.get('transcripts', {})  # {video_id: text, ...}
+    video_meta = data.get('video_meta', [])
+    if not transcripts:
+        return jsonify({'error': 'No transcripts provided'}), 400
+
+    full_data = '=== CONTENT BLUEPRINT ANALYSIS ===\n(Sorted by Most Popular of All Time)\n\n'
+    video_ids = []
+    for v in video_meta:
+        v_id = v.get('id', '')
+        title = v.get('title', 'Unknown')
+        text = transcripts.get(v_id, '')
+        if text and len(text.strip()) > 20:
+            video_url = v.get('url', 'https://youtu.be/' + v_id)
+            full_data += '### VIDEO: ' + title + ' ###\nURL: ' + video_url + '\n\n' + text.strip() + '\n\n'
+            video_ids.append(v_id)
+
+    extracted_subtitles['content'] = full_data
+    extracted_subtitles['videos_processed'] = len(video_ids)
+    extracted_subtitles['video_ids'] = video_ids
+    extracted_subtitles.pop('needs_manual', None)
+    extracted_subtitles.pop('video_meta', None)
+
     return jsonify({
-        'content': extracted_subtitles['content'],
-        'videos_processed': extracted_subtitles['videos_processed'],
-        'video_ids': extracted_subtitles['video_ids']
+        'success': True,
+        'videos_processed': len(video_ids),
+        'video_ids': video_ids
     })
 
 
