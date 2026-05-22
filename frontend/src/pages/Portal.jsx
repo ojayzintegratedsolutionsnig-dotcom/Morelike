@@ -870,6 +870,83 @@ function Portal() {
     }
   }, [])
 
+  // Polling fallback for extraction status — prevents UI from hanging
+  // if Socket.IO events are missed (network drops, proxy blocks, etc.)
+  useEffect(() => {
+    if (flow !== 'processing') return
+    let stopped = false
+    let interval
+
+    const checkStatus = async () => {
+      if (stopped) return
+      try {
+        const r = await fetch(`${API_URL}/api/status`)
+        const s = await r.json()
+        if (stopped) return
+
+        if (s.status === 'error') {
+          if (socketRef.current) socketRef.current.close()
+          setPipelineError(s.message || 'Extraction failed')
+          setFlow('input')
+          return
+        }
+
+        if (s.status === 'complete') {
+          if (socketRef.current) socketRef.current.close()
+          const sr = await fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
+          const d = await sr.json()
+          if (stopped) return
+
+          if (d.content) {
+            extractedRef.current = d.content
+            extractedVideoIdsRef.current = d.video_ids || []
+            if (inputModeRef.current === 'idea') {
+              try {
+                const dnaRes = await fetch(`${API_URL}/api/generate-viral-dna`, {
+                  method: 'POST',
+                  headers: getApiHeaders(token),
+                  body: JSON.stringify({ subtitles: d.content })
+                })
+                const dnaData = await dnaRes.json()
+                if (stopped) return
+                if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
+                setViralDNA(dnaData.viral_dna)
+                if (tokenValidated && credits > 0) {
+                  setFlow('visual_upload')
+                } else {
+                  setFlow('paywall')
+                }
+              } catch (err) {
+                if (!stopped) { setPipelineError(err.message); setFlow('input') }
+              }
+            } else {
+              runPipeline(d.content)
+            }
+          } else if (d.needs_manual) {
+            setVideoMeta(d.video_meta || [])
+            setManualTranscripts({})
+            setFlow('manual_transcripts')
+          } else {
+            setPipelineError('No transcripts found for this channel.')
+            setFlow('input')
+          }
+        }
+      } catch {}
+    }
+
+    // Start polling after 8 seconds, then every 4 seconds
+    const initial = setTimeout(() => {
+      checkStatus()
+      interval = setInterval(checkStatus, 4000)
+    }, 8000)
+
+    return () => {
+      stopped = true
+      clearTimeout(initial)
+      if (interval) clearInterval(interval)
+    }
+  }, [flow, token, tokenValidated, credits, runPipeline])
+
   // ── BG BLOBS ────────────────────────────────────────────────
   const bgBlobs = (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
