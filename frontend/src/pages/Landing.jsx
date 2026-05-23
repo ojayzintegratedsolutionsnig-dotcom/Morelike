@@ -139,13 +139,14 @@ function Landing() {
           <div className="text-center md:text-left">
             <div className="inline-flex items-center gap-2 bg-purple-900/40 border border-purple-500/30 rounded-full px-3 py-1 md:px-4 md:py-1.5 text-xs md:text-sm text-purple-200 mb-6">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Free Channel Analysis
+              For Faceless YouTube Channels
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               Never Run Out of{' '}
               <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Video Ideas</span>
               {' '}Again
             </h1>
+            <p className="text-xs text-purple-300/70 mb-4 uppercase tracking-widest">Built for faceless creators — YouTube only, for now</p>
             <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
               Stop staring at a blank screen. Paste any YouTube channel you admire and in minutes get fresh title ideas, a full script breakdown, image prompts, video direction, and voice-over cues — everything you need to hit publish on time, every time.
             </p>
@@ -307,6 +308,23 @@ function Landing() {
             Already have access?{' '}
             <Link to="/success" className="text-purple-400 hover:underline">Claim your token here</Link>
           </p>
+        </div>
+      </section>
+
+      {/* Who it's for */}
+      <section className="relative z-10 container mx-auto px-4 pb-16 max-w-4xl">
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Made for Faceless Creators</h2>
+        <div className="grid md:grid-cols-2 gap-6 text-center">
+          <div className="bg-gray-800/40 rounded-2xl p-6 border border-purple-500/20">
+            <div className="text-3xl mb-3">🎬</div>
+            <h3 className="font-semibold text-white mb-2">Faceless YouTube Channels</h3>
+            <p className="text-gray-400 text-sm">Documentary, commentary, narration, Bible stories, horror, true crime, history, science — if you don't show your face, Morelike is built for you.</p>
+          </div>
+          <div className="bg-gray-800/40 rounded-2xl p-6 border border-purple-500/20">
+            <div className="text-3xl mb-3">🚀</div>
+            <h3 className="font-semibold text-white mb-2">Coming Soon</h3>
+            <p className="text-gray-400 text-sm">TikTok, Instagram Reels, Facebook — we're building support for every platform where faceless content thrives. Stay tuned.</p>
+          </div>
         </div>
       </section>
 
