@@ -5,10 +5,12 @@ import Plans from './pages/Plans'
 import Success from './pages/Success'
 import Portal from './pages/Portal'
 import Admin from './pages/Admin'
+import PageTracker from './PageTracker'
 
 function App() {
   return (
     <BrowserRouter>
+      <PageTracker />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/plans" element={<Plans />} />
