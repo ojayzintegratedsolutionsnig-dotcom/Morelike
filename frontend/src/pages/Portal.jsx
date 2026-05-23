@@ -446,6 +446,7 @@ function Portal() {
     setPipelineError('')
     inputModeRef.current = 'idea'
     pendingTitle.current = userVideoIdea
+    setExtractionVideos([])
     setFlow('processing')
 
     try {
@@ -463,15 +464,18 @@ function Portal() {
         return
       }
 
-      if (data.warning) setPipelineError(data.warning)
-      setVideoMeta(data.video_meta || [])
+      const videos = data.video_meta || []
+      setExtractionVideos(videos.map(v => ({ title: v.title, status: 'done' })))
+      setVideoMeta(videos)
       setManualTranscripts({})
-      setFlow('manual_transcripts')
+
+      if (data.warning) setPipelineError(data.warning)
+      setTimeout(() => setFlow('manual_transcripts'), videos.length ? 1200 : 400)
     } catch {
       setPipelineError('Could not fetch video list — you can still paste transcripts below.')
       setVideoMeta([])
       setManualTranscripts({})
-      setFlow('manual_transcripts')
+      setTimeout(() => setFlow('manual_transcripts'), 600)
     }
   }
 
@@ -480,6 +484,7 @@ function Portal() {
     if (!channelUrl.trim()) return
     setPipelineError('')
     inputModeRef.current = 'scrape'
+    setExtractionVideos([])
     setFlow('processing')
 
     try {
@@ -497,17 +502,18 @@ function Portal() {
         return
       }
 
-      // Always go to manual transcript paste — API returned video list (or empty list with warning)
-      if (data.warning) setPipelineError(data.warning)
-      setVideoMeta(data.video_meta || [])
+      const videos = data.video_meta || []
+      setExtractionVideos(videos.map(v => ({ title: v.title, status: 'done' })))
+      setVideoMeta(videos)
       setManualTranscripts({})
-      setFlow('manual_transcripts')
-    } catch (e) {
-      // Even if the fetch fails entirely, still go to manual mode with empty list
+
+      if (data.warning) setPipelineError(data.warning)
+      setTimeout(() => setFlow('manual_transcripts'), videos.length ? 1200 : 400)
+    } catch {
       setPipelineError('Could not fetch video list — you can still paste transcripts below.')
       setVideoMeta([])
       setManualTranscripts({})
-      setFlow('manual_transcripts')
+      setTimeout(() => setFlow('manual_transcripts'), 600)
     }
   }
 
@@ -948,9 +954,24 @@ function Portal() {
             />
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div className="relative z-10 w-full max-w-md">
-              <h2 className="text-2xl font-bold mb-1 text-white">{inputModeRef.current === 'idea' ? 'Analyzing Channel Style' : 'Analyzing Channel'}</h2>
-              <p className="text-purple-200/50 text-sm mb-4">{inputModeRef.current === 'idea' ? 'Extracting style DNA to apply to your idea' : 'This may take up to 2 minutes'}</p>
-              <ProgressBar />
+              <h2 className="text-2xl font-bold mb-1 text-white">
+                {extractionVideos.length > 0
+                  ? `Found ${extractionVideos.length} Video${extractionVideos.length !== 1 ? 's' : ''}`
+                  : inputModeRef.current === 'idea' ? 'Analyzing Channel Style' : 'Analyzing Channel'}
+              </h2>
+              <p className="text-purple-200/50 text-sm mb-4">
+                {extractionVideos.length > 0
+                  ? 'Switching to transcript paste...'
+                  : 'Scanning channel via YouTube API...'}
+              </p>
+              {extractionVideos.length === 0 && <ProgressBar />}
+              {extractionVideos.length > 0 && (
+                <div className="w-full max-w-md mx-auto py-4">
+                  <div className="w-full h-2 bg-green-500/30 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500" style={{ width: '100%' }} />
+                  </div>
+                </div>
+              )}
 
               {extractionVideos.length > 0 && (
                 <div className="mt-4 space-y-2 text-left">
