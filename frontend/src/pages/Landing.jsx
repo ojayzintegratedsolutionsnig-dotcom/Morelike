@@ -147,7 +147,7 @@ function Landing() {
               {' '}Again
             </h1>
             <p className="text-base md:text-lg text-purple-200 mb-8 leading-relaxed max-w-lg">
-              Paste any YouTube channel you admire and get fresh title ideas, topic breakdowns, and a deep analysis of what makes their content work — completely free. When you're ready, unlock script packages starting at <strong>$8</strong> (up to 15 min with Pro Max).
+              Stop staring at a blank screen. Paste any YouTube channel you admire and in minutes get fresh title ideas, a full script breakdown, image prompts, video direction, and voice-over cues — everything you need to hit publish on time, every time.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
@@ -163,9 +163,6 @@ function Landing() {
                 Already Have Access
               </Link>
             </div>
-            <p className="text-gray-500 text-sm mt-4">
-              Basic $8 = 3 credits (3 min) &middot; Pro $10 = 3 credits (5 min) &middot; Pro Max $15 = 5 credits (15 min).
-            </p>
           </div>
           <div className="hidden md:block">
             <img
@@ -253,7 +250,7 @@ function Landing() {
             />
             <h3 className="text-lg font-semibold mb-2">3. Unlock & Create</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Unlock script packages starting at $8 — each with a complete script, image prompts, video prompts, voice direction, and thumbnail design. Pro supports 5 min videos, Pro Max supports up to 15 min. Ready to download.
+              Get a production-ready package — complete script, image prompts, video direction, voice-over cues, and thumbnail design. Everything you need to go from idea to publish in one session.
             </p>
           </div>
         </div>
@@ -270,7 +267,7 @@ function Landing() {
             <span className="text-gray-500">→</span>
             <span className="text-white font-bold">2. Pick a Title</span>
             <span className="text-gray-500">→</span>
-            <span className="text-white font-bold">3. Unlock</span>
+            <span className="text-white font-bold">3. Create</span>
           </div>
 
           <div className="grid grid-cols-1 gap-3 mb-10 text-left max-w-sm mx-auto">
@@ -307,8 +304,8 @@ function Landing() {
             Or Analyze a Channel Free First
           </Link>
           <p className="text-gray-500 text-sm mt-4">
-            Pay when you're ready to unlock.{' '}
-            <Link to="/success" className="text-purple-400 hover:underline">Already paid? Claim your token</Link>
+            Already have access?{' '}
+            <Link to="/success" className="text-purple-400 hover:underline">Claim your token here</Link>
           </p>
         </div>
       </section>
