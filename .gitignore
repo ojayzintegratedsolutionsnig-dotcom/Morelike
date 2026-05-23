@@ -37,6 +37,7 @@ content_blueprint.txt
 *.db
 data.db
 *.txt
+!frontend/public/robots.txt
 
 # Logs
 *.log

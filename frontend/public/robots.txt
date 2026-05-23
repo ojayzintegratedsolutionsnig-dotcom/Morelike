@@ -1,0 +1,5 @@
+# https://morelikecreator.com
+User-agent: *
+Allow: /
+Disallow: /portal
+Sitemap: https://morelikecreator.com/sitemap.xml

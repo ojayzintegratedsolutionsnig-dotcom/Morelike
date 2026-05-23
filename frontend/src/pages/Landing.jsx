@@ -26,11 +26,54 @@ function Landing() {
 
   return (
     <div className="min-h-screen text-white relative overflow-hidden">
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": "Morelike",
+            "url": "https://morelikecreator.com",
+            "description": "AI-powered YouTube video idea generator and script writer. Analyze any channel, get viral content analysis, and generate production-ready script packages.",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "Web",
+            "offers": {
+              "@type": "AggregateOffer",
+              "lowPrice": "8",
+              "highPrice": "15",
+              "priceCurrency": "USD",
+              "offers": [
+                {
+                  "@type": "Offer",
+                  "name": "Basic",
+                  "price": "8",
+                  "description": "3 credits, 3 min max per video, 3 video analysis"
+                },
+                {
+                  "@type": "Offer",
+                  "name": "Pro",
+                  "price": "10",
+                  "description": "3 credits, 5 min max per video, 5 video analysis"
+                },
+                {
+                  "@type": "Offer",
+                  "name": "Pro Max",
+                  "price": "15",
+                  "description": "5 credits, 15 min max per video, 5 video analysis"
+                }
+              ]
+            }
+          })
+        }}
+      />
+
       {/* Background image */}
       <div className="absolute inset-0 z-0">
         <img
           src="/landing-bg.png"
           alt=""
+          aria-hidden="true"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-br from-[#111111]/85 via-[#1a1510]/75 to-[#151018]/85" />
@@ -70,6 +113,7 @@ function Landing() {
         </div>
       </nav>
 
+      <main>
       {/* Promo Marquee */}
       {promo && promo.text && (
         <div className="relative z-20 bg-gradient-to-r from-purple-900/60 via-purple-800/40 to-pink-900/60 border-b border-purple-500/30 overflow-hidden">
@@ -297,6 +341,8 @@ function Landing() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="relative z-10 text-center py-8 text-gray-500 text-sm border-t border-gray-800">
