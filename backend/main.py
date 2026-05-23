@@ -1170,15 +1170,18 @@ def download_package():
 
     try:
         from fpdf import FPDF
-        import tempfile
-        pdf = FPDF()
+        pdf = FPDF(orientation='P', unit='mm', format='A4')
+        pdf.set_margin(12)
         pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.set_font('Courier', size=8)
+        pdf.set_auto_page_break(auto=True, margin=12)
+        pdf.set_font('Helvetica', size=8)
 
         for line in content.split('\n'):
             safe_line = line.encode('latin-1', errors='replace').decode('latin-1')
-            pdf.cell(0, 4.2, text=safe_line, new_x="LMARGIN", new_y="NEXT")
+            if safe_line.strip():
+                pdf.multi_cell(0, 4.0, text=safe_line, align='L')
+            else:
+                pdf.ln(4.0)
 
         # Write to BytesIO to avoid disk I/O and cleanup issues
         buf = io.BytesIO()
