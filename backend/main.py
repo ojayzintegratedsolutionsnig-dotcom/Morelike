@@ -298,18 +298,35 @@ SCRIPT DNA
 			CRITICAL: Every image and video prompt must be a fully detailed, self-contained, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be complete enough to paste directly into an AI image/video generator with zero context.
 
 	BEAT 1 — [Hook Moment]
-	VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
+	VOICE OVER (0-4s):
+	  Delivery: [Tone — urgent/calm/tense/curious/warm/authoritative. Pace — rapid/measured/slow. Pitch — high/mid/low. Emotion — fear/awe/excitement/concern/wonder.]
+	  Elocution: [Words to STRESS in ALL CAPS. Pause markers: / = micro-pause, // = beat pause.]
+	  Text: "[Pure spoken dialogue. Natural speech patterns. No narration clichés.]"
+
+	VOICE OVER (4-8s):
+	  Delivery: [How tone/pacing SHIFTS from previous segment — build tension, release, pivot, escalate.]
+	  Elocution: [Stress words, pause markers.]
+	  Text: "[Dialogue continuing the thread. Each segment advances the narrative.]"
 
 	IMAGE PROMPT: [Fully detailed, self-contained text-to-image prompt. Include: subject description + pose/expression + environment + composition/framing + lighting setup (key light direction, quality, color temp) + color palette (3-5 named colors) + art style + render quality + atmosphere + aspect ratio. The global visual style is fully baked into this description. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
 
 	VIDEO PROMPT: [Fully detailed, self-contained text-to-video prompt. Include: shot type + camera movement + subject action/motion + environment dynamics (wind, particles, water) + lighting animation (how light moves/changes) + depth/parallax layers + transition out + art style + color palette + atmosphere + aspect ratio. The global visual style is fully baked into this description. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
 
 	BEAT 2 — [Beat Name]
-	VOICE OVER: [...]
+	VOICE OVER (0-4s):
+	  Delivery: [...]
+	  Elocution: [...]
+	  Text: "[...]"
+
+	VOICE OVER (4-8s):
+	  Delivery: [...]
+	  Elocution: [...]
+	  Text: "[...]"
+
 	IMAGE PROMPT: [Fully detailed, self-contained. Subject + environment + composition + lighting + color palette + art style + render quality + atmosphere + aspect ratio. All style details spelled out in full prose.]
 	VIDEO PROMPT: [Fully detailed, self-contained. Shot + camera + subject action + environment dynamics + lighting animation + depth + transition + art style + color palette + atmosphere + aspect ratio. All style details spelled out in full prose.]
 
-	(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". Every image and video prompt is fully self-contained with the global visual style baked in — detailed prose, no shorthand, no pipe tags.)
+	(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over segments (0-4s + 4-8s) + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". The Voice Over segments are the TTS-ready delivery script — every line can be fed directly into a text-to-speech engine. Every image and video prompt is fully self-contained with the global visual style baked in — detailed prose, no shorthand, no pipe tags.)
 
 ═══════════════════════════════════
 INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
@@ -431,7 +448,16 @@ SCRIPT DNA
     TIMELINE FORMAT — Each beat follows this structure:
 
     [00:00 → 00:08] BEAT 1 — [Hook Moment — NO intro, instant pattern interrupt]
-    VOICE OVER: [Pure dialogue. No stage directions. No brackets. Copy-paste ready for TTS.]
+	    VOICE OVER (0-4s):
+	      Delivery: [Tone — urgent/calm/tense/curious/warm/authoritative. Pace — rapid/measured/slow. Pitch — high/mid/low. Emotion — fear/awe/excitement/concern/wonder.]
+	      Elocution: [Words to STRESS in ALL CAPS. Pause markers: / = micro-pause, // = beat pause.]
+	      Text: "[Pure spoken dialogue. Natural speech patterns. No narration clichés.]"
+
+	    VOICE OVER (4-8s):
+	      Delivery: [How tone/pacing SHIFTS from previous segment — build tension, release, pivot, escalate.]
+	      Elocution: [Stress words, pause markers.]
+	      Text: "[Dialogue continuing the thread. Each segment advances the narrative.]"
+
     CINEMATOGRAPHY PROMPT: [Unified image+video prompt. Include ALL of the following in detailed prose:
     • Shot Type & Framing: extreme close-up / close-up / medium / wide / establishing — with exact framing description
     • Camera Movement: static lock-off / slow push-in / dolly left-right / crane up-down / handheld float / whip pan / rack focus / parallax slide — with speed and easing
@@ -445,10 +471,19 @@ SCRIPT DNA
     • Transition Out: how this shot transitions to the next beat (dissolve / whip / match cut / hard cut / fade)]
 
     [00:08 → 00:16] BEAT 2 — [Beat Name]
-    VOICE OVER: [...]
+	    VOICE OVER (0-4s):
+	      Delivery: [...]
+	      Elocution: [...]
+	      Text: "[...]"
+
+	    VOICE OVER (4-8s):
+	      Delivery: [...]
+	      Elocution: [...]
+	      Text: "[...]"
+
     CINEMATOGRAPHY PROMPT: [Same unified structure as above — shot, camera movement, subject, lighting, color, environment, depth, art style, ratio, transition. All fully detailed prose, no shorthand.]
 
-    (Continue ALL beats with timeline markers — [00:16 → 00:24] BEAT 3, [00:24 → 00:32] BEAT 4... all the way to the final beat. EVERY beat gets Voice Over + Cinematography Prompt. NO skipping. NO truncation. NO "(Continue...)". Each cinematography prompt is a fully self-contained fusion of image+video direction — the camera IS the visual, the visual IS the camera.)
+	    (Continue ALL beats with timeline markers — [00:16 → 00:24] BEAT 3, [00:24 → 00:32] BEAT 4... all the way to the final beat. EVERY beat gets Voice Over segments (0-4s + 4-8s) + Cinematography Prompt. NO skipping. NO truncation. NO "(Continue...)". The Voice Over segments are the TTS-ready delivery script — every line can be fed directly into a text-to-speech engine. Each cinematography prompt is a fully self-contained fusion of image+video direction — the camera IS the visual, the visual IS the camera.)
 
 ═══════════════════════════════════
 INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
@@ -476,10 +511,10 @@ Output ONLY the final, post-review version. Never show the draft or the critique
 ═══════════════════════════════
 VOICE PROMPT
 ═══════════════════════════════
-Tone: [vocal tone — warm, urgent, mysterious, authoritative]
-Mood Arc: [how emotion shifts — curious → tense → relieved]
-Pacing: [tempo — rapid opening, slow contemplation, building urgency]
-Vocal Register: [pitch, breathiness, projection]
+	Tone: [vocal tone — warm, urgent, mysterious, authoritative. Per-beat tone shifts are specified in the VOICE OVER Delivery fields above.]
+	Mood Arc: [how emotion shifts across the full video — curious → tense → relieved. Individual beat emotions specified per segment above.]
+	Pacing: [overall tempo — rapid opening, slow contemplation, building urgency. Per-segment pacing specified in Delivery fields above.]
+	Vocal Register: [pitch, breathiness, projection. The TTS engine should reference the Delivery + Elocution fields in each VOICE OVER segment for per-line performance direction.]
 {{if multiple characters, include per character: Character [Name]: [vocal quality, accent, age feel, personality in voice]}}
 
 ═══════════════════════════════
