@@ -878,6 +878,46 @@ def extract():
     return jsonify({'message': 'Extraction started', 'status': 'started'})
 
 
+@app.route('/api/channel-videos', methods=['POST'])
+@_rate_limit(20, 60)
+def channel_videos():
+    """Synchronously resolve a channel URL → top video list via YouTube Data API.
+    Returns immediately in the HTTP response — no Socket.IO or threading needed.
+    The client goes straight to the manual transcript paste screen.
+    """
+    import re as _re
+    data = request.json or {}
+    channel_url = data.get('channel_url', '').strip()
+    limit = data.get('limit', 3)
+
+    if not channel_url:
+        return jsonify({'error': 'Channel URL is required'}), 400
+    if not channel_url.startswith('https://'):
+        return jsonify({'error': 'Only HTTPS YouTube URLs are accepted'}), 400
+    yt_pattern = r'^https://(www\.)?(youtube\.com|youtu\.be)/(@|channel/|c/|user/)?[\w\-]+'
+    if not _re.match(yt_pattern, channel_url):
+        return jsonify({'error': 'Invalid YouTube URL format'}), 400
+
+    limit = max(1, min(5, int(limit) if str(limit).isdigit() else 3))
+
+    from extractor import _get_viral_videos_api
+    videos = _get_viral_videos_api(channel_url, limit)
+
+    if videos:
+        video_meta = [
+            {'id': v['id'], 'title': v['title'], 'url': f"https://youtu.be/{v['id']}"}
+            for v in videos
+        ]
+        # Store in global so /api/subtitles can also see them
+        extracted_subtitles['needs_manual'] = True
+        extracted_subtitles['video_meta'] = video_meta
+        return jsonify({'success': True, 'video_meta': video_meta, 'total': len(video_meta)})
+
+    # API failed — return empty list so the user can still paste transcripts
+    return jsonify({'success': True, 'video_meta': [], 'total': 0,
+                    'warning': 'Could not fetch video list. You can still paste transcripts below.'})
+
+
 @app.route('/api/admin/debug-transcript', methods=['GET'])
 @require_admin
 def debug_transcript():

@@ -590,167 +590,40 @@ function Portal() {
 
   }
 
-  // ── Start extraction → pipeline ─────────────────────────────
+  // ── Start extraction → always go to manual transcript paste ────
   const handleStart = async () => {
     if (!channelUrl.trim()) return
     setPipelineError('')
     inputModeRef.current = 'scrape'
     setFlow('processing')
 
-    const sock = io(API_URL)
-    socketRef.current = sock
-    let pollTimer = null
-    let socketOk = false
-
-    // Safety timeout — abort if extraction takes > 180s (Railway cold start can take 30-60s)
-    extractTimeoutRef.current = setTimeout(() => {
-      sock.close()
-      if (pollTimer) clearInterval(pollTimer)
-      setPipelineError('Extraction timed out. YouTube may be blocking requests from our server. Please try again or paste transcripts manually.')
-      setFlow('input')
-    }, 180000)
-
-    sock.on('connect', () => {
-      socketOk = true
-      // Only start extraction AFTER socket is connected
-      fetch(`${API_URL}/api/extract`, {
+    try {
+      const res = await fetch(`${API_URL}/api/channel-videos`, {
         method: 'POST',
         headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
-      }).catch(() => {
-        clearTimeout(extractTimeoutRef.current)
-        sock.close()
-        setPipelineError('Failed to start extraction.')
-        setFlow('input')
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit }),
+        signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 30000); return c.signal })()
       })
-    })
+      const data = await res.json()
 
-    sock.on('connect_error', () => {
-      // Socket.IO failed — fall back to polling /api/status
-      if (pollTimer) return
-      // Start extraction first
-      fetch(`${API_URL}/api/extract`, {
-        method: 'POST',
-        headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
-      }).catch(() => {
-        clearTimeout(extractTimeoutRef.current)
-        setPipelineError('Failed to start extraction.')
+      if (!res.ok || data.error) {
+        setPipelineError(data.error || 'Could not reach server. Check your channel URL.')
         setFlow('input')
-      })
-      // Then poll for status
-      pollTimer = setInterval(async () => {
-        try {
-          const r = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
-          const data = await r.json()
-          if (data.status === 'complete') {
-            clearInterval(pollTimer)
-            sock.close()
-            clearTimeout(extractTimeoutRef.current)
-            fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
-              .then(r => r.json())
-              .then(d => {
-                if (d.content) {
-                  extractedRef.current = d.content
-                  extractedVideoIdsRef.current = d.video_ids || []
-                  runPipeline(d.content)
-                } else if (d.needs_manual) {
-                  setVideoMeta(d.video_meta || [])
-                  setManualTranscripts({})
-                  setFlow('manual_transcripts')
-                } else {
-                  setPipelineError('No transcripts found for this channel.')
-                  setFlow('input')
-                }
-              })
-          } else if (data.status === 'error') {
-            clearInterval(pollTimer)
-            setPipelineError(data.message || 'Extraction failed')
-            setFlow('input')
-          } else if (data.current && data.total) {
-            setExtractionVideos(prev => {
-              const next = Array(data.total).fill(null).map((_, i) => {
-                if (i < prev.length && prev[i].title) return prev[i]
-                return { title: `Video ${i + 1}`, status: 'pending' }
-              })
-              if (data.videos) {
-                data.videos.forEach((v, i) => {
-                  const msg = v.title || ''
-                  if (i < next.length) {
-                    next[i] = { title: msg, status: 'done' }
-                  }
-                })
-              }
-              return next
-            })
-          }
-        } catch {}
-      }, 2000)
-    })
-
-    sock.on('progress', (data) => {
-      if (!socketOk) return
-      // Clear safety timeout — backend is alive and responding
-      clearTimeout(extractTimeoutRef.current)
-      // Build video list from extraction progress
-      if (data.current && data.total && data.total > 0) {
-        setExtractionVideos(prev => {
-          const idx = data.current - 1
-          const next = [...prev]
-          // Initialize array if needed
-          while (next.length < data.total) next.push({ title: '', status: 'pending' })
-          // Extract title from message
-          const msg = data.message || ''
-          const titleMatch = msg.match(/:\s*(.+?)(?:\.{3})?$/)
-          const title = titleMatch ? titleMatch[1].trim() : `Video ${data.current}`
-          if (data.status === 'success') {
-            next[idx] = { title, status: 'done' }
-          } else if (data.status === 'warning') {
-            next[idx] = { title, status: 'failed' }
-          } else if (data.status === 'extracting') {
-            next[idx] = { title, status: 'extracting' }
-          } else if (!next[idx].title) {
-            next[idx] = { title, status: 'pending' }
-          }
-          return next
-        })
+        return
       }
 
-      if (data.status === 'error') {
-        clearTimeout(extractTimeoutRef.current)
-        if (pollTimer) clearInterval(pollTimer)
-        setPipelineError(data.message || 'Extraction failed')
-        setFlow('input')
-        sock.close()
-      }
-      if (data.status === 'complete') {
-        clearTimeout(extractTimeoutRef.current)
-        if (pollTimer) clearInterval(pollTimer)
-        sock.close()
-        fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
-          .then(r => r.json())
-          .then(d => {
-            clearTimeout(extractTimeoutRef.current)
-            if (d.content) {
-              extractedRef.current = d.content
-              extractedVideoIdsRef.current = d.video_ids || []
-              runPipeline(d.content)
-            } else if (d.needs_manual) {
-              setVideoMeta(d.video_meta || [])
-              setManualTranscripts({})
-              setFlow('manual_transcripts')
-            } else {
-              setPipelineError('No transcripts found for this channel.')
-              setFlow('input')
-            }
-          })
-          .catch(() => {
-            setPipelineError('Failed to retrieve transcripts.')
-            setFlow('input')
-          })
-      }
-    })
-
+      // Always go to manual transcript paste — API returned video list (or empty list with warning)
+      if (data.warning) setPipelineError(data.warning)
+      setVideoMeta(data.video_meta || [])
+      setManualTranscripts({})
+      setFlow('manual_transcripts')
+    } catch (e) {
+      // Even if the fetch fails entirely, still go to manual mode with empty list
+      setPipelineError('Could not fetch video list — you can still paste transcripts below.')
+      setVideoMeta([])
+      setManualTranscripts({})
+      setFlow('manual_transcripts')
+    }
   }
 
   // ── Title chosen ────────────────────────────────────────────
