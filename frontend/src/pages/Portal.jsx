@@ -602,13 +602,13 @@ function Portal() {
     let pollTimer = null
     let socketOk = false
 
-    // Safety timeout — abort if extraction takes > 90s
+    // Safety timeout — abort if extraction takes > 180s (Railway cold start can take 30-60s)
     extractTimeoutRef.current = setTimeout(() => {
       sock.close()
       if (pollTimer) clearInterval(pollTimer)
       setPipelineError('Extraction timed out. YouTube may be blocking requests from our server. Please try again or paste transcripts manually.')
       setFlow('input')
-    }, 90000)
+    }, 180000)
 
     sock.on('connect', () => {
       socketOk = true
@@ -690,6 +690,8 @@ function Portal() {
 
     sock.on('progress', (data) => {
       if (!socketOk) return
+      // Clear safety timeout — backend is alive and responding
+      clearTimeout(extractTimeoutRef.current)
       // Build video list from extraction progress
       if (data.current && data.total && data.total > 0) {
         setExtractionVideos(prev => {
@@ -728,6 +730,7 @@ function Portal() {
         fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
           .then(r => r.json())
           .then(d => {
+            clearTimeout(extractTimeoutRef.current)
             if (d.content) {
               extractedRef.current = d.content
               extractedVideoIdsRef.current = d.video_ids || []

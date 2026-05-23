@@ -669,6 +669,11 @@ def progress_callback(data):
 def run_extraction(channel_url, limit):
     global extraction_status, extracted_subtitles
     extraction_status['running'] = True
+    extraction_status['status'] = 'scanning'
+    extraction_status['progress'] = 0
+    # Clear any stale data from previous run
+    extracted_subtitles.clear()
+    extracted_subtitles.update({'content': '', 'videos_processed': 0, 'video_ids': []})
     try:
         result = extract_viral_content(channel_url, limit, progress_callback)
         extraction_status['running'] = False
@@ -680,9 +685,12 @@ def run_extraction(channel_url, limit):
             if result.get('needs_manual'):
                 extracted_subtitles['needs_manual'] = True
                 extracted_subtitles['video_meta'] = result.get('video_meta', [])
+        extraction_status['status'] = 'complete'
+        extraction_status['progress'] = 100
         return result
     except Exception as e:
         extraction_status['running'] = False
+        extraction_status['status'] = 'error'
         print(f"Extraction error: {e}")
         socketio.emit('progress', {
             'status': 'error',
@@ -841,7 +849,7 @@ def credits():
 
 
 @app.route('/api/extract', methods=['POST'])
-@_rate_limit(5, 60)
+@_rate_limit(10, 60)
 def extract():
     if extraction_status['running']:
         return jsonify({'error': 'Extraction already running'}), 400
