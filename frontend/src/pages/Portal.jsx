@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import io from 'socket.io-client'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://morelike-morelike.up.railway.app'
 const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/a6315998-f19d-4806-ba57-a40dd789348b'
@@ -277,8 +276,6 @@ function Portal() {
   const [feedbackMsg, setFeedbackMsg] = useState('')
   const [feedbackSent, setFeedbackSent] = useState(false)
 
-  // Socket ref
-  const socketRef = useRef(null)
   const extractedRef = useRef('')
   const extractedVideoIdsRef = useRef([])
   const inputModeRef = useRef('scrape')
@@ -307,7 +304,7 @@ function Portal() {
           sessionStorage.removeItem('morelike_credits')
           sessionStorage.removeItem('morelike_plan')
         }
-      }).catch(() => {})
+      }).catch(() => { })
     }
   }, [])
 
@@ -443,151 +440,39 @@ function Portal() {
     }
   }, [aiFetch])
 
-  // ── Idea mode: extract channel + viral DNA, skip titles ──────
-  const handleIdeaAndGo = () => {
+  // ── Idea mode: resolve channel → straight to manual transcript ──
+  const handleIdeaAndGo = async () => {
     if (!userVideoIdea.trim() || !channelUrl.trim()) return
     setPipelineError('')
     inputModeRef.current = 'idea'
     pendingTitle.current = userVideoIdea
     setFlow('processing')
 
-    const sock = io(API_URL)
-    socketRef.current = sock
-    let pollTimer2 = null
-    let socketOk2 = false
-
-    sock.on('connect', () => {
-      socketOk2 = true
-      fetch(`${API_URL}/api/extract`, {
+    try {
+      const res = await fetch(`${API_URL}/api/channel-videos`, {
         method: 'POST',
         headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
-      }).catch(() => {
-        sock.close()
-        setPipelineError('Failed to start extraction.')
-        setFlow('input')
+        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit }),
+        signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 30000); return c.signal })()
       })
-    })
+      const data = await res.json()
 
-    sock.on('connect_error', () => {
-      if (pollTimer2) return
-      fetch(`${API_URL}/api/extract`, {
-        method: 'POST',
-        headers: getApiHeaders(token),
-        body: JSON.stringify({ channel_url: channelUrl.trim(), limit: extractLimit })
-      }).catch(() => {
-        setPipelineError('Failed to start extraction.')
+      if (!res.ok || data.error) {
+        setPipelineError(data.error || 'Could not reach server. Check your channel URL.')
         setFlow('input')
-      })
-      pollTimer2 = setInterval(async () => {
-        try {
-          const r = await fetch(`${API_URL}/api/status`, { headers: getApiHeaders(token) })
-          const data = await r.json()
-          if (data.status === 'complete') {
-            clearInterval(pollTimer2)
-            sock.close()
-            fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
-              .then(r => r.json())
-              .then(async d => {
-                if (d.content) {
-                  extractedRef.current = d.content
-                  extractedVideoIdsRef.current = d.video_ids || []
-                  try {
-                    const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: d.content })
-                    const dnaData = await dnaRes.json()
-                    if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
-                    setViralDNA(dnaData.viral_dna)
-                    if (tokenValidated && credits > 0) {
-                      setFlow('visual_upload')
-                    } else {
-                      setFlow('paywall')
-                    }
-                  } catch (err) {
-                    setPipelineError(err.message)
-                    setFlow('input')
-                  }
-                } else if (d.needs_manual) {
-                  setVideoMeta(d.video_meta || [])
-                  setManualTranscripts({})
-                  setFlow('manual_transcripts')
-                } else {
-                  setPipelineError('No transcripts found for this channel.')
-                  setFlow('input')
-                }
-              })
-          } else if (data.status === 'error') {
-            clearInterval(pollTimer2)
-            setPipelineError(data.message || 'Extraction failed')
-            setFlow('input')
-          }
-        } catch {}
-      }, 2000)
-    })
+        return
+      }
 
-    sock.on('progress', (data) => {
-      if (!socketOk2) return
-      if (data.current && data.total && data.total > 0) {
-        setExtractionVideos(prev => {
-          const idx = data.current - 1
-          const next = [...prev]
-          while (next.length < data.total) next.push({ title: '', status: 'pending' })
-          const msg = data.message || ''
-          const titleMatch = msg.match(/:\s*(.+?)(?:\.{3})?$/)
-          const title = titleMatch ? titleMatch[1].trim() : `Video ${data.current}`
-          if (data.status === 'success') next[idx] = { title, status: 'done' }
-          else if (data.status === 'warning') next[idx] = { title, status: 'failed' }
-          else if (data.status === 'extracting') next[idx] = { title, status: 'extracting' }
-          else if (!next[idx].title) next[idx] = { title, status: 'pending' }
-          return next
-        })
-      }
-      if (data.status === 'error') {
-        if (pollTimer2) clearInterval(pollTimer2)
-        setPipelineError(data.message || 'Extraction failed')
-        setFlow('input')
-        sock.close()
-      }
-      if (data.status === 'complete') {
-        if (pollTimer2) clearInterval(pollTimer2)
-        sock.close()
-        fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
-          .then(r => r.json())
-          .then(async d => {
-            if (d.content) {
-              extractedRef.current = d.content
-              extractedVideoIdsRef.current = d.video_ids || []
-              // Run viral DNA only — skip title generation
-              try {
-                const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: d.content })
-                const dnaData = await dnaRes.json()
-                if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
-                setViralDNA(dnaData.viral_dna)
-                // Go directly to paywall or visual upload
-                if (tokenValidated && credits > 0) {
-                  setFlow('visual_upload')
-                } else {
-                  setFlow('paywall')
-                }
-              } catch (err) {
-                setPipelineError(err.message)
-                setFlow('input')
-              }
-            } else if (d.needs_manual) {
-              setVideoMeta(d.video_meta || [])
-              setManualTranscripts({})
-              setFlow('manual_transcripts')
-            } else {
-              setPipelineError('No transcripts found for this channel.')
-              setFlow('input')
-            }
-          })
-          .catch(() => {
-            setPipelineError('Failed to retrieve transcripts.')
-            setFlow('input')
-          })
-      }
-    })
-
+      if (data.warning) setPipelineError(data.warning)
+      setVideoMeta(data.video_meta || [])
+      setManualTranscripts({})
+      setFlow('manual_transcripts')
+    } catch {
+      setPipelineError('Could not fetch video list — you can still paste transcripts below.')
+      setVideoMeta([])
+      setManualTranscripts({})
+      setFlow('manual_transcripts')
+    }
   }
 
   // ── Start extraction → always go to manual transcript paste ────
@@ -904,90 +789,6 @@ function Portal() {
     sessionStorage.removeItem('morelike_plan')
   }
 
-  // Cleanup socket on unmount
-  useEffect(() => {
-    return () => {
-      if (socketRef.current) socketRef.current.close()
-    }
-  }, [])
-
-  // Polling fallback for extraction status — prevents UI from hanging
-  // if Socket.IO events are missed (network drops, proxy blocks, etc.)
-  useEffect(() => {
-    if (flow !== 'processing') return
-    let stopped = false
-    let interval
-
-    const checkStatus = async () => {
-      if (stopped) return
-      try {
-        const r = await fetch(`${API_URL}/api/status`)
-        const s = await r.json()
-        if (stopped) return
-
-        if (s.status === 'error') {
-          if (socketRef.current) socketRef.current.close()
-          setPipelineError(s.message || 'Extraction failed')
-          setFlow('input')
-          return
-        }
-
-        if (s.status === 'complete') {
-          if (socketRef.current) socketRef.current.close()
-          const sr = await fetch(`${API_URL}/api/subtitles`, { headers: getApiHeaders(token) })
-          const d = await sr.json()
-          if (stopped) return
-
-          if (d.content) {
-            extractedRef.current = d.content
-            extractedVideoIdsRef.current = d.video_ids || []
-            if (inputModeRef.current === 'idea') {
-              try {
-                const dnaRes = await fetch(`${API_URL}/api/generate-viral-dna`, {
-                  method: 'POST',
-                  headers: getApiHeaders(token),
-                  body: JSON.stringify({ subtitles: d.content })
-                })
-                const dnaData = await dnaRes.json()
-                if (stopped) return
-                if (!dnaData.success) throw new Error(dnaData.error || 'Analysis failed')
-                setViralDNA(dnaData.viral_dna)
-                if (tokenValidated && credits > 0) {
-                  setFlow('visual_upload')
-                } else {
-                  setFlow('paywall')
-                }
-              } catch (err) {
-                if (!stopped) { setPipelineError(err.message); setFlow('input') }
-              }
-            } else {
-              runPipeline(d.content)
-            }
-          } else if (d.needs_manual) {
-            setVideoMeta(d.video_meta || [])
-            setManualTranscripts({})
-            setFlow('manual_transcripts')
-          } else {
-            setPipelineError('No transcripts found for this channel.')
-            setFlow('input')
-          }
-        }
-      } catch {}
-    }
-
-    // Start polling after 8 seconds, then every 4 seconds
-    const initial = setTimeout(() => {
-      checkStatus()
-      interval = setInterval(checkStatus, 4000)
-    }, 8000)
-
-    return () => {
-      stopped = true
-      clearTimeout(initial)
-      if (interval) clearInterval(interval)
-    }
-  }, [flow, token, tokenValidated, credits, runPipeline])
-
   // ── BG BLOBS ────────────────────────────────────────────────
   const bgBlobs = (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -1173,12 +974,11 @@ function Portal() {
                       {vid.status === 'pending' && (
                         <div className="w-4 h-4 flex-shrink-0 rounded-full border border-gray-500" />
                       )}
-                      <span className={`text-sm truncate ${
-                        vid.status === 'done' ? 'text-green-300' :
-                        vid.status === 'failed' ? 'text-amber-300' :
-                        vid.status === 'extracting' ? 'text-purple-300' :
-                        'text-gray-400'
-                      }`}>
+                      <span className={`text-sm truncate ${vid.status === 'done' ? 'text-green-300' :
+                          vid.status === 'failed' ? 'text-amber-300' :
+                            vid.status === 'extracting' ? 'text-purple-300' :
+                              'text-gray-400'
+                        }`}>
                         {vid.title || `Video ${i + 1}...`}
                       </span>
                       {vid.status === 'extracting' && (
