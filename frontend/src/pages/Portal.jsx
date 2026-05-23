@@ -371,12 +371,15 @@ function Portal() {
     }
   }, [token])
 
-  // ── Generate package (called after credit check) ────────────
+  // ── Generate package (async: starts job, polls until complete) ──
   const doGeneratePackage = useCallback(async (authToken, title, customTopic, visProfile, thumbProfile) => {
+    const authHeader = authToken ? getApiHeaders(authToken) : getApiHeaders(token)
+
     try {
+      // Step 1: Start generation job
       const res = await fetch(`${API_URL}/api/generate-package`, {
         method: 'POST',
-        headers: authToken ? getApiHeaders(authToken) : getApiHeaders(token),
+        headers: authHeader,
         body: JSON.stringify({
           viral_dna: viralDNA,
           title,
@@ -386,32 +389,68 @@ function Portal() {
           thumbnail_json: thumbProfile || null,
           transcript_context: extractedRef.current || ''
         }),
-        signal: (() => {
-          const ctrl = new AbortController()
-          setTimeout(() => ctrl.abort(), 180000)
-          return ctrl.signal
-        })()
+        signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 30000); return c.signal })()
       })
       const data = await res.json()
-      if (data.success) {
-        setFinalPackage(data.package)
-        setCreditsAfter(data.credits_remaining)
-        setCredits(data.credits_remaining)
-        sessionStorage.setItem('morelike_credits', String(data.credits_remaining))
-        setFlow('result')
-      } else {
-        if (res.status === 401 || res.status === 402) {
-          setTokenValidated(false)
-          setToken('')
-          sessionStorage.removeItem('morelike_token')
-          sessionStorage.removeItem('morelike_credits')
-          setFlow('paywall')
-          alert(data.error || 'Token expired or no credits.')
-        } else {
-          alert(data.error || 'Failed to generate package')
-          setFlow('pick_title')
+
+      if (res.status === 401 || res.status === 402) {
+        setTokenValidated(false)
+        setToken('')
+        sessionStorage.removeItem('morelike_token')
+        sessionStorage.removeItem('morelike_credits')
+        setFlow('paywall')
+        alert(data.error || 'Token expired or no credits.')
+        return
+      }
+
+      if (!data.success || !data.job_id) {
+        alert(data.error || 'Failed to start generation')
+        setFlow('pick_title')
+        return
+      }
+
+      // Step 2: Poll for completion
+      const jobId = data.job_id
+      let attempts = 0
+      const maxAttempts = 120  // 120 × 2s = 4 minutes max
+
+      while (attempts < maxAttempts) {
+        await new Promise(r => setTimeout(r, 2000))
+        attempts++
+
+        try {
+          const pollRes = await fetch(`${API_URL}/api/generation-status/${jobId}`, {
+            headers: authHeader,
+            signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 10000); return c.signal })()
+          })
+
+          if (!pollRes.ok && pollRes.status !== 500) continue  // 500 = error status with valid JSON
+
+          const pollData = await pollRes.json()
+
+          if (pollData.status === 'complete') {
+            setFinalPackage(pollData.package)
+            setCreditsAfter(pollData.credits_remaining)
+            setCredits(pollData.credits_remaining)
+            sessionStorage.setItem('morelike_credits', String(pollData.credits_remaining))
+            setFlow('result')
+            return
+          }
+
+          if (pollData.status === 'error') {
+            alert(pollData.error || 'Generation failed')
+            setFlow('pick_title')
+            return
+          }
+          // status === 'running' — keep polling
+        } catch {
+          // Poll request failed, keep trying
         }
       }
+
+      // Timed out after maxAttempts
+      alert('Generation is taking longer than expected. Please wait — your package will appear when ready. You can also try refreshing.')
+      setFlow('pick_title')
     } catch {
       alert('Failed to reach server')
       setFlow('pick_title')

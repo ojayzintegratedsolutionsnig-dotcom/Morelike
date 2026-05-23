@@ -1103,6 +1103,33 @@ def generate_titles():
         return jsonify({'error': 'Failed to generate titles. Please try again.'}), 500
 
 
+# ── Async generation state ─────────────────────────────────────
+generation_jobs = {}  # job_id -> {status, token, title, result, error, created_at}
+import time as _time_module
+
+def _run_generation(job_id, token, system_prompt, user_message, chosen_title):
+    """Background thread: call DeepSeek and store result."""
+    try:
+        result = call_ai(system_prompt, user_message, max_tokens=16384)
+        generation_jobs[job_id] = {
+            'status': 'complete',
+            'token': token,
+            'title': chosen_title,
+            'result': result,
+            'created_at': _time_module.time()
+        }
+        # Also update last_generated_package for download endpoint
+        global last_generated_package
+        last_generated_package = {'content': result, 'title': chosen_title}
+    except Exception as e:
+        generation_jobs[job_id] = {
+            'status': 'error',
+            'token': token,
+            'error': 'AI generation failed. Your credit has been used — please try again or contact support if the issue persists.',
+            'created_at': _time_module.time()
+        }
+
+
 @app.route('/api/generate-package', methods=['POST'])
 @require_token
 def generate_package():
@@ -1167,28 +1194,63 @@ def generate_package():
         )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
 
-        # Deduct credit BEFORE calling AI — if credit deduction fails,
-        # we don't burn API budget on an unpaid request.
+        # Deduct credit BEFORE starting generation
         use_credit(token)
 
-        try:
-            result = call_ai(system_prompt, user_message, max_tokens=16384)
-        except Exception:
-            # AI call failed after credit was deducted — the credit is consumed
-            # but the user sees an error and can retry. This prevents AI budget
-            # waste while still being fair to the user.
-            return jsonify({'error': 'AI generation failed. Your credit has been used — please try again or contact support if the issue persists.'}), 500
+        # Start generation in background thread to avoid Railway proxy timeout
+        job_id = uuid.uuid4().hex[:16]
+        generation_jobs[job_id] = {
+            'status': 'running',
+            'token': token,
+            'created_at': _time_module.time()
+        }
+        thread = threading.Thread(
+            target=_run_generation,
+            args=(job_id, token, system_prompt, user_message, chosen_title),
+            daemon=True
+        )
+        thread.start()
 
-        last_generated_package = {'content': result, 'title': chosen_title}
+        # Clean up jobs older than 10 minutes
+        now = _time_module.time()
+        stale = [jid for jid, j in generation_jobs.items() if now - j['created_at'] > 600]
+        for jid in stale:
+            del generation_jobs[jid]
+
+        return jsonify({'success': True, 'job_id': job_id, 'status': 'running'})
+    except Exception as e:
+        print(f"Package generation error: {e}")
+        return jsonify({'error': 'Failed to start script generation. Please try again.'}), 500
+
+
+@app.route('/api/generation-status/<job_id>', methods=['GET'])
+def generation_status(job_id):
+    """Poll this endpoint to get async generation results."""
+    job = generation_jobs.get(job_id)
+    if not job:
+        return jsonify({'status': 'not_found'}), 404
+
+    if job['status'] == 'running':
+        return jsonify({'status': 'running'})
+
+    if job['status'] == 'complete':
+        token = job['token']
         remaining = get_credits(token)
         return jsonify({
-            'package': result,
+            'status': 'complete',
+            'package': job['result'],
+            'title': job['title'],
             'credits_remaining': remaining['credits'] if remaining else 0,
             'success': True
         })
-    except Exception as e:
-        print(f"Package generation error: {e}")
-        return jsonify({'error': 'Failed to generate script package. Please try again.'}), 500
+
+    if job['status'] == 'error':
+        return jsonify({
+            'status': 'error',
+            'error': job.get('error', 'Generation failed')
+        }), 500
+
+    return jsonify({'status': 'unknown'}), 500
 
 
 @app.route('/api/download-package', methods=['GET'])
