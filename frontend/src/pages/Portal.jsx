@@ -238,9 +238,14 @@ function Portal() {
   const [tokenValidated, setTokenValidated] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
 
-  // Flow state: 'input' | 'processing' | 'manual_transcripts' | 'pick_title' | 'paywall' | 'visual_upload' | 'thumbnail_upload' | 'generating' | 'result'
+  // Flow state: 'input' | 'processing' | 'manual_transcripts' | 'pick_title' | 'paywall' | 'visual_upload' | 'thumbnail_upload' | 'duration_pick' | 'generating' | 'result'
   const [flow, setFlow] = useState('input')
   const [inputMode, setInputMode] = useState('scrape')
+  const [genPercent, setGenPercent] = useState(0)
+  const [genStep, setGenStep] = useState('')
+  const [durationMinutes, setDurationMinutes] = useState('')
+  const [durationSeconds, setDurationSeconds] = useState('')
+  const [durationError, setDurationError] = useState('')
 
   // Pipeline
   const extractLimit = planLimits.max_videos || 3
@@ -409,13 +414,13 @@ function Portal() {
         return
       }
 
-      // Step 2: Poll for completion
+      // Step 2: Poll for completion with progress updates
       const jobId = data.job_id
       let attempts = 0
       const maxAttempts = 120  // 120 × 2s = 4 minutes max
 
       while (attempts < maxAttempts) {
-        await new Promise(r => setTimeout(r, 2000))
+        await new Promise(r => setTimeout(r, 1500))
         attempts++
 
         try {
@@ -424,9 +429,13 @@ function Portal() {
             signal: (() => { const c = new AbortController(); setTimeout(() => c.abort(), 10000); return c.signal })()
           })
 
-          if (!pollRes.ok && pollRes.status !== 500) continue  // 500 = error status with valid JSON
+          if (!pollRes.ok && pollRes.status !== 500) continue
 
           const pollData = await pollRes.json()
+
+          // Update progress display
+          setGenPercent(pollData.percent || 0)
+          setGenStep(pollData.step || '')
 
           if (pollData.status === 'complete') {
             setFinalPackage(pollData.package)
@@ -442,7 +451,6 @@ function Portal() {
             setFlow('pick_title')
             return
           }
-          // status === 'running' — keep polling
         } catch {
           // Poll request failed, keep trying
         }
@@ -697,8 +705,19 @@ function Portal() {
       if (data.success) {
         setThumbnailProfile(data.thumbnail_profile)
         thumbnailProfileRef.current = data.thumbnail_profile
-        setFlow('generating')
-        doGeneratePackage(token, pendingTitle.current, pendingTopic.current, visualProfileRef.current, data.thumbnail_profile)
+        if (tokenPlan === 'basic') {
+          setFlow('generating')
+          setGenPercent(0)
+          setGenStep('')
+          doGeneratePackage(token, pendingTitle.current, pendingTopic.current, visualProfileRef.current, data.thumbnail_profile)
+        } else {
+          // Pro / Pro Max — let user pick duration
+          const maxMin = planLimits.max_minutes || 5
+          setDurationMinutes(String(Math.min(3, maxMin)))
+          setDurationSeconds('00')
+          setDurationError('')
+          setFlow('duration_pick')
+        }
       } else {
         throw new Error(data.error)
       }
@@ -730,8 +749,18 @@ function Portal() {
       if (data.success) {
         setThumbnailProfile(data.thumbnail_profile)
         thumbnailProfileRef.current = data.thumbnail_profile
-        setFlow('generating')
-        doGeneratePackage(authToken, pendingTitle.current, pendingTopic.current, visProfile, data.thumbnail_profile)
+        if (tokenPlan === 'basic') {
+          setFlow('generating')
+          setGenPercent(0)
+          setGenStep('')
+          doGeneratePackage(authToken, pendingTitle.current, pendingTopic.current, visProfile, data.thumbnail_profile)
+        } else {
+          const maxMin = planLimits.max_minutes || 5
+          setDurationMinutes(String(Math.min(3, maxMin)))
+          setDurationSeconds('00')
+          setDurationError('')
+          setFlow('duration_pick')
+        }
       } else {
         setFlow('thumbnail_upload')
       }
@@ -792,6 +821,31 @@ function Portal() {
     }
   }
 
+  // ── Duration confirm (Pro / Pro Max plans) ─────────────────
+  const handleDurationConfirm = () => {
+    const mins = parseInt(durationMinutes, 10)
+    const secs = parseInt(durationSeconds, 10)
+    if (isNaN(mins) || isNaN(secs) || mins < 0 || secs < 0 || secs > 59) {
+      setDurationError('Enter a valid time, e.g. 02:30')
+      return
+    }
+    const totalMinutes = mins + (secs / 60)
+    if (totalMinutes <= 0) {
+      setDurationError('Duration must be at least 1 second')
+      return
+    }
+    const maxMin = planLimits.max_minutes || 5
+    if (totalMinutes > maxMin) {
+      setDurationError(`Max ${maxMin} min for ${tokenPlan === 'promax' ? 'Pro Max' : 'Pro'} plan`)
+      return
+    }
+    setVideoLength(totalMinutes)
+    setFlow('generating')
+    setGenPercent(0)
+    setGenStep('')
+    doGeneratePackage(token, pendingTitle.current, pendingTopic.current, visualProfileRef.current, thumbnailProfileRef.current)
+  }
+
   // ── Reset ───────────────────────────────────────────────────
   const handleReset = () => {
     setFlow('input')
@@ -819,6 +873,11 @@ function Portal() {
     extractedVideoIdsRef.current = []
     pendingTitle.current = ''
     pendingTopic.current = ''
+    setGenPercent(0)
+    setGenStep('')
+    setDurationMinutes('')
+    setDurationSeconds('')
+    setDurationError('')
   }
 
   // Logout
@@ -1252,12 +1311,113 @@ function Portal() {
           </div>
         )}
 
+        {/* ── DURATION PICKER (Pro / Pro Max) ──────────────── */}
+        {flow === 'duration_pick' && (
+          <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30 max-w-md mx-auto text-center">
+            <h2 className="text-xl font-bold mb-1">Choose Video Duration</h2>
+            <p className="text-purple-200 text-sm mb-6">
+              How long should your video be? (Max {planLimits.max_minutes} min for {tokenPlan === 'promax' ? 'Pro Max' : 'Pro'})
+            </p>
+
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="flex flex-col items-center">
+                <label className="text-xs text-gray-400 mb-1">Minutes</label>
+                <input
+                  type="number"
+                  min="0"
+                  max={planLimits.max_minutes}
+                  value={durationMinutes}
+                  onChange={(e) => { setDurationMinutes(e.target.value); setDurationError('') }}
+                  className="w-20 bg-gray-900/80 border border-purple-500/50 rounded-lg px-3 py-3 text-white text-center text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <span className="text-2xl font-bold text-gray-400 mt-5">:</span>
+              <div className="flex flex-col items-center">
+                <label className="text-xs text-gray-400 mb-1">Seconds</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={durationSeconds}
+                  onChange={(e) => { setDurationSeconds(e.target.value.padStart(2, '0')); setDurationError('') }}
+                  className="w-20 bg-gray-900/80 border border-purple-500/50 rounded-lg px-3 py-3 text-white text-center text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            {durationError && (
+              <p className="text-red-400 text-sm mb-4">{durationError}</p>
+            )}
+
+            <div className="flex gap-3 justify-center mt-6">
+              <button
+                onClick={handleDurationConfirm}
+                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all"
+              >
+                Generate Package
+              </button>
+              <button onClick={() => setFlow('thumbnail_upload')} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-sm">
+                Back
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ── GENERATING SCREEN ─────────────────────────────── */}
         {flow === 'generating' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30 text-center">
             <h2 className="text-xl font-bold mb-2">Creating Your Package</h2>
-            <p className="text-purple-200/50 text-sm mb-8">Synthesizing script, image prompts, and video prompts...</p>
-            <ProgressBar />
+
+            {/* Progress bar with percentage */}
+            <div className="w-full max-w-md mx-auto mt-6 mb-4">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>{genStep || 'Initializing...'}</span>
+                <span>{genPercent}%</span>
+              </div>
+              <div className="relative w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${Math.max(genPercent || 2, 2)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Progress steps checklist */}
+            <div className="max-w-sm mx-auto mt-6 space-y-2 text-left">
+              {[
+                { label: 'Assemble Viral DNA + visual style', pct: 10 },
+                { label: 'Analyze speech patterns', pct: 25 },
+                { label: 'Generate script beats + hooks', pct: 40 },
+                { label: 'Write voice-over segments', pct: 60 },
+                { label: 'Craft image + video prompts', pct: 75 },
+                { label: 'Build thumbnail A/B + SEO metadata', pct: 90 },
+              ].map((item) => {
+                const done = genPercent >= item.pct
+                const active = genPercent >= item.pct - 10 && genPercent < item.pct
+                return (
+                  <div key={item.pct} className="flex items-center gap-3 text-sm">
+                    {done ? (
+                      <svg className="w-4 h-4 flex-shrink-0 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    ) : active ? (
+                      <svg className="w-4 h-4 flex-shrink-0 animate-spin text-purple-400" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="50" strokeDashoffset="15" />
+                      </svg>
+                    ) : (
+                      <div className="w-4 h-4 flex-shrink-0 rounded-full border border-gray-600" />
+                    )}
+                    <span className={
+                      done ? 'text-green-300' :
+                      active ? 'text-purple-300' :
+                      'text-gray-500'
+                    }>{item.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <p className="text-purple-200/40 text-xs mt-6">This may take 1-2 minutes. Your credit has been applied.</p>
           </div>
         )}
 

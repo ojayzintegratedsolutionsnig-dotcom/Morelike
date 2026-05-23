@@ -1108,24 +1108,74 @@ generation_jobs = {}  # job_id -> {status, token, title, result, error, created_
 import time as _time_module
 
 def _run_generation(job_id, token, system_prompt, user_message, chosen_title):
-    """Background thread: call DeepSeek and store result."""
+    """Background thread: call DeepSeek and store result with progress updates."""
+    milestones = [
+        (10, 'Assembling Viral DNA + visual style profile...'),
+        (25, 'Analyzing channel speech patterns...'),
+        (40, 'AI generating script beats and retention hooks...'),
+        (60, 'Writing voice-over segments with delivery notes...'),
+        (75, 'Crafting image prompts and video cinematography...'),
+        (90, 'Building thumbnail A/B test and SEO metadata...'),
+        (100, 'Package ready!'),
+    ]
+
+    def _update_progress(percent, step):
+        job = generation_jobs.get(job_id)
+        if job:
+            job['percent'] = percent
+            job['step'] = step
+
+    # Phase 1: Pre-processing
+    _update_progress(10, milestones[0][1])
+    _time_module.sleep(0.5)
+
+    # Phase 2: Start AI call
+    _update_progress(25, milestones[1][1])
+    _time_module.sleep(0.3)
+    _update_progress(35, milestones[2][1])
+
+    # Spawn a progress heartbeat that slowly advances while AI runs
+    heartbeat_stop = [False]
+    def _heartbeat():
+        base = 40
+        while not heartbeat_stop[0]:
+            _time_module.sleep(3)
+            job = generation_jobs.get(job_id)
+            if job and job.get('status') == 'running' and job.get('percent', 0) < 85:
+                current = job.get('percent', base)
+                if current < 55:
+                    _update_progress(current + 2, milestones[3][1])  # Writing voice-over
+                elif current < 70:
+                    _update_progress(current + 2, milestones[4][1])  # Image prompts
+                elif current < 85:
+                    _update_progress(current + 1, milestones[5][1])  # Thumbnail SEO
+    heartbeat_thread = threading.Thread(target=_heartbeat, daemon=True)
+    heartbeat_thread.start()
+
     try:
         result = call_ai(system_prompt, user_message, max_tokens=16384)
+        heartbeat_stop[0] = True
+        _update_progress(95, 'Finalizing package...')
+        _time_module.sleep(0.3)
         generation_jobs[job_id] = {
             'status': 'complete',
             'token': token,
             'title': chosen_title,
             'result': result,
+            'percent': 100,
+            'step': milestones[-1][1],
             'created_at': _time_module.time()
         }
-        # Also update last_generated_package for download endpoint
         global last_generated_package
         last_generated_package = {'content': result, 'title': chosen_title}
     except Exception as e:
+        heartbeat_stop[0] = True
         generation_jobs[job_id] = {
             'status': 'error',
             'token': token,
             'error': 'AI generation failed. Your credit has been used — please try again or contact support if the issue persists.',
+            'percent': 0,
+            'step': 'Generation failed',
             'created_at': _time_module.time()
         }
 
@@ -1231,7 +1281,11 @@ def generation_status(job_id):
         return jsonify({'status': 'not_found'}), 404
 
     if job['status'] == 'running':
-        return jsonify({'status': 'running'})
+        return jsonify({
+            'status': 'running',
+            'percent': job.get('percent', 0),
+            'step': job.get('step', 'Initializing...')
+        })
 
     if job['status'] == 'complete':
         token = job['token']
@@ -1241,13 +1295,17 @@ def generation_status(job_id):
             'package': job['result'],
             'title': job['title'],
             'credits_remaining': remaining['credits'] if remaining else 0,
+            'percent': 100,
+            'step': 'Package ready!',
             'success': True
         })
 
     if job['status'] == 'error':
         return jsonify({
             'status': 'error',
-            'error': job.get('error', 'Generation failed')
+            'error': job.get('error', 'Generation failed'),
+            'percent': job.get('percent', 0),
+            'step': job.get('step', '')
         }), 500
 
     return jsonify({'status': 'unknown'}), 500
