@@ -4,7 +4,17 @@ sys.path.insert(0, 'backend')
 sys.path.insert(0, '.')
 os.chdir('D:\\Claude\\viral-content-cloner-agent')
 
+# Pre-set the product IDs so the webhook tests can map correctly to pro and promax plans
+os.environ['LEMON_SQUEEZY_PRODUCT_PRO'] = '5562929e-ce1b-4f28-a35b-90dce4371804'
+os.environ['LEMON_SQUEEZY_PRODUCT_PROMAX'] = '81b9a80c-0ac7-491c-aa37-483a0dbda94a'
+
 from main import app
+from tokens import get_db
+conn = get_db()
+conn.execute('DELETE FROM tokens WHERE email LIKE "test_%" OR email LIKE "buyer_%"')
+conn.execute('DELETE FROM tokens WHERE lemon_order_id LIKE "ord_%"')
+conn.commit()
+conn.close()
 
 client = app.test_client()
 errors = []
@@ -242,6 +252,146 @@ for plan in ['basic', 'pro', 'promax', 'unlimited', 'custom']:
     print(f"[PASS] DB: {plan} token stored with {plans_found[plan]} credits")
 print(f"[PASS] All 5 test tokens stored in database with correct plans")
 
+# ── 9. WEBHOOK & CLAIM FLOW & FULL GENERATION WORKFLOW ─────
+print("\n--- WEBHOOK & CLAIM FLOW & FULL GENERATION WORKFLOW ---")
+
+def post_webhook(payload):
+    import hmac, hashlib
+    secret = os.environ.get('LEMON_SQUEEZY_WEBHOOK_SECRET', '')
+    body_str = json.dumps(payload, separators=(',', ':'))
+    sig = 'sha256=' + hmac.new(
+        secret.encode('utf-8'),
+        body_str.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    return client.post('/api/webhook/lemonsqueezy', data=body_str, content_type='application/json', headers={'X-Signature': sig})
+
+# 1. Simulating webhook purchases
+print("Simulating webhook purchases...")
+basic_payload = {
+    'meta': {'event_name': 'order_created'},
+    'data': {
+        'id': 'ord_basic_999',
+        'attributes': {
+            'user_email': 'buyer_basic@gmail.com',
+            'first_order_item': {'product_id': 'a6315998-f19d-4806-ba57-a40dd789348b'}
+        }
+    }
+}
+resp = post_webhook(basic_payload)
+assert resp.status_code == 200, f"Webhook Basic order creation failed: {resp.status_code}"
+print("[PASS] Webhook Basic purchase processed")
+
+pro_payload = {
+    'meta': {'event_name': 'order_created'},
+    'data': {
+        'id': 'ord_pro_999',
+        'attributes': {
+            'user_email': 'buyer_pro@gmail.com',
+            'first_order_item': {'product_id': '5562929e-ce1b-4f28-a35b-90dce4371804'}
+        }
+    }
+}
+resp = post_webhook(pro_payload)
+assert resp.status_code == 200, f"Webhook Pro order creation failed: {resp.status_code}"
+print("[PASS] Webhook Pro purchase processed")
+
+promax_payload = {
+    'meta': {'event_name': 'order_created'},
+    'data': {
+        'id': 'ord_promax_999',
+        'attributes': {
+            'user_email': 'buyer_promax@gmail.com',
+            'first_order_item': {'product_id': '81b9a80c-0ac7-491c-aa37-483a0dbda94a'}
+        }
+    }
+}
+resp = post_webhook(promax_payload)
+assert resp.status_code == 200, f"Webhook Pro Max order creation failed: {resp.status_code}"
+print("[PASS] Webhook Pro Max purchase processed")
+
+# 2. Claiming purchased tokens
+print("Claiming purchased tokens...")
+resp = client.post('/api/claim-token', json={'email': 'buyer_basic@gmail.com'})
+assert resp.status_code == 200, f"Claim basic failed: {resp.status_code}"
+basic_data = resp.get_json()
+assert basic_data.get('success'), "Claim basic: success flag is False"
+assert basic_data.get('plan') == 'basic', f"Claim basic: expected plan basic, got {basic_data.get('plan')}"
+assert basic_data.get('credits') == 3, f"Claim basic: expected 3 credits, got {basic_data.get('credits')}"
+basic_token = basic_data.get('token')
+print(f"[PASS] Claim Basic token -> {basic_token[:8]}... plan=basic, credits=3")
+
+resp = client.post('/api/claim-token', json={'email': 'buyer_pro@gmail.com'})
+assert resp.status_code == 200, f"Claim pro failed: {resp.status_code}"
+pro_data = resp.get_json()
+assert pro_data.get('success'), "Claim pro: success flag is False"
+assert pro_data.get('plan') == 'pro', f"Claim pro: expected plan pro, got {pro_data.get('plan')}"
+assert pro_data.get('credits') == 3, f"Claim pro: expected 3 credits, got {pro_data.get('credits')}"
+pro_token = pro_data.get('token')
+print(f"[PASS] Claim Pro token -> {pro_token[:8]}... plan=pro, credits=3")
+
+resp = client.post('/api/claim-token', json={'email': 'buyer_promax@gmail.com'})
+assert resp.status_code == 200, f"Claim promax failed: {resp.status_code}"
+promax_data = resp.get_json()
+assert promax_data.get('success'), "Claim promax: success flag is False"
+assert promax_data.get('plan') == 'promax', f"Claim promax: expected plan promax, got {promax_data.get('plan')}"
+assert promax_data.get('credits') == 5, f"Claim promax: expected 5 credits, got {promax_data.get('credits')}"
+promax_token = promax_data.get('token')
+print(f"[PASS] Claim Pro Max token -> {promax_token[:8]}... plan=promax, credits=5")
+
+# 3. Full Cloner Flow: DNA -> Titles -> Generate -> Download
+print("Executing full generation workflow...")
+# Get subtitles content that we manually pasted earlier
+resp = client.get('/api/subtitles')
+subtitles_content = resp.get_json().get('content')
+assert subtitles_content, "No subtitles content available for workflow"
+
+# Generate Viral DNA
+print("Generating Viral DNA via DeepSeek...")
+resp = client.post('/api/generate-viral-dna', json={'subtitles': subtitles_content})
+assert resp.status_code == 200, f"Generate Viral DNA failed: {resp.status_code}"
+dna_data = resp.get_json()
+assert dna_data.get('success'), "Viral DNA: success flag is False"
+viral_dna = dna_data.get('viral_dna')
+assert viral_dna, "Viral DNA is empty"
+print("[PASS] POST /api/generate-viral-dna -> success")
+
+# Generate Titles
+print("Generating Title Ideas via DeepSeek...")
+resp = client.post('/api/generate-titles', json={'viral_dna': viral_dna, 'count': 3})
+assert resp.status_code == 200, f"Generate titles failed: {resp.status_code}"
+titles_data = resp.get_json()
+assert titles_data.get('success'), "Titles: success flag is False"
+titles_text = titles_data.get('titles', '')
+assert titles_text, "Titles text is empty"
+print(f"[PASS] POST /api/generate-titles -> success:\n{titles_text}")
+
+# Select first title
+chosen_title = "The Pattern Pharaoh Missed"
+
+# Generate Package
+print("Generating full script package via DeepSeek...")
+resp = client.post('/api/generate-package', json={
+    'viral_dna': viral_dna,
+    'title': chosen_title,
+    'topic': 'Bible commentary for young adults',
+    'video_length': 3
+}, headers={'Authorization': f'Bearer {basic_token}'})
+assert resp.status_code == 200, f"Generate package failed: {resp.status_code}"
+pkg_data = resp.get_json()
+assert pkg_data.get('success'), f"Generate package success flag is False: {pkg_data}"
+package_content = pkg_data.get('package')
+assert package_content, "Package content is empty"
+assert pkg_data.get('credits_remaining') == 2, f"Expected 2 credits remaining, got {pkg_data.get('credits_remaining')}"
+print("[PASS] POST /api/generate-package -> package generated, credit deducted")
+
+# Download Package PDF
+print("Downloading package as PDF...")
+resp = client.get('/api/download-package', headers={'Authorization': f'Bearer {basic_token}'})
+assert resp.status_code == 200, f"Download PDF failed: {resp.status_code}"
+assert resp.headers.get('Content-Type') == 'application/pdf', f"Expected application/pdf, got {resp.headers.get('Content-Type')}"
+print("[PASS] GET /api/download-package -> PDF downloaded successfully")
+
 # ── RESULTS ────────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("ALL ENDPOINT TESTS PASSED")
@@ -255,4 +405,7 @@ print("  - Protected endpoints: 4 tests")
 print("  - Manual transcripts: 2 tests")
 print("  - Plan config: 2 tests")
 print("  - Token storage: 1 test")
-print("  TOTAL: 34 tests PASSED")
+print("  - Webhook & Claim flow: 6 tests")
+print("  - Full AI Generation flow: 4 tests")
+print("  TOTAL: 44 tests PASSED")
+
