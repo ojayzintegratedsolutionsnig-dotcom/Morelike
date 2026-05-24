@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { jsPDF } from 'jspdf'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://morelike-morelike.up.railway.app'
 const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/a6315998-f19d-4806-ba57-a40dd789348b'
@@ -669,7 +670,8 @@ function Portal() {
   // ── Download ────────────────────────────────────────────────
   const handleDownload = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/download-package`, {
+      const jobParam = currentJobId ? `?job_id=${encodeURIComponent(currentJobId)}` : ''
+      const res = await fetch(`${API_URL}/api/download-package${jobParam}`, {
         headers: getApiHeaders(token)
       })
       if (res.ok) {
@@ -681,12 +683,38 @@ function Portal() {
         a.click()
         URL.revokeObjectURL(url)
       } else {
-        // Fallback to client-side text download
-        const blob = new Blob([finalPackage], { type: 'text/plain' })
-        const url = URL.createObjectURL(blob)
+        // Server failed — generate PDF client-side
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' })
+        doc.setFont('Helvetica', 'normal')
+        doc.setFontSize(8)
+        const margins = { top: 12, bottom: 12, left: 12, right: 12 }
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const maxWidth = pageWidth - margins.left - margins.right
+        const lineHeight = 4.0
+        let y = margins.top
+        const lines = finalPackage.split('\n')
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed) {
+            y += lineHeight
+            continue
+          }
+          const safe = trimmed.replace(/[^\x20-\x7E -ÿ]/g, '')
+          const wrapped = doc.splitTextToSize(safe, maxWidth)
+          for (const wLine of wrapped) {
+            if (y + lineHeight > doc.internal.pageSize.getHeight() - margins.bottom) {
+              doc.addPage()
+              y = margins.top
+            }
+            doc.text(wLine, margins.left, y)
+            y += lineHeight
+          }
+        }
+        const pdfBlob = doc.output('blob')
+        const url = URL.createObjectURL(pdfBlob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `${chosenTitle.slice(0, 40).replace(/[\/:*?"<>|]/g, '-')}.txt`
+        a.download = `${chosenTitle.slice(0, 40).replace(/[\/:*?"<>|]/g, '-')}.pdf`
         a.click()
         URL.revokeObjectURL(url)
       }
