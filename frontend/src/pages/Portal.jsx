@@ -551,12 +551,12 @@ function Portal() {
     }
   }, [aiFetch])
 
-  // ── Idea mode: resolve channel → straight to manual transcript ──
+  // ── Idea mode: resolve channel → paste channel transcripts → generate titles ──
   const handleIdeaAndGo = async () => {
     if (!userVideoIdea.trim() || !channelUrl.trim()) return
     setPipelineError('')
     inputModeRef.current = 'idea'
-    pendingTitle.current = userVideoIdea
+    pendingTopic.current = userVideoIdea.trim()
     setExtractionVideos([])
     setPastedScript('')
     setFlow('processing')
@@ -584,7 +584,7 @@ function Portal() {
       if (data.warning) setPipelineError(data.warning)
       setTimeout(() => setFlow('manual_transcripts'), videos.length ? 1200 : 400)
     } catch {
-      setPipelineError('Could not fetch video list — you can still paste transcripts below.')
+      setPipelineError('Could not fetch video list.')
       setVideoMeta([])
       setManualTranscripts({})
       setTimeout(() => setFlow('manual_transcripts'), 600)
@@ -637,12 +637,12 @@ function Portal() {
     if (tokenValidated && credits > 0) {
       // Authenticated — go to visual upload first
       pendingTitle.current = title
-      pendingTopic.current = customTopic
+      pendingTopic.current = customTopic || pendingTopic.current
       setFlow('visual_upload')
     } else {
       // Hold title and show paywall
       pendingTitle.current = title
-      pendingTopic.current = customTopic
+      pendingTopic.current = customTopic || pendingTopic.current
       setFlow('paywall')
     }
   }
@@ -651,7 +651,7 @@ function Portal() {
   const handleRegenerateTitles = async () => {
     setFlow('processing')
     try {
-      const res = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: viralDNA, count: tokenPlan === 'promax' ? 5 : 3 })
+      const res = await aiFetch(`${API_URL}/api/generate-titles`, { viral_dna: viralDNA, count: tokenPlan === 'promax' ? 5 : 3, topic: pendingTopic.current })
       const data = await res.json()
       if (data.success) {
         setTitles(data.titles)
@@ -911,33 +911,58 @@ function Portal() {
     setFlow('processing')
     try {
       if (inputModeRef.current === 'idea') {
-        // Idea mode: use pasted script as primary content, channel transcripts for style
-        pendingTopic.current = pastedScript.trim()
+        // Idea mode: channel transcripts → DNA → titles from (DNA + user's video idea)
+        const videoIdea = pendingTopic.current || userVideoIdea.trim()
+        if (!videoIdea) {
+          setPipelineError('Please enter your video idea first.')
+          setFlow('input')
+          return
+        }
 
-        // Build combined content: user's script first, then channel transcripts
-        let combinedContent = '=== USER SCRIPT / OUTLINE ===\n\n' + pastedScript.trim() + '\n\n'
+        // Build transcript content from channel videos (style reference only, no user script)
+        let transcriptContent = ''
         const channelTexts = Object.values(manualTranscripts).filter(t => t.trim().length > 20)
         if (channelTexts.length > 0) {
-          combinedContent += '=== CHANNEL STYLE REFERENCE TRANSCRIPTS ===\n\n'
+          transcriptContent += '=== CHANNEL STYLE REFERENCE TRANSCRIPTS ===\n\n'
           for (const [vId, text] of Object.entries(manualTranscripts)) {
             if (text.trim().length > 20) {
               const meta = videoMeta.find(v => v.id === vId)
-              combinedContent += '### ' + (meta ? meta.title : 'Video') + ' ###\n' + text.trim() + '\n\n'
+              transcriptContent += '### ' + (meta ? meta.title : 'Video') + ' ###\n' + text.trim() + '\n\n'
             }
           }
         }
-        extractedRef.current = combinedContent
 
-        // Generate viral DNA from the combined content
-        const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: combinedContent })
-        const dnaData = await dnaRes.json()
-        if (dnaData.success) {
-          setViralDNA(dnaData.viral_dna)
-          setFlow(tokenValidated && credits > 0 ? 'visual_upload' : 'paywall')
-        } else {
-          setPipelineError(dnaData.error || 'Analysis failed')
+        if (!transcriptContent.trim()) {
+          setPipelineError('Please paste at least one channel transcript for style reference.')
           setFlow('manual_transcripts')
+          return
         }
+
+        extractedRef.current = transcriptContent
+
+        // Generate Viral DNA from channel transcripts
+        const dnaRes = await aiFetch(`${API_URL}/api/generate-viral-dna`, { subtitles: transcriptContent })
+        const dnaData = await dnaRes.json()
+        if (!dnaData.success) {
+          setPipelineError(dnaData.error || 'Style analysis failed')
+          setFlow('manual_transcripts')
+          return
+        }
+        setViralDNA(dnaData.viral_dna)
+
+        // Generate 5 titles from DNA + user's video idea
+        const titlesRes = await aiFetch(`${API_URL}/api/generate-titles`, {
+          viral_dna: dnaData.viral_dna,
+          count: 5,
+          topic: videoIdea
+        })
+        const titlesData = await titlesRes.json()
+        if (!titlesData.success) throw new Error(titlesData.error || 'Title generation failed')
+        setTitles(titlesData.titles)
+        const lines = titlesData.titles.split('\n').filter((l) => /^\d+[\.\)]/.test(l.trim()))
+        setParsedTitles(lines.map((l) => l.replace(/^\d+[\.\)]\s*/, '').trim()))
+
+        setTimeout(() => setFlow('pick_title'), 600)
       } else {
         // Scrape mode: use channel transcripts
         const res = await fetch(`${API_URL}/api/manual-transcripts`, {
@@ -1310,56 +1335,40 @@ function Portal() {
           </div>
         )}
 
-        {/* ── MANUAL TRANSCRIPT UPLOAD (idea mode) ────────── */}
+        {/* ── CHANNEL STYLE REFERENCE (idea mode) ────────── */}
         {flow === 'manual_transcripts' && inputModeRef.current === 'idea' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
-            <h2 className="text-xl font-bold mb-2">Your Video Script</h2>
+            <h2 className="text-xl font-bold mb-2">Channel Style Reference</h2>
             <p className="text-purple-200 text-sm mb-2">
-              Channel found. Paste your full script or video outline below — we'll analyze the channel's style and apply it to your content.
+              Paste transcripts from the channel's top videos below. We'll analyze their style and generate 5 unique titles based on your idea:
+              <span className="text-white font-semibold block mt-1">"{pendingTopic.current || userVideoIdea}"</span>
             </p>
 
-            {/* Channel style reference — collapsed by default */}
-            <details className="mb-6">
-              <summary className="text-sm text-gray-400 cursor-pointer hover:text-gray-300">Channel style reference: {videoMeta.length} video(s) found (click to paste transcripts for style)</summary>
-              <div className="space-y-4 mt-3">
-                {videoMeta.map((v, i) => (
-                  <div key={v.id} className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
-                      <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white text-sm hover:text-purple-400 transition-colors">{v.title}</a>
-                    </div>
-                    <textarea
-                      placeholder={`Optional: paste transcript for style reference...`}
-                      value={manualTranscripts[v.id] || ''}
-                      onChange={(e) => setManualTranscripts(prev => ({ ...prev, [v.id]: e.target.value }))}
-                      className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                      rows={4}
-                    />
+            {/* Channel transcripts — always visible */}
+            <div className="space-y-4 mb-6">
+              {videoMeta.map((v, i) => (
+                <div key={v.id} className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
+                    <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white text-sm hover:text-purple-400 transition-colors">{v.title}</a>
                   </div>
-                ))}
-              </div>
-            </details>
-
-            {/* Main script textarea */}
-            <div className="mb-6">
-              <label className="block text-sm text-purple-200 mb-1">Paste your script or outline here</label>
-              <textarea
-                placeholder="Paste your full video script, outline, or talking points here. The AI will use the channel's style to enhance and format it into a production-ready package..."
-                value={pastedScript}
-                onChange={(e) => setPastedScript(e.target.value)}
-                className="w-full bg-gray-900/50 border border-purple-500/50 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                rows={14}
-              />
-              <p className="text-xs text-gray-500 mt-1">{pastedScript.length > 50 ? `${pastedScript.length} characters — looks good!` : `${pastedScript.length} characters (minimum 50 recommended)`}</p>
+                  <textarea
+                    placeholder="Paste transcript here for style analysis..."
+                    value={manualTranscripts[v.id] || ''}
+                    onChange={(e) => setManualTranscripts(prev => ({ ...prev, [v.id]: e.target.value }))}
+                    className="w-full bg-gray-800/50 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    rows={5}
+                  />
+                </div>
+              ))}
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={handleManualSubmit}
-                disabled={pastedScript.trim().length < 20}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold rounded-lg transition-all"
               >
-                Analyze Channel Style & Continue
+                Analyze Style & Generate Titles
               </button>
               <button onClick={() => { setFlow('input'); setPipelineError('') }} className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg text-sm">
                 Back

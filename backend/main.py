@@ -199,6 +199,8 @@ Analyze what makes this channel's titles work. Be specific and structural:
 
 TITLE_IDEAS_SYSTEM_INSTRUCTION = """You are a viral content strategist. Given the Viral DNA analysis below, generate 3 video title ideas.
 
+{video_idea}
+
 CRITICAL CONSTRAINT: The analyzed channel's niche is:
 {niche}
 
@@ -1225,14 +1227,22 @@ def generate_titles():
     data = request.json or {}
     viral_dna = data.get('viral_dna', '')
     num_titles = data.get('count', 3)
+    video_idea = data.get('topic', '') or data.get('idea', '')
 
     if not viral_dna:
         return jsonify({'error': 'Viral DNA is required. Generate analysis first.'}), 400
 
     try:
         niche = extract_niche(viral_dna)
-        system_prompt = TITLE_IDEAS_SYSTEM_INSTRUCTION.replace('Generate exactly 3 titles.', f'Generate exactly {num_titles} titles.').replace('ALL 3 titles', f'ALL {num_titles} titles').format(viral_dna=viral_dna, niche=niche)
-        result = call_ai(system_prompt, f"Generate {num_titles} title ideas about {niche} based on the Viral DNA.")
+        if video_idea:
+            video_idea_str = f"USER'S VIDEO TOPIC: The user wants to make a video about:\n\"{video_idea}\"\n\nALL titles must be about THIS specific topic, wrapped in the channel's proven DNA formula. The titles must address '{video_idea}' — do NOT generate titles about a different topic."
+        else:
+            video_idea_str = ''
+        system_prompt = TITLE_IDEAS_SYSTEM_INSTRUCTION.replace('Generate exactly 3 titles.', f'Generate exactly {num_titles} titles.').replace('ALL 3 titles', f'ALL {num_titles} titles').format(viral_dna=viral_dna, niche=niche, video_idea=video_idea_str)
+        user_msg = f"Generate {num_titles} title ideas about {niche} based on the Viral DNA."
+        if video_idea:
+            user_msg += f"\n\nThe user's video idea/topic is: {video_idea}"
+        result = call_ai(system_prompt, user_msg)
         return jsonify({'titles': result, 'success': True})
     except Exception as e:
         print(f"Title generation error: {e}")
