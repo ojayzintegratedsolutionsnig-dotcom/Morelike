@@ -199,6 +199,62 @@ function Paywall({ onTokenValidated, onCancel }) {
 }
 
 /* ── Structured result renderer ──────────────────────────────── */
+/* ── Thumbnail section parser ────────────────────────────────── */
+function extractThumbnailSection(packageText) {
+  if (!packageText) return ''
+  const patterns = [
+    /(═+[\s]*THUMBNAIL DESIGN[\s\S]*?)(?=═+[\s]*(?:BEATS|CINEMATIC TIMELINE|INTERNAL REVIEW)|$)/,
+    /(═══+[\s]*THUMBNAIL DESIGN[\s\S]*?)(?=═══+[\s]*(?:BEATS|CINEMATIC TIMELINE|INTERNAL REVIEW)|$)/,
+  ]
+  for (const p of patterns) {
+    const m = packageText.match(p)
+    if (m) return m[1].trim()
+  }
+  return ''
+}
+
+/* ── Thumbnail Card ──────────────────────────────────────────── */
+function ThumbnailCard({ thumbnailSection, regensRemaining, onRegenerate, loading, plan }) {
+  if (!thumbnailSection || plan === 'basic') return null
+
+  const canRegen = regensRemaining > 0 && !loading
+
+  return (
+    <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-amber-500/30 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 bg-amber-400 rounded-full" />
+          <span className="text-amber-400 font-semibold text-sm uppercase tracking-wide">Thumbnail Design</span>
+        </div>
+        {plan !== 'basic' && (
+          <div className="flex items-center gap-2">
+            {regensRemaining > 0 && (
+              <span className="text-xs text-gray-400">
+                {regensRemaining === 9999 ? 'Unlimited regenerations' : `${regensRemaining} regeneration${regensRemaining !== 1 ? 's' : ''} left`}
+              </span>
+            )}
+            <button
+              onClick={onRegenerate}
+              disabled={!canRegen}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                canRegen
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {loading ? 'Regenerating...' : regensRemaining === 0 ? 'No Regens Left' : 'Regenerate'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <pre className="bg-gray-900/70 border border-gray-700 rounded-lg p-4 text-gray-300 text-xs md:text-sm whitespace-pre-wrap font-mono max-h-[40vh] overflow-y-auto leading-relaxed">
+        {thumbnailSection}
+      </pre>
+    </div>
+  )
+}
+
 function ResultView({ content, title, onDownload, onCopy, creditsAfter }) {
   return (
     <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-green-500/30">
@@ -262,6 +318,9 @@ function Portal() {
   const [finalPackage, setFinalPackage] = useState('')
   const [creditsAfter, setCreditsAfter] = useState(0)
   const [pipelineError, setPipelineError] = useState('')
+  const [currentJobId, setCurrentJobId] = useState('')
+  const [thumbnailRegens, setThumbnailRegens] = useState(0)
+  const [regenLoading, setRegenLoading] = useState(false)
 
   // Per-video extraction status
   const [extractionVideos, setExtractionVideos] = useState([])
@@ -442,6 +501,9 @@ function Portal() {
             setFinalPackage(pollData.package)
             setCreditsAfter(pollData.credits_remaining)
             setCredits(pollData.credits_remaining)
+            setCurrentJobId(pollData.job_id || jobId)
+            setThumbnailRegens(pollData.thumbnail_regens_remaining || 0)
+            setTokenPlan(pollData.plan || tokenPlan)
             sessionStorage.setItem('morelike_credits', String(pollData.credits_remaining))
             setFlow('result')
             return
@@ -630,6 +692,40 @@ function Portal() {
       }
     } catch {
       alert('Failed to download')
+    }
+  }
+
+  // ── Thumbnail Regeneration ───────────────────────────────────
+  const handleRegenerateThumbnail = async () => {
+    if (!currentJobId || thumbnailRegens <= 0) return
+    setRegenLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/regenerate-thumbnail`, {
+        method: 'POST',
+        headers: getApiHeaders(token),
+        body: JSON.stringify({ job_id: currentJobId })
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        alert(data.error || 'Regeneration failed')
+        return
+      }
+
+      if (data.success && data.thumbnail_section) {
+        // Replace the thumbnail section in the full package
+        const oldSection = extractThumbnailSection(finalPackage)
+        let updatedPackage = finalPackage
+        if (oldSection) {
+          updatedPackage = finalPackage.replace(oldSection, data.thumbnail_section)
+        }
+        setFinalPackage(updatedPackage)
+        setThumbnailRegens(data.regenerations_remaining)
+      }
+    } catch {
+      alert('Failed to reach server for regeneration')
+    } finally {
+      setRegenLoading(false)
     }
   }
 
@@ -899,6 +995,9 @@ function Portal() {
     setDurationSeconds('')
     setDurationError('')
     setPastedScript('')
+    setCurrentJobId('')
+    setThumbnailRegens(0)
+    setRegenLoading(false)
   }
 
   // Logout
@@ -1503,6 +1602,14 @@ function Portal() {
         {/* ── RESULT SCREEN ─────────────────────────────────── */}
         {flow === 'result' && (
           <>
+            <ThumbnailCard
+              thumbnailSection={extractThumbnailSection(finalPackage)}
+              regensRemaining={thumbnailRegens}
+              onRegenerate={handleRegenerateThumbnail}
+              loading={regenLoading}
+              plan={tokenPlan}
+            />
+
             <ResultView
               content={finalPackage}
               title={chosenTitle}

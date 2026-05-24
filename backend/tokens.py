@@ -18,11 +18,11 @@ def get_db():
 
 # Plan configuration
 PLAN_CONFIG = {
-    'basic':     {'max_videos': 3, 'max_minutes': 3,  'price': '$8',  'credits': 3},
-    'pro':       {'max_videos': 5, 'max_minutes': 5,  'price': '$10', 'credits': 3},
-    'promax':    {'max_videos': 5, 'max_minutes': 15, 'price': '$15', 'credits': 5},
-    'unlimited': {'max_videos': 5, 'max_minutes': 60, 'price': '—',   'credits': 9999},
-    'custom':    {'max_videos': 5, 'max_minutes': 15, 'price': '—',   'credits': 1},
+    'basic':     {'max_videos': 3, 'max_minutes': 3,  'price': '$8',  'credits': 3, 'thumbnail_regens': 0},
+    'pro':       {'max_videos': 5, 'max_minutes': 5,  'price': '$10', 'credits': 3, 'thumbnail_regens': 2},
+    'promax':    {'max_videos': 5, 'max_minutes': 15, 'price': '$15', 'credits': 5, 'thumbnail_regens': 3},
+    'unlimited': {'max_videos': 5, 'max_minutes': 60, 'price': '—',   'credits': 9999, 'thumbnail_regens': 9999},
+    'custom':    {'max_videos': 5, 'max_minutes': 15, 'price': '—',   'credits': 1, 'thumbnail_regens': 0},
 }
 
 # Plans not shown on the public website or API responses

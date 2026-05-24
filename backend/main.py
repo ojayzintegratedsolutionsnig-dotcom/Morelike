@@ -183,7 +183,17 @@ Reverse-engineer their "Viral Algorithm" so we can produce new content in the EX
 - Analyze the sentence length. Are they short and punchy? Or long and descriptive?
 - Give me 3 examples of "Transition Sentences" they use to move between points.
 
-4. THE TEMPLATE
+4. THE TITLE NAMING FORMULA (CRITICAL — this drives all future title generation)
+Analyze what makes this channel's titles work. Be specific and structural:
+- TITLE STRUCTURE: What is the common format? (e.g., "Question + Stakes" / "Number + Controversial Claim" / "How [X] Without [Y]" / "The [Adjective] Truth About [Topic]" / "Why [Common Belief] Is Wrong")
+- TITLE LENGTH: Average word count and character count of their titles.
+- KEYWORD FAMILY: What 5-8 words or phrases recur across their titles? These are their "title DNA words."
+- EMOTIONAL LEVER: What emotion does the title typically pull? (curiosity gap / fear / outrage / desire / awe / urgency / surprise)
+- FORBIDDEN PATTERNS: What title formats or words has this channel NEVER used? (e.g., "They never use listicles," "They never use ALL CAPS words," "They never use 'You Won't Believe'")
+- TITLE VOICE: Is the title in first person ("I did X") or second person ("You need to X") or third person ("The truth about X")?
+- Give 2-3 EXAMPLES of what their ideal title format looks like, broken down structurally: "[Pattern element A] + [Pattern element B]"
+
+5. THE TEMPLATE
 - Create a blank "Fill-in-the-Blanks" script template that follows their exact pacing structure, which can be used for ANY topic WITHIN THIS NICHE."""
 
 TITLE_IDEAS_SYSTEM_INSTRUCTION = """You are a viral content strategist. Given the Viral DNA analysis below, generate 3 video title ideas.
@@ -193,14 +203,33 @@ CRITICAL CONSTRAINT: The analyzed channel's niche is:
 
 ALL 3 titles MUST stay within this exact niche. Do NOT change topics, do NOT drift into another genre, do NOT suggest titles about a different subject. If the channel is about Bible commentary, every title must be about Bible commentary. If the channel is about cooking, every title must be about cooking.
 
+TITLE NAMING FORMULA — EXTRACTED FROM THE CHANNEL'S DNA:
+The Viral DNA below contains a "TITLE NAMING FORMULA" section. This is your SOURCE OF TRUTH for how this specific channel names its videos. Before generating any title, you MUST extract and apply these exact patterns from the DNA:
+
+1. STRUCTURE: Use the EXACT title structure identified in the DNA (e.g., "Question + Stakes" / "How [X] Without [Y]" / "The [Adjective] Truth About [Topic]"). The title must fit this structural template precisely.
+2. LENGTH: Match the DNA's average word count and character count. If the channel uses short 5-7 word titles, do NOT generate a 14-word title.
+3. KEYWORD FAMILY: Use 1-2 words from the DNA's "keyword family" list — these are the channel's proven high-CTR words. Do NOT stray outside this vocabulary.
+4. EMOTIONAL LEVER: Pull the SAME emotional lever identified in the DNA (curiosity gap / fear / outrage / desire / etc.). If the channel uses curiosity gaps, every title must create a curiosity gap.
+5. TITLE VOICE: Match the DNA's voice pattern — first person ("I"), second person ("You"), or third person. If the channel always uses second person, every title must use second person.
+6. FORBIDDEN: Respect the DNA's "forbidden patterns" list. If the channel never uses listicles, do NOT generate a listicle title. If they never use ALL CAPS, do NOT use ALL CAPS.
+
+ORIGINALITY CONSTRAINT — NEW TOPIC, SAME FORMULA:
+- The title STRUCTURE must follow the DNA's naming formula EXACTLY. Do NOT invent a new structure.
+- The title TOPIC/ANGLE must be GENUINELY NEW. Do NOT rephrase, remix, or slightly tweak any existing YouTube title — from this channel or any other.
+- A search for your title on YouTube should return ZERO exact or near-exact matches.
+- Within the DNA's proven formula, find a NEW question, a NEW angle, a NEW insight that no one has covered.
+- Avoid overused words and cliche phrases specific to this niche.
+- The title must feel like it belongs on THIS channel — authentic to their voice, their structure, their audience — while being a topic they haven't done yet.
+
 The Viral DNA is:
 {viral_dna}
 
 Generate exactly 3 titles. Each title must:
 - Stay strictly within the channel's niche (see constraint above)
+- Follow the DNA's exact title naming formula (structure, length, keywords, voice, emotional lever)
+- Pass the originality constraint — new topic/angle within the proven formula
 - Use the hook patterns and retention tactics identified in the DNA
 - Be specific enough to spark curiosity
-- Avoid clickbait cliches that the original creator wouldn't use
 - Sound like a real video this creator would actually publish
 
 Return EXACTLY in this format (no extra text, no commentary):
@@ -229,6 +258,9 @@ You analyze, model, and recreate YouTube content styles. Match style, not phrasi
 Niche: {niche}
 Duration: {target_length} minutes (~{target_length} × 150 words)
 
+## Content Type Detection
+{content_type}
+
 # OUTPUT FORMAT
 Produce the following sections in order. Every section is mandatory.
 
@@ -243,11 +275,37 @@ SCRIPT DNA
 	Pacing: [words/sec, sentence rhythm from DNA]
 	Hook style: [how the DNA hooks, applied to this script]
 	Emotional flow: [tension arc across the script]
-	Global Visual Style: [from Visual Style Profile — art style, color palette, lighting setup, render quality, atmosphere. This exact style is fully embedded in every image and video prompt below. No separate style section needed — each prompt is self-contained.]
+
+	════════════════════════════════════════
+	GLOBAL VISUAL STYLE — MANDATORY CONSTRAINTS
+	════════════════════════════════════════
+	The values below are extracted from the uploaded reference images. They are NON-NEGOTIABLE. Every image prompt and video prompt below MUST use these exact values. This is not a suggestion — it is a requirement.
+
+	Art Style: [EXACT art_style from Visual Style Profile — DO NOT substitute, DO NOT reinterpret]
+	Color Palette: [EXACT color_palette from Visual Style Profile — every color named, every prompt uses these colors]
+	Lighting Setup: [EXACT lighting from Visual Style Profile — key light direction, quality, color temperature]
+	Composition: [EXACT composition from Visual Style Profile — subject placement, framing, depth layers]
+	Camera Angle: [EXACT camera_angle from Visual Style Profile]
+	Render Quality: [EXACT render_quality from Visual Style Profile]
+	Atmosphere: [EXACT emotion + environment from Visual Style Profile]
+	Cinematic Style: [EXACT cinematic_style from Visual Style Profile]
+
+	VIOLATION RULES — before writing ANY image or video prompt, verify ALL of the following:
+	1. SAME ART STYLE? The prompt MUST use the exact art_style value above. If Visual Style Profile says art_style is "stylized 3D", every prompt says "stylized 3D" — never "photorealistic", never "2D illustration", never anything else.
+	2. SAME COLOR PALETTE? Every prompt MUST name the exact colors from the color_palette above. Do NOT add new colors. Do NOT omit any of the palette colors.
+	3. SAME LIGHTING? Every prompt MUST describe the exact key light direction, quality, and color temperature from the lighting field above.
+	4. SAME COMPOSITION? Every prompt MUST use the subject placement, framing, and depth layering from the composition field above.
+	5. SAME RENDER QUALITY? Every prompt MUST specify the exact render_quality from above.
+	If ANY prompt differs from these values, that prompt is INCORRECT and must be rewritten.
 
 	────────────────────────────────────────
 	FINAL SEO TITLE
 	(after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
+	ORIGINALITY CHECK — FOLLOW THE DNA FORMULA, FIND A NEW ANGLE:
+	1. STRUCTURE: Does this title use the EXACT title structure from the Viral DNA's TITLE NAMING FORMULA (section 4)? If not, rewrite it to match the DNA's proven structure.
+	2. KEYWORDS: Does it use 1-2 words from the DNA's KEYWORD FAMILY? If not, swap in a DNA keyword.
+	3. VOICE: Does it match the DNA's TITLE VOICE (first/second/third person)? If not, fix the voice.
+	4. ORIGINALITY: Is the specific TOPIC/ANGLE genuinely new — not a rephrase of any existing YouTube title from this channel or any other? If the topic feels familiar, find a different angle.
 
 	DESCRIPTION
 	- First 2 lines (above-fold on mobile): Primary keyword + curiosity statement + CTA. These 2 lines determine CTR from search results.
@@ -263,31 +321,50 @@ SCRIPT DNA
 	- Include 2-3 competitor/channel name tags if niche-appropriate
 
 	════════════════════════════════════════
-	THUMBNAIL DESIGN
+	THUMBNAIL DESIGN — Sample-Driven (replicate, do NOT invent)
 	════════════════════════════════════════
-	Design as a cinematic movie poster using thumbnail style data above, obsessively optimized to CRUSH click-through rate.
 
-		Concept A — Emotion-Forward (CTR Driver: Emotional Response):
-		  Focal Point: [close-up face with extreme emotion or dramatic scene]
-		  Face Expression: [specific emotion — MUST be readable at mobile thumbnail size]
-		  Emotional Hook: [the specific question this image plants — why they CANNOT scroll past]
-		  Composition: [face/subject fills 30-40% of frame. Face MUST be the dominant element]
-		  Text Overlay: [1-4 words MAX in giant bold font. Primary keyword if possible. Color MUST contrast with background. Never covering the face]
-		  Color + Lighting: [high contrast. 2 dominant colors max. Saturated warm tones for faces. Key light on face + dark vignette edges. NO flat lighting]
+	STEP 1 — EXTRACT PATTERNS FROM THE THUMBNAIL STYLE DATA ABOVE:
+		Read the Thumbnail Style Data carefully. Identify these EXACT patterns from the user's samples:
+		- Text Style: [EXACT font feel, size, weight, color, effects — copied from sample data text_style field]
+		- Text Placement: [EXACT position — copied from sample data text_placement field]
+		- Composition Pattern: [EXACT focal placement, depth layers — copied from sample data composition field]
+		- Color Contrast Strategy: [EXACT strategy — copied from sample data color_contrast field]
+		- Color Palette: [EXACT hex colors — copied from sample data color_palette field]
+		- Art Style: [EXACT art_style and image_style — copied from sample data]
+		- Emotional Trigger: [EXACT emotion_trigger — copied from sample data]
+		- Lighting: [EXACT lighting setup — copied from sample data]
+		- Post Processing: [EXACT post_processing — copied from sample data]
 
-		Concept B — Pattern Interrupt (CTR Driver: Surprise/Novelty):
-		  Radically different composition from Concept A. Different emotional angle, text placement, color strategy.
+	STEP 2 — DESIGN ONE THUMBNAIL USING ONLY THE PATTERNS ABOVE:
+		Every design choice MUST be traceable to a specific field in the Thumbnail Style Data. No exceptions.
+		- Focal Point: [must use the sample composition pattern — same subject placement, same framing]
+		- Face Expression: [must match the sample facial_expression and emotion_trigger fields]
+		- Text Overlay: [1-4 words, MUST use the sample text_style (same font feel, same size, same effects). MUST use the sample text_placement position. Text color MUST come from the sample color_palette.]
+		- Color + Lighting: [MUST use the sample color_palette hex colors EXACTLY. MUST use the sample lighting setup. MUST use the sample color_contrast strategy. NO new colors. NO different lighting approach.]
+		- Composition: [MUST match the sample composition pattern — same focal placement, same depth layering, same negative space usage]
+		- Post Processing: [MUST apply the sample post_processing techniques]
 
-		A/B CTR Analysis:
-		  Concept A predicted CTR lever: [emotion/curiosity/fear/desire]
-		  Concept B predicted CTR lever: [surprise/pattern-interrupt/authority/scarcity]
-		  Mobile thumbnail test at 1/8 size: [which concept remains readable?]
-		  Final Recommendation: [winner + why it beats the other on CTR specifically]
+	STEP 3 — FIDELITY SELF-AUDIT:
+		Before finalizing, verify EVERY field against the Thumbnail Style Data:
+		- Text Style matches? [yes/no — if no, FIX IT]
+		- Text Placement matches? [yes/no — if no, FIX IT]
+		- Composition matches? [yes/no — if no, FIX IT]
+		- Color Palette matches (every hex color present)? [yes/no — if no, FIX IT]
+		- Art Style matches? [yes/no — if no, FIX IT]
+		If any answer is "no", rewrite that element using the EXACT sample data value.
+
+	CTR Prediction: [which CTR lever this design pulls — must align with the sample ctr_factors]
+	Mobile Readability (1/8 size test): [assessment at thumbnail size]
 
 	════════════════════════════════════════
 	BEATS (Voice + Image + Video per Beat, max 8 seconds each)
 	════════════════════════════════════════
 	Generate the full script as numbered BEATS. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
+
+		CONTENT TYPE RULES:
+		- If Content Type Detection above is "stills-only": Generate VOICE OVER segments + IMAGE PROMPT only. Do NOT generate VIDEO PROMPTS.
+		- If Content Type Detection above is "video-footage": Generate VOICE OVER segments + IMAGE PROMPT + VIDEO PROMPT for every beat.
 
 		RETENTION ARCHITECTURE:
 		- Beat 1: Cold open / pattern interrupt — NO intro, NO "hey guys," NO channel name. Jump straight into the most shocking/curious moment. First 8 seconds = 60% of audience retention decision.
@@ -295,7 +372,8 @@ SCRIPT DNA
 		- Middle beats (40-60% mark): Open loop — tease something coming later to prevent mid-video dropoff.
 		- Final 2 beats: Payoff + emotional resolution + specific call-to-comment tied to the video topic (algorithm weights comments heavily).
 
-			CRITICAL: Every image and video prompt must be a fully detailed, self-contained, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be complete enough to paste directly into an AI image/video generator with zero context.
+		CRITICAL MANDATORY RULE — STYLE FIDELITY:
+		Every image prompt and video prompt MUST use the EXACT values from the GLOBAL VISUAL STYLE section above. These are NON-NEGOTIABLE requirements, not suggestions. Before writing each prompt, mentally verify: (1) same art_style? (2) same color_palette — every color named? (3) same lighting setup? (4) same composition? (5) same render_quality? If ANY differ from the GLOBAL VISUAL STYLE, rewrite the prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be a complete, self-contained description that could be pasted directly into an AI image/video generator with zero additional context.
 
 	BEAT 1 — [Hook Moment]
 	VOICE OVER (0-4s):
@@ -308,9 +386,9 @@ SCRIPT DNA
 	  Elocution: [Stress words, pause markers.]
 	  Text: "[Dialogue continuing the thread. Each segment advances the narrative.]"
 
-	IMAGE PROMPT: [Fully detailed, self-contained text-to-image prompt. Include: subject description + pose/expression + environment + composition/framing + lighting setup (key light direction, quality, color temp) + color palette (3-5 named colors) + art style + render quality + atmosphere + aspect ratio. The global visual style is fully baked into this description. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
+	IMAGE PROMPT: [Fully detailed, self-contained text-to-image prompt using the EXACT GLOBAL VISUAL STYLE values. Include: subject description + pose/expression + environment + composition/framing (from GVS composition) + lighting setup (from GVS lighting — key light direction, quality, color temp) + color palette (from GVS color_palette — all colors named) + art style (from GVS art_style — exact value) + render quality (from GVS render_quality) + atmosphere (from GVS atmosphere) + aspect ratio. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
 
-	VIDEO PROMPT: [Fully detailed, self-contained text-to-video prompt. Include: shot type + camera movement + subject action/motion + environment dynamics (wind, particles, water) + lighting animation (how light moves/changes) + depth/parallax layers + transition out + art style + color palette + atmosphere + aspect ratio. The global visual style is fully baked into this description. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
+	VIDEO PROMPT: [ONLY if content type is "video-footage". Fully detailed, self-contained text-to-video prompt using the EXACT GLOBAL VISUAL STYLE values. Include: shot type + camera movement + subject action/motion + environment dynamics (wind, particles, water) + lighting animation (how light moves/changes using GVS lighting) + depth/parallax layers + transition out + art style (from GVS art_style) + color palette (from GVS color_palette) + atmosphere (from GVS atmosphere) + aspect ratio. No references, no shorthand, no pipe-delimited tags — everything spelled out in detailed prose.]
 
 	BEAT 2 — [Beat Name]
 	VOICE OVER (0-4s):
@@ -323,10 +401,10 @@ SCRIPT DNA
 	  Elocution: [...]
 	  Text: "[...]"
 
-	IMAGE PROMPT: [Fully detailed, self-contained. Subject + environment + composition + lighting + color palette + art style + render quality + atmosphere + aspect ratio. All style details spelled out in full prose.]
-	VIDEO PROMPT: [Fully detailed, self-contained. Shot + camera + subject action + environment dynamics + lighting animation + depth + transition + art style + color palette + atmosphere + aspect ratio. All style details spelled out in full prose.]
+	IMAGE PROMPT: [Fully detailed, self-contained — using EXACT GVS values. Subject + environment + composition + lighting + color palette + art style + render quality + atmosphere + aspect ratio. All style details spelled out in full prose.]
+	VIDEO PROMPT: [ONLY if content type is "video-footage". Fully detailed, self-contained — using EXACT GVS values. Shot + camera + subject action + environment dynamics + lighting animation + depth + transition + art style + color palette + atmosphere + aspect ratio. All style details spelled out in full prose.]
 
-	(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over segments (0-4s + 4-8s) + Image Prompt + Video Prompt. NO skipping. NO truncation. NO "(Continue...)". The Voice Over segments are the TTS-ready delivery script — every line can be fed directly into a text-to-speech engine. Every image and video prompt is fully self-contained with the global visual style baked in — detailed prose, no shorthand, no pipe tags.)
+	(Continue ALL beats — BEAT 3, BEAT 4, BEAT 5, BEAT 6... all the way to the final beat. EVERY beat gets Voice Over segments (0-4s + 4-8s) + Image Prompt. VIDEO PROMPT only if content type is "video-footage". NO skipping. NO truncation. NO "(Continue...)". The Voice Over segments are the TTS-ready delivery script — every line can be fed directly into a text-to-speech engine. Every image prompt is fully self-contained with the GLOBAL VISUAL STYLE baked in — detailed prose, no shorthand, no pipe tags.)
 
 ═══════════════════════════════════
 INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
@@ -343,13 +421,19 @@ Before finalizing, review every section above (Title, Description, Tags, Thumbna
 
 5. THE ALGORITHM WHISPERER — Would YouTube's algorithm surface this? Check: Is there a primary keyword in the first 45 chars of the title? Are the first 2 description lines keyword-rich? Are tags structured for search intent (not just random words)? Does the thumbnail pass the mobile-1/8-size readability test? Does the hook work in the first 8 seconds (YouTube tracks this)? Flag every missed ranking opportunity.
 
+5b. THE TITLE ORIGINALITY DETECTOR — Two-part check: (A) FORMULA FIDELITY: Does this title follow the Viral DNA's TITLE NAMING FORMULA exactly? Same structure? Same keyword family? Same voice? Same emotional lever? If it deviates from the DNA's proven formula, it FAILS. (B) TOPIC ORIGINALITY: Within that formula, is this specific topic/angle genuinely new? Search your training data — does any real video have this exact title or a close variation? Would searching this title on YouTube return zero results? If the topic is a word-swap of an existing popular video, it FAILS. The title must be a NEW angle delivered in the channel's PROVEN format.
+
 6. THE PLATFORM NATIVE — Where does retention drop? Flag the exact beat number where pacing dies, where the middle sags, where the payoff disappoints. Is there a pattern interrupt every 15-20 seconds? Does the ending earn the watch?
+
+ADDITIONAL STYLE FIDELITY AUDIT: Check every IMAGE PROMPT and VIDEO PROMPT against the GLOBAL VISUAL STYLE mandatory constraints. Flag EVERY instance where art_style, color_palette, lighting, composition, or render_quality diverges from the GVS values. These are FAILURES that must be fixed.
 
 For each critic, identify at least one CRITICAL FAILURE. Then REBUILD:
 - Hook weak? Replace it with a specific, visual, surprising pattern interrupt from the Viral DNA.
 - Middle dragging? Cut filler beats, inject a retention loop (open loop, stakes raise, or format twist).
 - Ending flat? Add a twist, an emotional payoff, or a specific call-to-comment tied to the topic.
 - Cliché phrases? Rewrite with concrete, niche-specific language the original creator would actually use.
+- Style mismatch? Rewrite the prompt using the EXACT GLOBAL VISUAL STYLE values — no substitutions allowed.
+- Title unoriginal or off-formula? If the title doesn't follow the DNA's TITLE NAMING FORMULA (wrong structure, wrong keywords, wrong voice), fix the formula first. Then ensure the topic/angle is genuinely new within that formula. The result must be: proven channel format + new topic no one has covered.
 
 Output ONLY the final, post-review version. Never show the draft or the critique.
 
@@ -390,6 +474,9 @@ You analyze, model, and recreate YouTube content styles at cinema-grade quality.
 Niche: {niche}
 Duration: {target_length} minutes (~{target_length} × 150 words)
 
+## Content Type Detection
+{content_type}
+
 # OUTPUT FORMAT
 Produce the following sections in order. Every section is mandatory.
 
@@ -404,11 +491,37 @@ SCRIPT DNA
     Pacing: [words/sec, sentence rhythm from DNA]
     Hook style: [how the DNA hooks, applied to this script]
     Emotional flow: [tension arc across the script]
-    Global Visual Style: [from Visual Style Profile — art style, color palette, lighting setup, render quality, atmosphere. This exact style is fully embedded in every image and video prompt below.]
+
+    ════════════════════════════════════════
+    GLOBAL VISUAL STYLE — MANDATORY CONSTRAINTS
+    ════════════════════════════════════════
+    The values below are extracted from the uploaded reference images. They are NON-NEGOTIABLE. Every cinematography prompt and image prompt below MUST use these exact values. This is not a suggestion — it is a requirement.
+
+    Art Style: [EXACT art_style from Visual Style Profile — DO NOT substitute, DO NOT reinterpret]
+    Color Palette: [EXACT color_palette from Visual Style Profile — every color named, every prompt uses these colors]
+    Lighting Setup: [EXACT lighting from Visual Style Profile — key light direction, quality, color temperature]
+    Composition: [EXACT composition from Visual Style Profile — subject placement, framing, depth layers]
+    Camera Angle: [EXACT camera_angle from Visual Style Profile]
+    Render Quality: [EXACT render_quality from Visual Style Profile]
+    Atmosphere: [EXACT emotion + environment from Visual Style Profile]
+    Cinematic Style: [EXACT cinematic_style from Visual Style Profile]
+
+    VIOLATION RULES — before writing ANY cinematography or image prompt, verify ALL of the following:
+    1. SAME ART STYLE? The prompt MUST use the exact art_style value above. If Visual Style Profile says art_style is "stylized 3D", every prompt says "stylized 3D" — never "photorealistic", never "2D illustration", never anything else.
+    2. SAME COLOR PALETTE? Every prompt MUST name the exact colors from the color_palette above. Do NOT add new colors. Do NOT omit any of the palette colors.
+    3. SAME LIGHTING? Every prompt MUST describe the exact key light direction, quality, and color temperature from the lighting field above.
+    4. SAME COMPOSITION? Every prompt MUST use the subject placement, framing, and depth layering from the composition field above.
+    5. SAME RENDER QUALITY? Every prompt MUST specify the exact render_quality from above.
+    If ANY prompt differs from these values, that prompt is INCORRECT and must be rewritten.
 
     ────────────────────────────────────────
     FINAL SEO TITLE
     (after A/B analysis — winner with max 2 hyper-optimized SEO emojis)
+    ORIGINALITY CHECK — FOLLOW THE DNA FORMULA, FIND A NEW ANGLE:
+    1. STRUCTURE: Does this title use the EXACT title structure from the Viral DNA's TITLE NAMING FORMULA (section 4)? If not, rewrite it to match the DNA's proven structure.
+    2. KEYWORDS: Does it use 1-2 words from the DNA's KEYWORD FAMILY? If not, swap in a DNA keyword.
+    3. VOICE: Does it match the DNA's TITLE VOICE (first/second/third person)? If not, fix the voice.
+    4. ORIGINALITY: Is the specific TOPIC/ANGLE genuinely new — not a rephrase, remix, or slight variation of any existing YouTube title. Search your training data; if anything close exists, discard and pick a different angle. Use a framing, question, or perspective no real channel has published. Do NOT recycle the standard title templates every channel in this niche uses. If the title feels familiar, it is WRONG.
 
     DESCRIPTION
     - Above-fold hook (first 2 lines): [hook using high-search-volume keywords]
@@ -419,71 +532,96 @@ SCRIPT DNA
     tag1, tag2, tag3
 
     ════════════════════════════════════════
-    THUMBNAIL DESIGN
+    THUMBNAIL DESIGN — Sample-Driven (replicate, do NOT invent)
     ════════════════════════════════════════
-    Design as a cinematic movie poster using thumbnail style data above.
 
-    Concept A — Emotion-Forward:
-      Focal Point: [exactly what the viewer sees — character close-up or epic scene]
-      Emotional Hook: [the question this image plants]
-      Composition: [foreground frame → midground subject → background atmosphere]
-      Text Overlay: [wording (1-4 words), cinematic serif font, gold/emboss texture, drop shadow, position]
-      Color + Lighting: [palette + key light + rim + volumetrics]
+    STEP 1 — EXTRACT PATTERNS FROM THE THUMBNAIL STYLE DATA ABOVE:
+        Read the Thumbnail Style Data carefully. Identify these EXACT patterns from the user's samples:
+        - Text Style: [EXACT font feel, size, weight, color, effects — copied from sample data text_style field]
+        - Text Placement: [EXACT position — copied from sample data text_placement field]
+        - Composition Pattern: [EXACT focal placement, depth layers — copied from sample data composition field]
+        - Color Contrast Strategy: [EXACT strategy — copied from sample data color_contrast field]
+        - Color Palette: [EXACT hex colors — copied from sample data color_palette field]
+        - Art Style: [EXACT art_style and image_style — copied from sample data]
+        - Emotional Trigger: [EXACT emotion_trigger — copied from sample data]
+        - Lighting: [EXACT lighting setup — copied from sample data]
+        - Post Processing: [EXACT post_processing — copied from sample data]
 
-    Concept B — CTR-Optimized Alternative:
-      (Different composition, different emotional angle, different text treatment)
+    STEP 2 — DESIGN ONE THUMBNAIL USING ONLY THE PATTERNS ABOVE:
+        Every design choice MUST be traceable to a specific field in the Thumbnail Style Data. No exceptions.
+        - Focal Point: [must use the sample composition pattern — same subject placement, same framing]
+        - Face Expression: [must match the sample facial_expression and emotion_trigger fields]
+        - Text Overlay: [1-4 words, MUST use the sample text_style (same font feel, same size, same effects). MUST use the sample text_placement position. Text color MUST come from the sample color_palette.]
+        - Color + Lighting: [MUST use the sample color_palette hex colors EXACTLY. MUST use the sample lighting setup. MUST use the sample color_contrast strategy. NO new colors. NO different lighting approach.]
+        - Composition: [MUST match the sample composition pattern — same focal placement, same depth layering, same negative space usage]
+        - Post Processing: [MUST apply the sample post_processing techniques]
 
-    A/B Analysis:
-      Concept A strength: [which CTR lever]
-      Concept B strength: [which CTR lever]
-      Final Recommendation: [winner + niche-specific reasoning]
+    STEP 3 — FIDELITY SELF-AUDIT:
+        Before finalizing, verify EVERY field against the Thumbnail Style Data:
+        - Text Style matches? [yes/no — if no, FIX IT]
+        - Text Placement matches? [yes/no — if no, FIX IT]
+        - Composition matches? [yes/no — if no, FIX IT]
+        - Color Palette matches (every hex color present)? [yes/no — if no, FIX IT]
+        - Art Style matches? [yes/no — if no, FIX IT]
+        If any answer is "no", rewrite that element using the EXACT sample data value.
+
+    CTR Prediction: [which CTR lever this design pulls — must align with the sample ctr_factors]
+    Mobile Readability (1/8 size test): [assessment at thumbnail size]
 
     ════════════════════════════════════════
     CINEMATIC TIMELINE (Voice + Cinematography per Beat, max 8 seconds each)
     ════════════════════════════════════════
     Generate the full script as a CINEMATIC TIMELINE. Each beat = ~8 seconds (~20 spoken words). A {target_length}-minute video needs roughly {target_length} × 7.5 beats. Generate ALL beats in full — never truncate.
 
-    CRITICAL: Every cinematography prompt is a fusion of image + video direction — the visual scene AND the camera movement are described together as one unified, copy-paste-ready prompt. Bake the Global Visual Style (art style, color palette, lighting, composition, render quality, atmosphere) directly into every single prompt. NO shorthand like "| Style: tags" — the style IS the prompt.
+    CONTENT TYPE RULES:
+    - If Content Type Detection above is "stills-only": Generate VOICE OVER segments + IMAGE PROMPT only. Do NOT generate CINEMATOGRAPHY PROMPTS.
+    - If Content Type Detection above is "video-footage": Generate VOICE OVER segments + CINEMATOGRAPHY PROMPT for every beat. Cinematography prompts fuse image + video direction together.
+
+    CRITICAL MANDATORY RULE — STYLE FIDELITY:
+    Every cinematography prompt and image prompt MUST use the EXACT values from the GLOBAL VISUAL STYLE section above. These are NON-NEGOTIABLE requirements, not suggestions. Before writing each prompt, mentally verify: (1) same art_style? (2) same color_palette — every color named? (3) same lighting setup? (4) same composition? (5) same render_quality? If ANY differ from the GLOBAL VISUAL STYLE, rewrite the prompt. NO shorthand like "| Style: tags" — the style IS the prompt. Each prompt must be a complete, self-contained description that could be pasted directly into an AI image/video generator with zero additional context.
 
     TIMELINE FORMAT — Each beat follows this structure:
 
     [00:00 → 00:08] BEAT 1 — [Hook Moment — NO intro, instant pattern interrupt]
-	    VOICE OVER (0-4s):
-	      Delivery: [Tone — urgent/calm/tense/curious/warm/authoritative. Pace — rapid/measured/slow. Pitch — high/mid/low. Emotion — fear/awe/excitement/concern/wonder.]
-	      Elocution: [Words to STRESS in ALL CAPS. Pause markers: / = micro-pause, // = beat pause.]
-	      Text: "[Pure spoken dialogue. Natural speech patterns. No narration clichés.]"
+        VOICE OVER (0-4s):
+          Delivery: [Tone — urgent/calm/tense/curious/warm/authoritative. Pace — rapid/measured/slow. Pitch — high/mid/low. Emotion — fear/awe/excitement/concern/wonder.]
+          Elocution: [Words to STRESS in ALL CAPS. Pause markers: / = micro-pause, // = beat pause.]
+          Text: "[Pure spoken dialogue. Natural speech patterns. No narration clichés.]"
 
-	    VOICE OVER (4-8s):
-	      Delivery: [How tone/pacing SHIFTS from previous segment — build tension, release, pivot, escalate.]
-	      Elocution: [Stress words, pause markers.]
-	      Text: "[Dialogue continuing the thread. Each segment advances the narrative.]"
+        VOICE OVER (4-8s):
+          Delivery: [How tone/pacing SHIFTS from previous segment — build tension, release, pivot, escalate.]
+          Elocution: [Stress words, pause markers.]
+          Text: "[Dialogue continuing the thread. Each segment advances the narrative.]"
 
-    CINEMATOGRAPHY PROMPT: [Unified image+video prompt. Include ALL of the following in detailed prose:
+    IMAGE PROMPT: [ONLY if content type is "stills-only". Fully detailed, self-contained text-to-image prompt using the EXACT GLOBAL VISUAL STYLE values. Include: subject description + pose/expression + environment + composition/framing (from GVS composition) + lighting setup (from GVS lighting — key light direction, quality, color temp) + color palette (from GVS color_palette — all colors named) + art style (from GVS art_style — exact value) + render quality (from GVS render_quality) + atmosphere (from GVS atmosphere) + aspect ratio 16:9. No references, no shorthand — everything spelled out in detailed prose.]
+
+    CINEMATOGRAPHY PROMPT: [ONLY if content type is "video-footage". Unified image+video prompt using the EXACT GLOBAL VISUAL STYLE values. Include ALL of the following in detailed prose:
     • Shot Type & Framing: extreme close-up / close-up / medium / wide / establishing — with exact framing description
     • Camera Movement: static lock-off / slow push-in / dolly left-right / crane up-down / handheld float / whip pan / rack focus / parallax slide — with speed and easing
     • Subject Action & Blocking: exact pose, expression, gesture, movement path, interaction with environment
-    • Lighting Design: key light source/direction/quality/color temp + fill ratio + rim/backlight + practicals in scene + volumetric/atmospheric light
-    • Color Palette: 4-6 named colors with hex-like descriptors (e.g. "deep indigo shadow #1a1a2e", "warm amber key #d4a574")
+    • Lighting Design: key light source/direction/quality/color temp (from GVS lighting) + fill ratio + rim/backlight + practicals in scene + volumetric/atmospheric light
+    • Color Palette: the EXACT colors from GVS color_palette with hex-like descriptors (e.g. "deep indigo shadow #1a1a2e", "warm amber key #d4a574")
     • Environment & Set Dressing: location details, props, atmosphere elements (fog, dust, particles, water, fire)
     • Depth & Parallax: foreground/midground/background separation, which layers move independently for 2.5D effect
-    • Art Style & Render: photorealistic / stylized / painterly / 3D render — with render engine reference if relevant
+    • Art Style & Render: EXACT art_style and render_quality from GVS — no substitutions
     • Aspect Ratio: 16:9
     • Transition Out: how this shot transitions to the next beat (dissolve / whip / match cut / hard cut / fade)]
 
     [00:08 → 00:16] BEAT 2 — [Beat Name]
-	    VOICE OVER (0-4s):
-	      Delivery: [...]
-	      Elocution: [...]
-	      Text: "[...]"
+        VOICE OVER (0-4s):
+          Delivery: [...]
+          Elocution: [...]
+          Text: "[...]"
 
-	    VOICE OVER (4-8s):
-	      Delivery: [...]
-	      Elocution: [...]
-	      Text: "[...]"
+        VOICE OVER (4-8s):
+          Delivery: [...]
+          Elocution: [...]
+          Text: "[...]"
 
-    CINEMATOGRAPHY PROMPT: [Same unified structure as above — shot, camera movement, subject, lighting, color, environment, depth, art style, ratio, transition. All fully detailed prose, no shorthand.]
+    IMAGE PROMPT: [ONLY if content type is "stills-only". Fully detailed, self-contained — using EXACT GVS values. Subject + environment + composition + lighting + color palette + art style + render quality + atmosphere + aspect ratio. All style details spelled out in full prose.]
+    CINEMATOGRAPHY PROMPT: [ONLY if content type is "video-footage". Same unified structure as above — shot, camera movement, subject, lighting (from GVS), color (from GVS), environment, depth, art style (from GVS), ratio, transition. All fully detailed prose, no shorthand.]
 
-	    (Continue ALL beats with timeline markers — [00:16 → 00:24] BEAT 3, [00:24 → 00:32] BEAT 4... all the way to the final beat. EVERY beat gets Voice Over segments (0-4s + 4-8s) + Cinematography Prompt. NO skipping. NO truncation. NO "(Continue...)". The Voice Over segments are the TTS-ready delivery script — every line can be fed directly into a text-to-speech engine. Each cinematography prompt is a fully self-contained fusion of image+video direction — the camera IS the visual, the visual IS the camera.)
+        (Continue ALL beats with timeline markers — [00:16 → 00:24] BEAT 3, [00:24 → 00:32] BEAT 4... all the way to the final beat. EVERY beat gets Voice Over segments (0-4s + 4-8s). IMAGE PROMPT only if stills-only. CINEMATOGRAPHY PROMPT only if video-footage. NO skipping. NO truncation. NO "(Continue...)". The Voice Over segments are the TTS-ready delivery script — every line can be fed directly into a text-to-speech engine. Every image/cinematography prompt is fully self-contained with the GLOBAL VISUAL STYLE baked in — detailed prose, no shorthand, no pipe tags.)
 
 ═══════════════════════════════════
 INTERNAL REVIEW (Mandatory — run silently, do NOT output the draft)
@@ -498,28 +636,34 @@ Before finalizing, review every section above (Title, Description, Thumbnail, AL
 
 4. THE SHARE-GATEKEEPER — Why would someone feel embarrassed to share this? Is the emotional tone cringe, try-hard, or inauthentic? Does it match how real humans in this niche actually talk?
 
+4b. THE TITLE ORIGINALITY DETECTOR — Two-part check: (A) FORMULA FIDELITY: Does this title follow the Viral DNA's TITLE NAMING FORMULA exactly? Same structure? Same keyword family? Same voice? Same emotional lever? If it deviates from the DNA's proven formula, it FAILS. (B) TOPIC ORIGINALITY: Within that formula, is this specific topic/angle genuinely new? Search your training data — does any real video have this exact title or a close variation? Would searching this title on YouTube return zero results? If the topic is a word-swap of an existing popular video, it FAILS. The title must be a NEW angle delivered in the channel's PROVEN format.
+
 5. THE PLATFORM NATIVE — Where does retention drop? Flag the exact timestamp where pacing dies, where the middle sags, where the payoff disappoints. Is there a pattern interrupt every 15-20 seconds? Does the ending earn the watch?
+
+ADDITIONAL STYLE FIDELITY AUDIT: Check every IMAGE PROMPT and CINEMATOGRAPHY PROMPT against the GLOBAL VISUAL STYLE mandatory constraints. Flag EVERY instance where art_style, color_palette, lighting, composition, or render_quality diverges from the GVS values. These are FAILURES that must be fixed.
 
 For each critic, identify at least one CRITICAL FAILURE. Then REBUILD:
 - Hook weak? Replace it with a specific, visual, surprising pattern interrupt from the Viral DNA.
 - Middle dragging? Cut filler beats, inject a retention loop (open loop, stakes raise, or format twist).
 - Ending flat? Add a twist, an emotional payoff, or a specific call-to-comment tied to the topic.
 - Cliché phrases? Rewrite with concrete, niche-specific language the original creator would actually use.
+- Style mismatch? Rewrite the prompt using the EXACT GLOBAL VISUAL STYLE values — no substitutions allowed.
+- Title unoriginal or off-formula? If the title doesn't follow the DNA's TITLE NAMING FORMULA (wrong structure, wrong keywords, wrong voice), fix the formula first. Then ensure the topic/angle is genuinely new within that formula. The result must be: proven channel format + new topic no one has covered.
 
 Output ONLY the final, post-review version. Never show the draft or the critique.
 
 ═══════════════════════════════
 VOICE PROMPT
 ═══════════════════════════════
-	Tone: [vocal tone — warm, urgent, mysterious, authoritative. Per-beat tone shifts are specified in the VOICE OVER Delivery fields above.]
-	Mood Arc: [how emotion shifts across the full video — curious → tense → relieved. Individual beat emotions specified per segment above.]
-	Pacing: [overall tempo — rapid opening, slow contemplation, building urgency. Per-segment pacing specified in Delivery fields above.]
-	Vocal Register: [pitch, breathiness, projection. The TTS engine should reference the Delivery + Elocution fields in each VOICE OVER segment for per-line performance direction.]
+    Tone: [vocal tone — warm, urgent, mysterious, authoritative. Per-beat tone shifts are specified in the VOICE OVER Delivery fields above.]
+    Mood Arc: [how emotion shifts across the full video — curious → tense → relieved. Individual beat emotions specified per segment above.]
+    Pacing: [overall tempo — rapid opening, slow contemplation, building urgency. Per-segment pacing specified in Delivery fields above.]
+    Vocal Register: [pitch, breathiness, projection. The TTS engine should reference the Delivery + Elocution fields in each VOICE OVER segment for per-line performance direction.]
 {{if multiple characters, include per character: Character [Name]: [vocal quality, accent, age feel, personality in voice]}}
 
-═══════════════════════════════
+═══════════════════════════
 ALIGNMENT SUMMARY
-═══════════════════════════════
+═══════════════════════════
 [00:00 → 00:08] Beat 1 → Voice: "[line]" → Image: [scene] → Video: [motion]
 [00:08 → 00:16] Beat 2 → Voice: "[line]" → Image: [scene] → Video: [motion]
 (All beats mapped with timestamps. Shows visual-audio-temporal sync.)"""
@@ -651,6 +795,7 @@ def normalize_visual_json(raw_json):
 VISUAL_ANALYSIS_SYSTEM_INSTRUCTION = """Analyze this reference image from a video. Extract objective visual data for AI image/video recreation.
 Return ONLY a JSON object with these exact keys:
 {
+  "content_type": "video-footage OR still-with-effects OR stills-only",
   "art_style": "stylized 3D / 2D illustration / photorealistic / cinematic animation / etc.",
   "camera_angle": "eye-level / low angle / high angle / dutch tilt / aerial / etc.",
   "lighting": "key light direction + quality (soft/hard) + color temperature",
@@ -667,6 +812,12 @@ Return ONLY a JSON object with these exact keys:
   "render_quality": "low-poly / high-detail / painterly / smooth / textured",
   "style_tags": ["tag1", "tag2", "tag3"]
 }
+
+content_type definitions:
+- "video-footage": Real footage — live action, animation, screen recording, or anything with genuine motion. Has depth, camera movement, or subject action.
+- "still-with-effects": Static image/frame with post-processing effects applied (text overlays, zoom/pan effects, color grades on a photo, motion graphics on a still frame). The base is a still, not video.
+- "stills-only": Pure static images — screenshots, photos, slides, diagrams. No effects, no motion.
+
 Be extremely detailed and objective. No creative writing. No storytelling. Just visual facts."""
 
 THUMBNAIL_ANALYSIS_SYSTEM_INSTRUCTION = """Analyze this YouTube thumbnail image in extreme detail. Extract objective visual design data for AI recreation.
@@ -1157,11 +1308,18 @@ def _run_generation(job_id, token, system_prompt, user_message, chosen_title):
         heartbeat_stop[0] = True
         _update_progress(95, 'Finalizing package...')
         _time_module.sleep(0.3)
+        # Preserve regeneration fields from the running job
+        old_job = generation_jobs.get(job_id, {})
         generation_jobs[job_id] = {
             'status': 'complete',
             'token': token,
             'title': chosen_title,
             'result': result,
+            'package': result,
+            'plan': old_job.get('plan', 'basic'),
+            'thumbnail_regens_remaining': old_job.get('thumbnail_regens_remaining', 0),
+            'visual_json': old_job.get('visual_json'),
+            'thumbnail_json': old_job.get('thumbnail_json'),
             'percent': 100,
             'step': milestones[-1][1],
             'created_at': _time_module.time()
@@ -1220,8 +1378,18 @@ def generate_package():
         niche = extract_niche(viral_dna)
 
         # Build style context from vision analysis
-        vis_str = json.dumps(visual_json, indent=2) if visual_json else 'No visual reference provided — use the Viral DNA to infer visual style.'
+        if visual_json:
+            vis_str = json.dumps(visual_json, indent=2)
+            per_image = visual_json.get('per_image_analysis', [])
+            if per_image:
+                vis_str += "\n\nPER-IMAGE BREAKDOWN (individual reference frames — shows style variety across the channel):\n"
+                for i, img in enumerate(per_image):
+                    vis_str += f"\n--- Reference Image {i+1} ---\n"
+                    vis_str += json.dumps(img, indent=2)
+        else:
+            vis_str = 'No visual reference provided — use the Viral DNA to infer visual style.'
         thumb_str = json.dumps(thumbnail_json, indent=2) if thumbnail_json else 'No thumbnail reference provided — use the Viral DNA to infer thumbnail style.'
+        content_type = (visual_json or {}).get('content_type', 'video-footage')
 
         # Trim transcript to ~4000 chars for context window economy
         tx_raw = transcript_context.strip() if transcript_context else ''
@@ -1240,7 +1408,8 @@ def generate_package():
             target_length=video_length,
             visual_json=vis_str,
             thumbnail_json=thumb_str,
-            transcript_context=tx_str
+            transcript_context=tx_str,
+            content_type=content_type
         )
         user_message = f"TITLE: {chosen_title}\nTOPIC: {topic or chosen_title}\nNICHE: {niche}\nTARGET LENGTH: {video_length} minutes"
 
@@ -1249,9 +1418,15 @@ def generate_package():
 
         # Start generation in background thread to avoid Railway proxy timeout
         job_id = uuid.uuid4().hex[:16]
+        regen_limit = PLAN_CONFIG.get(plan, {}).get('thumbnail_regens', 0)
         generation_jobs[job_id] = {
             'status': 'running',
             'token': token,
+            'plan': plan,
+            'thumbnail_regens_remaining': regen_limit,
+            'visual_json': visual_json,
+            'thumbnail_json': thumbnail_json,
+            'package': None,
             'created_at': _time_module.time()
         }
         thread = threading.Thread(
@@ -1294,6 +1469,9 @@ def generation_status(job_id):
             'status': 'complete',
             'package': job['result'],
             'title': job['title'],
+            'job_id': job_id,
+            'plan': job.get('plan', 'basic'),
+            'thumbnail_regens_remaining': job.get('thumbnail_regens_remaining', 0),
             'credits_remaining': remaining['credits'] if remaining else 0,
             'percent': 100,
             'step': 'Package ready!',
@@ -1309,6 +1487,171 @@ def generation_status(job_id):
         }), 500
 
     return jsonify({'status': 'unknown'}), 500
+
+
+# ── Thumbnail Regeneration ──────────────────────────────────────
+
+THUMBNAIL_REGENERATION_PROMPT = """# ROLE: YouTube Thumbnail Designer — Sample-Driven Regeneration
+You are regenerating ONLY the THUMBNAIL DESIGN section of a YouTube content package. Do NOT change any other section.
+
+# ORIGINAL PACKAGE (for context — the thumbnail must fit this video's topic and tone)
+{current_package}
+
+# VISUAL STYLE PROFILE (from the user's reference images)
+{visual_json}
+
+# THUMBNAIL STYLE DATA (from the user's actual thumbnail samples — THIS IS YOUR SOURCE OF TRUTH)
+{thumbnail_json}
+
+# INSTRUCTIONS
+1. Read the Thumbnail Style Data above. This is the user's ACTUAL thumbnail style — their real, tested design patterns.
+2. Extract these EXACT patterns from the samples:
+   - Text Style: EXACT font feel, size, weight, color, effects from sample text_style
+   - Text Placement: EXACT position from sample text_placement
+   - Composition: EXACT focal placement, depth layers from sample composition
+   - Color Contrast: EXACT strategy from sample color_contrast
+   - Color Palette: EXACT hex colors from sample color_palette
+   - Art Style: EXACT art_style and image_style from samples
+   - Emotional Trigger: EXACT emotion_trigger from samples
+   - Lighting: EXACT lighting setup from samples
+   - Post Processing: EXACT post_processing from samples
+
+3. Design ONE thumbnail for this specific video that FAITHFULLY applies the sample patterns. Every design choice MUST be traceable to a field in the Thumbnail Style Data.
+
+4. STYLE VIOLATION RULES:
+   - Color palette: MUST use the EXACT hex colors from the sample data. NO new colors.
+   - Text style: MUST use the EXACT font feel, size, weight, and effects from the sample text_style field. Do NOT change the font approach.
+   - Text placement: MUST use the EXACT position from the sample text_placement field.
+   - Composition: MUST use the EXACT focal placement and depth layering from the sample data.
+   - Lighting: MUST use the EXACT key light direction, quality, and color temperature from the sample data.
+   - Art style: MUST match the sample's art_style and image_style EXACTLY. Do NOT reinterpret.
+
+5. SELF-AUDIT before returning: For each field above, confirm it matches the Thumbnail Style Data. If any value differs, rewrite that element.
+
+# OUTPUT FORMAT
+Return ONLY the THUMBNAIL DESIGN section, using this exact structure:
+
+════════════════════════════════════════
+THUMBNAIL DESIGN
+════════════════════════════════════════
+
+PATTERNS EXTRACTED FROM SAMPLES:
+  Text Style: [EXACT sample text_style]
+  Text Placement: [EXACT sample text_placement]
+  Composition Pattern: [EXACT sample composition]
+  Color Contrast Strategy: [EXACT sample color_contrast]
+  Color Palette: [EXACT sample color_palette]
+  Art Style: [EXACT sample art_style / image_style]
+  Emotional Trigger: [EXACT sample emotion_trigger]
+  Lighting: [EXACT sample lighting]
+  Post Processing: [EXACT sample post_processing]
+
+FINAL DESIGN:
+  Focal Point: [matches sample composition — same subject placement, same framing]
+  Face Expression: [matches sample facial_expression + emotion_trigger]
+  Text Overlay: [1-4 words, uses EXACT sample text_style and text_placement. Colors from sample palette.]
+  Color + Lighting: [uses EXACT sample palette hex colors + EXACT sample lighting setup + EXACT sample color_contrast strategy]
+  Composition: [matches sample composition pattern exactly]
+  Post Processing: [matches sample post_processing]
+
+FIDELITY SELF-AUDIT:
+  Text Style matches samples? [YES/NO — if NO, FIX]
+  Text Placement matches samples? [YES/NO — if NO, FIX]
+  Composition matches samples? [YES/NO — if NO, FIX]
+  Color Palette matches samples (every hex color present)? [YES/NO — if NO, FIX]
+  Art Style matches samples? [YES/NO — if NO, FIX]
+
+CTR Prediction: [aligned with sample ctr_factors]
+Mobile Readability: [assessment at thumbnail size]
+
+Return ONLY this section. Do NOT include any other part of the package."""
+
+
+def extract_thumbnail_section(package_text):
+    """Extract just the THUMBNAIL DESIGN section from a full package."""
+    if not package_text:
+        return ''
+    # Match from THUMBNAIL DESIGN header to the next major section (BEATS, CINEMATIC TIMELINE, or end)
+    patterns = [
+        r'(═+[\s]*THUMBNAIL DESIGN[\s\S]*?)(?=═+[\s]*(?:BEATS|CINEMATIC TIMELINE|INTERNAL REVIEW)|$)',
+        r'(═══+[\s]*THUMBNAIL DESIGN[\s\S]*?)(?=═══+[\s]*(?:BEATS|CINEMATIC TIMELINE|INTERNAL REVIEW)|$)',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, package_text)
+        if match:
+            return match.group(1).strip()
+    return ''
+
+
+@app.route('/api/regenerate-thumbnail', methods=['POST'])
+@require_token
+def regenerate_thumbnail():
+    """Regenerate only the thumbnail section of a generated package. Plan-gated limits apply."""
+    data = request.json or {}
+    job_id = data.get('job_id', '')
+
+    if not job_id:
+        return jsonify({'error': 'job_id is required'}), 400
+
+    job = generation_jobs.get(job_id)
+    if not job:
+        return jsonify({'error': 'Generation job not found. It may have expired.'}), 404
+
+    if job.get('status') != 'complete':
+        return jsonify({'error': 'Package generation is not yet complete.'}), 400
+
+    remaining = job.get('thumbnail_regens_remaining', 0)
+    if remaining <= 0:
+        plan = job.get('plan', 'basic')
+        return jsonify({
+            'error': 'No thumbnail regenerations remaining for your plan.',
+            'regenerations_remaining': 0
+        }), 402
+
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    log_action(token, 'regenerate_thumbnail')
+
+    try:
+        current_package = job.get('package', '')
+        vis_json = job.get('visual_json') or {}
+        thumb_json = job.get('thumbnail_json') or {}
+
+        regen_prompt = THUMBNAIL_REGENERATION_PROMPT.format(
+            current_package=current_package[:8000],  # truncate to avoid token bloat
+            visual_json=json.dumps(vis_json, indent=2),
+            thumbnail_json=json.dumps(thumb_json, indent=2)
+        )
+
+        result = call_ai(regen_prompt, "Regenerate only the THUMBNAIL DESIGN section based on the sample data provided.", max_tokens=4096)
+
+        # Extract just the thumbnail section from the result
+        thumbnail_section = extract_thumbnail_section(result)
+        if not thumbnail_section:
+            thumbnail_section = result  # fallback: use raw result
+
+        # Update the stored package — replace the old thumbnail section
+        old_thumb_section = extract_thumbnail_section(current_package)
+        if old_thumb_section and thumbnail_section:
+            job['package'] = current_package.replace(old_thumb_section, thumbnail_section)
+        else:
+            job['package'] = current_package  # keep original if extraction failed
+
+        # Update global last_generated_package for PDF download
+        global last_generated_package
+        last_generated_package = {'content': job['package'], 'title': job.get('title', '')}
+
+        # Decrement remaining
+        job['thumbnail_regens_remaining'] = remaining - 1
+
+        return jsonify({
+            'success': True,
+            'thumbnail_section': thumbnail_section,
+            'regenerations_remaining': job['thumbnail_regens_remaining']
+        })
+
+    except Exception as e:
+        print(f"Thumbnail regeneration error: {e}")
+        return jsonify({'error': 'Thumbnail regeneration failed. Please try again.'}), 500
 
 
 @app.route('/api/download-package', methods=['GET'])
@@ -1572,6 +1915,13 @@ def analyze_visuals():
         tag_counts = Counter(all_tags)
         merged['style_tags'] = [tag for tag, _ in tag_counts.most_common(15)]
         merged['per_image_analysis'] = results
+
+        # Aggregate content_type: video-footage if ANY frame has real motion, otherwise stills-only
+        content_types = [r.get('content_type', 'video-footage') for r in results]
+        if any(ct == 'video-footage' for ct in content_types):
+            merged['content_type'] = 'video-footage'
+        else:
+            merged['content_type'] = 'stills-only'
 
         return jsonify({'visual_profile': merged, 'success': True})
     except Exception as e:
