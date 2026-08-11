@@ -49,3 +49,5 @@ data.db
 
 # Claude Code
 .claude/
+MORELIKE_MARKETING_VIDEO.md
+build_marketing_pdf.py
