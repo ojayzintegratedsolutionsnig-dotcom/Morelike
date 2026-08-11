@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { jsPDF } from 'jspdf'
+import { fetchTranscript, extractVideoId } from '../utils/transcriptFetcher'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://morelike-morelike.up.railway.app'
 const LEMON_SQUEEZY_URL = import.meta.env.VITE_LEMON_SQUEEZY_URL || 'https://morelike.lemonsqueezy.com/checkout/buy/a6315998-f19d-4806-ba57-a40dd789348b'
@@ -325,6 +326,9 @@ function Portal() {
 
   // Per-video extraction status
   const [extractionVideos, setExtractionVideos] = useState([])
+
+  // Per-video transcript auto-fetch status: { [videoId]: 'idle' | 'loading' | 'done' | 'error' }
+  const [transcriptFetching, setTranscriptFetching] = useState({})
 
   // Pending title (held during paywall)
   const pendingTitle = useRef('')
@@ -906,6 +910,36 @@ function Portal() {
     setThumbnailImages((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // ── Auto-fetch transcript for a single video ──────────────────
+  const handleAutoFetchTranscript = async (videoId) => {
+    setTranscriptFetching(prev => ({ ...prev, [videoId]: 'loading' }))
+    try {
+      const text = await fetchTranscript(videoId)
+      setManualTranscripts(prev => ({ ...prev, [videoId]: text }))
+      setTranscriptFetching(prev => ({ ...prev, [videoId]: 'done' }))
+    } catch (e) {
+      console.error(`Transcript fetch failed for ${videoId}:`, e.message)
+      setTranscriptFetching(prev => ({ ...prev, [videoId]: 'error' }))
+      // Don't block — user can still paste manually
+    }
+  }
+
+  // ── Fetch all transcripts at once ─────────────────────────────
+  const handleFetchAllTranscripts = async () => {
+    const pendingVideos = videoMeta.filter(v => {
+      const status = transcriptFetching[v.id]
+      const hasTranscript = (manualTranscripts[v.id] || '').trim().length > 20
+      return !hasTranscript && status !== 'loading' && status !== 'done'
+    })
+    if (pendingVideos.length === 0) return
+
+    // Fetch in parallel with a small stagger to avoid rate limiting
+    const batch = pendingVideos.map((v, i) =>
+      new Promise(resolve => setTimeout(resolve, i * 300)).then(() => handleAutoFetchTranscript(v.id))
+    )
+    await Promise.allSettled(batch)
+  }
+
   // ── Manual transcript submit ──────────────────────────────────
   const handleManualSubmit = async () => {
     setFlow('processing')
@@ -1051,6 +1085,7 @@ function Portal() {
     setCurrentJobId('')
     setThumbnailRegens(0)
     setRegenLoading(false)
+    setTranscriptFetching({})
   }
 
   // Logout
@@ -1287,24 +1322,62 @@ function Portal() {
         {/* ── MANUAL TRANSCRIPT UPLOAD (scrape mode) ──────── */}
         {flow === 'manual_transcripts' && inputModeRef.current !== 'idea' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-amber-500/30">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-3 h-3 bg-amber-400 rounded-full animate-pulse" />
-              <span className="text-amber-400 font-semibold text-sm">Auto-extraction blocked by YouTube</span>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-400 rounded-full" />
+                <span className="text-green-400 font-semibold text-sm">Auto-fetch now available</span>
+              </div>
+              <button
+                onClick={handleFetchAllTranscripts}
+                disabled={videoMeta.every(v => (manualTranscripts[v.id] || '').trim().length > 20 || transcriptFetching[v.id] === 'loading')}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-sm"
+              >
+                Fetch All Transcripts
+              </button>
             </div>
-            <h2 className="text-xl font-bold mb-2">Paste Transcripts Manually</h2>
+            <h2 className="text-xl font-bold mb-2">Transcripts</h2>
             <p className="text-purple-200 text-sm mb-6">
-              YouTube blocks automated transcript downloads from cloud servers.
-              Please manually copy and paste the transcripts for at least 2 of the top-performing videos below.
-              <span className="block mt-2 text-gray-400">How to get transcripts: Open the video on YouTube → click the <strong>••• More</strong> button below the video → <strong>Show transcript</strong> → select all text → paste here.</span>
+              Click <strong>Fetch</strong> next to each video to auto-retrieve its transcript, or fetch all at once. This runs from your browser so YouTube won't block it.
+              <span className="block mt-2 text-gray-400">Manual fallback: Open video on YouTube → <strong>••• More</strong> → <strong>Show transcript</strong> → paste below.</span>
             </p>
 
             <div className="space-y-6 mb-6">
-              {videoMeta.map((v, i) => (
+              {videoMeta.map((v, i) => {
+                const fetchStatus = transcriptFetching[v.id]
+                const hasTranscript = (manualTranscripts[v.id] || '').trim().length > 20
+
+                return (
                 <div key={v.id} className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
-                    <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white font-semibold hover:text-purple-400 transition-colors text-sm">{v.title}</a>
+                  <div className="flex items-center gap-2 mb-2 justify-between flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
+                      <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white font-semibold hover:text-purple-400 transition-colors text-sm">{v.title}</a>
+                      {hasTranscript && <span className="text-green-400 text-xs">✓ Transcript loaded</span>}
+                    </div>
+                    <button
+                      onClick={() => handleAutoFetchTranscript(v.id)}
+                      disabled={fetchStatus === 'loading' || fetchStatus === 'done'}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        fetchStatus === 'loading'
+                          ? 'bg-gray-700 text-gray-400 cursor-wait'
+                          : fetchStatus === 'done'
+                          ? 'bg-green-800 text-green-300 cursor-default'
+                          : fetchStatus === 'error'
+                          ? 'bg-amber-700 hover:bg-amber-600 text-white'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                    >
+                      {fetchStatus === 'loading' ? 'Fetching...' :
+                       fetchStatus === 'done' ? 'Fetched' :
+                       fetchStatus === 'error' ? 'Retry Fetch' :
+                       'Fetch Transcript'}
+                    </button>
                   </div>
+                  {fetchStatus === 'error' && (
+                    <p className="text-amber-400 text-xs mb-2">
+                      Auto-fetch failed — you can still paste the transcript manually below.
+                    </p>
+                  )}
                   <textarea
                     placeholder={`Paste transcript for "${v.title.slice(0, 40)}..." here...`}
                     value={manualTranscripts[v.id] || ''}
@@ -1313,7 +1386,7 @@ function Portal() {
                     rows={6}
                   />
                 </div>
-              ))}
+              )})}
             </div>
 
             <p className="text-xs text-gray-400 mb-4">
@@ -1338,20 +1411,59 @@ function Portal() {
         {/* ── CHANNEL STYLE REFERENCE (idea mode) ────────── */}
         {flow === 'manual_transcripts' && inputModeRef.current === 'idea' && (
           <div className="bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-4 md:p-8 border border-purple-500/30">
-            <h2 className="text-xl font-bold mb-2">Channel Style Reference</h2>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h2 className="text-xl font-bold">Channel Style Reference</h2>
+              <button
+                onClick={handleFetchAllTranscripts}
+                disabled={videoMeta.every(v => (manualTranscripts[v.id] || '').trim().length > 20 || transcriptFetching[v.id] === 'loading')}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-lg transition-all disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed text-sm"
+              >
+                Fetch All Transcripts
+              </button>
+            </div>
             <p className="text-purple-200 text-sm mb-2">
-              Paste transcripts from the channel's top videos below. We'll analyze their style and generate 5 unique titles based on your idea:
+              Click <strong>Fetch</strong> to auto-retrieve transcripts. We'll analyze their style and generate 5 unique titles based on your idea:
               <span className="text-white font-semibold block mt-1">"{pendingTopic.current || userVideoIdea}"</span>
             </p>
 
             {/* Channel transcripts — always visible */}
             <div className="space-y-4 mb-6">
-              {videoMeta.map((v, i) => (
+              {videoMeta.map((v, i) => {
+                const fetchStatus = transcriptFetching[v.id]
+                const hasTranscript = (manualTranscripts[v.id] || '').trim().length > 20
+
+                return (
                 <div key={v.id} className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
-                    <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white text-sm hover:text-purple-400 transition-colors">{v.title}</a>
+                  <div className="flex items-center gap-2 mb-1 justify-between flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center font-bold">{i + 1}</span>
+                      <a href={`https://www.youtube.com/watch?v=${v.id}`} target="_blank" rel="noopener noreferrer" className="text-white text-sm hover:text-purple-400 transition-colors">{v.title}</a>
+                      {hasTranscript && <span className="text-green-400 text-xs">✓ Loaded</span>}
+                    </div>
+                    <button
+                      onClick={() => handleAutoFetchTranscript(v.id)}
+                      disabled={fetchStatus === 'loading' || fetchStatus === 'done'}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        fetchStatus === 'loading'
+                          ? 'bg-gray-700 text-gray-400 cursor-wait'
+                          : fetchStatus === 'done'
+                          ? 'bg-green-800 text-green-300 cursor-default'
+                          : fetchStatus === 'error'
+                          ? 'bg-amber-700 hover:bg-amber-600 text-white'
+                          : 'bg-purple-600 hover:bg-purple-700 text-white'
+                      }`}
+                    >
+                      {fetchStatus === 'loading' ? 'Fetching...' :
+                       fetchStatus === 'done' ? 'Fetched' :
+                       fetchStatus === 'error' ? 'Retry Fetch' :
+                       'Fetch Transcript'}
+                    </button>
                   </div>
+                  {fetchStatus === 'error' && (
+                    <p className="text-amber-400 text-xs mb-2">
+                      Auto-fetch failed — paste transcript manually below.
+                    </p>
+                  )}
                   <textarea
                     placeholder="Paste transcript here for style analysis..."
                     value={manualTranscripts[v.id] || ''}
@@ -1360,7 +1472,7 @@ function Portal() {
                     rows={5}
                   />
                 </div>
-              ))}
+              )})}
             </div>
 
             <div className="flex gap-3">
