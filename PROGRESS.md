@@ -1,6 +1,6 @@
 # Morelike — Project Progress Journal
 
-> **Last updated:** 2026-08-12
+> **Last updated:** 2026-08-24
 > **Purpose:** Keep Claude up to speed on what's been done, what's live, and gotchas to avoid.
 
 ---
@@ -12,8 +12,8 @@
 - **Frontend URL:** https://morelikecreator.com/ (custom domain → Vercel)
 - **Backend API:** https://morelike-morelike.up.railway.app/ (Railway free tier)
 - **GitHub:** https://github.com/ojayzintegratedsolutionsnig-dotcom/Morelike (public, user plans to make private later)
-- **Local project:** `E:\MORELIKE PROJECT\morelike-clone\`
-- **Backup location:** `Z:\AI\Morelike\`
+- **Project (sole copy):** `Z:\AI\Morelike\morelike-clone\` — git repo on `main`, tracks `origin/main`
+- **Secrets (encrypted):** `Z:\AI\Morelike\.secrets\` (GPG) · video assets in `Z:\AI\Morelike\video\`
 
 ### Architecture
 
@@ -205,6 +205,15 @@ YOUTUBE_API_KEY             → Set
 ---
 
 ## Session Log
+
+### 2026-08-24 (later) — Backend crash fixed + project consolidated
+- **Fixed backend crash** (502 "Application failed to respond"): root cause `ModuleNotFoundError: No module named 'packaging'` — gunicorn's gevent worker imports `packaging.version` at startup and crash-looped before app code ran. Added `packaging>=23.2` to `backend/requirements.txt`. Deploy `c1bcce12` → **Online**.
+- **Fixed `railway.toml`**: removed `buildCommand` + `[nix] packages = "deno"` (made nixpacks skip Python detection); added `!requirements.txt` to `.gitignore`.
+- **Reconciled into git**: committed current code (`ccc21bf`) — synced `main.py`/`extractor.py`, `app.py`, `Portal.jsx`, and docs into git and pushed.
+- **git-inited Z: as the main repo**: `Z:\AI\Morelike\morelike-clone` now on `main` tracking `origin/main`. Workflow: edit → `git add -A && git commit && git push origin main` → auto-deploy.
+- **Consolidated to Z: (deleted all duplicates)**: removed `E:\MORELIKE PROJECT\`, `E:\Morelike logs\`, `E:\Claude\Morelike screenshots\` + `MORELIKE_PROGRESS.md`, `F:\AI PROJECTS\MORELIKE PROJECT\`, and stale precursor artifacts; deleted plaintext secret files (`.env.secrets`, `RESTORE_GUIDE.md`, old `.env`s).
+- **Moved secrets**: encrypted `.secrets/` moved from F: to `Z:\AI\Morelike\.secrets\`.
+- **Verified live**: `/api/status` → `{"status":"idle"}`; `/api/channel-videos` (YouTube Data API) returns videos.
 
 ### 2026-08-24
 - **Fixed backend entrypoint alias**: Created `backend/app.py` pointing to `backend/main.py`. Updated `start.bat`, `README.md`, and `QUICKSTART.md` to reference `python main.py` and the correct local ports (`5002` backend, `3100` frontend).
