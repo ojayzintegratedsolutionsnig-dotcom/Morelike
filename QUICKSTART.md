@@ -36,16 +36,16 @@ npm install
 ### Step 3: Start Backend (Terminal 1)
 ```bash
 cd backend
-python app.py
+python main.py
 ```
-✅ Backend running on http://localhost:5000
+✅ Backend running on http://localhost:5002
 
 ### Step 4: Start Frontend (Terminal 2)
 ```bash
 cd frontend
 npm run dev
 ```
-✅ Frontend running on http://localhost:3000
+✅ Frontend running on http://localhost:3100
 
 ---
 

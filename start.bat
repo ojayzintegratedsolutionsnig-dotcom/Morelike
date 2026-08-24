@@ -25,14 +25,14 @@ echo ✅ Setup complete!
 echo.
 echo Starting servers...
 echo.
-echo 🐍 Backend will run on http://localhost:5000
-echo ⚛️  Frontend will run on http://localhost:3000
+echo 🐍 Backend will run on http://localhost:5002
+echo ⚛️  Frontend will run on http://localhost:3100
 echo.
 echo Press Ctrl+C to stop both servers
 echo.
 
 REM Start backend
-start "Backend Server" cmd /k "cd backend && venv\Scripts\activate && python app.py"
+start "Backend Server" cmd /k "cd backend && venv\Scripts\activate && python main.py"
 
 REM Wait a bit for backend to start
 timeout /t 3 /nobreak > nul

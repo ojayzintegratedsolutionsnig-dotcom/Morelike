@@ -56,7 +56,7 @@ You need to run both the backend and frontend:
 **Terminal 1 - Backend (Flask Server)**
 ```bash
 cd backend
-python app.py
+python main.py
 ```
 
 **Terminal 2 - Frontend (React App)**
@@ -66,8 +66,8 @@ npm run dev
 ```
 
 The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5000
+- Frontend: http://localhost:3100
+- Backend API: http://localhost:5002
 
 ## 📖 How to Use
 

@@ -17,6 +17,7 @@ import re
 import urllib.request
 from functools import wraps
 from extractor import extract_viral_content
+import extractor as _extractor  # bound at boot — the bare name 'extractor' gets hijacked by yt-dlp's 'ytdlp_plugins' at runtime
 from tokens import init_db, is_token_valid, get_credits, use_credit, create_token, get_db
 from tokens import claim_token_by_email, log_action, save_feedback, get_all_feedback, save_reply
 from tokens import get_plan_limits, PLAN_CONFIG, HIDDEN_PLANS, get_admin_stats
@@ -699,7 +700,7 @@ def call_ai(system_prompt, user_message, max_tokens=8192):
 
 
 def call_groq_vision(system_prompt, user_message, image_base64_list, max_tokens=4096):
-    """Groq Vision analysis — uses llama-4-scout for structured image extraction."""
+    """Groq Vision analysis — uses qwen3.6-27b (vision) for structured image extraction."""
     import time
 
     if not groq_client:
@@ -715,7 +716,7 @@ def call_groq_vision(system_prompt, user_message, image_base64_list, max_tokens=
     for attempt in range(2):
         try:
             response = groq_client.chat.completions.create(
-                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                model="qwen/qwen3.6-27b",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_content},
@@ -1073,8 +1074,7 @@ def channel_videos():
 
     limit = max(1, min(5, int(limit) if str(limit).isdigit() else 3))
 
-    from extractor import _get_viral_videos_api
-    videos = _get_viral_videos_api(channel_url, limit)
+    videos = _extractor._get_viral_videos_api(channel_url, limit)
 
     if videos:
         video_meta = [
@@ -1131,6 +1131,13 @@ def debug_transcript():
     except Exception as e:
         results['method1_transcriptapi'] = f'FAIL: {type(e).__name__}'
 
+    # Method 2: AssemblyAI speech-to-text (works even with no captions)
+    try:
+        a_text = _extractor._extract_transcript_via_assemblyai(test_video_id)
+        results['method2_assemblyai'] = f'OK: {len(a_text)} chars' if a_text else 'no transcript'
+    except Exception as e:
+        results['method2_assemblyai'] = f'FAIL: {type(e).__name__}: {e}'
+
     return jsonify(results)
 
 
@@ -1165,16 +1172,35 @@ def manual_transcripts():
     if not transcripts:
         return jsonify({'error': 'No transcripts provided'}), 400
 
-    full_data = '=== CONTENT BLUEPRINT ANALYSIS ===\n(Sorted by Most Popular of All Time)\n\n'
-    video_ids = []
+    video_meta_ids = set()
+    processed = []
     for v in video_meta:
         v_id = v.get('id', '')
         title = v.get('title', 'Unknown')
         text = transcripts.get(v_id, '')
         if text and len(text.strip()) > 20:
-            video_url = v.get('url', 'https://youtu.be/' + v_id)
-            full_data += '### VIDEO: ' + title + ' ###\nURL: ' + video_url + '\n\n' + text.strip() + '\n\n'
-            video_ids.append(v_id)
+            video_meta_ids.add(v_id)
+            processed.append((v_id, title, v.get('url', 'https://youtu.be/' + v_id), text.strip()))
+
+    # Transcripts pasted without a matching video_meta entry (e.g. the channel
+    # lookup returned no videos) are still included as generic manual entries.
+    manual_entries = [
+        (v_id, text.strip())
+        for v_id, text in transcripts.items()
+        if v_id not in video_meta_ids and text and len(text.strip()) > 20
+    ]
+
+    header = '=== CONTENT BLUEPRINT ANALYSIS ===\n'
+    header += '(Sorted by Most Popular of All Time)\n\n' if processed else '(Manual transcripts)\n\n'
+    full_data = header
+
+    video_ids = []
+    for v_id, title, video_url, text in processed:
+        full_data += '### VIDEO: ' + title + ' ###\nURL: ' + video_url + '\n\n' + text + '\n\n'
+        video_ids.append(v_id)
+    for v_id, text in manual_entries:
+        full_data += '### VIDEO: Manual Transcript ###\n\n' + text + '\n\n'
+        video_ids.append(v_id)
 
     extracted_subtitles['content'] = full_data
     extracted_subtitles['videos_processed'] = len(video_ids)

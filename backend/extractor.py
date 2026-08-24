@@ -2,6 +2,7 @@ import os
 import yt_dlp
 import re
 import tempfile
+import time
 import json
 import requests
 
@@ -164,7 +165,7 @@ def clean_url(url):
 
 
 def _extract_channel_handle(url):
-    """Extract YouTube channel handle or ID from a URL."""
+    """Extract YouTube channel handle, ID, or video ID from a URL."""
     # Direct channel ID: youtube.com/channel/UC...
     m = re.match(r'https://(?:www\.)?youtube\.com/channel/(UC[\w\-]+)', url)
     if m:
@@ -174,6 +175,16 @@ def _extract_channel_handle(url):
     m = re.match(r'https://(?:www\.)?youtube\.com/(@[\w.\-]+)', url)
     if m:
         return ('handle', m.group(1))
+
+    # Video URL: youtube.com/watch?v=VIDEO_ID
+    m = re.match(r'https://(?:www\.)?youtube\.com/watch\?v=([\w\-]{11})', url)
+    if m:
+        return ('video', m.group(1))
+
+    # Short video URL: youtu.be/VIDEO_ID
+    m = re.match(r'https://youtu\.be/([\w\-]{11})', url)
+    if m:
+        return ('video', m.group(1))
 
     return (None, None)
 
@@ -189,7 +200,8 @@ def _get_viral_videos_api(channel_url, limit, progress_callback=None):
         return None
 
     try:
-        # Step 1: Resolve channel ID from handle if needed
+        resolved_video = None  # set when a video URL was pasted; included first in results
+        # Step 1: Resolve channel ID from handle/video if needed
         if kind == 'handle':
             resp = requests.get(
                 'https://www.googleapis.com/youtube/v3/channels',
@@ -204,6 +216,21 @@ def _get_viral_videos_api(channel_url, limit, progress_callback=None):
             if not items:
                 return None
             channel_id = items[0]['id']
+        elif kind == 'video':
+            # Resolve the pasted video's channel, then analyze that channel's style
+            resp = requests.get(
+                'https://www.googleapis.com/youtube/v3/videos',
+                params={'part': 'snippet', 'id': value, 'key': api_key},
+                timeout=10
+            )
+            data = resp.json()
+            items = data.get('items', [])
+            if not items:
+                print(f"YouTube API: video {value} not found")
+                return None
+            snippet = items[0]['snippet']
+            channel_id = snippet['channelId']
+            resolved_video = {'id': value, 'title': snippet.get('title', 'Video')}
         else:
             channel_id = value
 
@@ -236,7 +263,14 @@ def _get_viral_videos_api(channel_url, limit, progress_callback=None):
                 'progress': 5
             })
 
-        return [{'id': item['id']['videoId'], 'title': item['snippet']['title']} for item in items]
+        videos = [{'id': item['id']['videoId'], 'title': item['snippet']['title']} for item in items]
+
+        # If a video URL was pasted, ensure that exact video is at the front of the list
+        if resolved_video and not any(v['id'] == resolved_video['id'] for v in videos):
+            videos.insert(0, resolved_video)
+            videos = videos[:limit]
+
+        return videos
 
     except Exception as e:
         print(f"YouTube API error: {e}")
@@ -310,6 +344,129 @@ def _parse_vtt(raw):
     return ' '.join(out)
 
 
+def _extract_transcript_via_assemblyai(video_id):
+    """
+    Transcribe the video's audio with AssemblyAI speech-to-text.
+    Works even for videos with no YouTube captions at all — transcription is
+    done from the audio stream, not YouTube's captions.
+    Free tier covers ~500+ min of audio per month.
+    """
+    api_key = os.environ.get('ASSEMBLYAI_API_KEY', '').strip()
+    if not api_key:
+        print("DEBUG: No ASSEMBLYAI_API_KEY set; skipping AssemblyAI")
+        return None
+
+    # ── Step 1: download audio via yt-dlp (raw bestaudio, no ffmpeg needed) ──
+    # YouTube bot-blocks the 'android' client from datacenter IPs, so sweep a
+    # few player clients and use the first that yields an audio file. Each set
+    # provides standard DASH/progressive formats downloadable without ffmpeg.
+    client_sets = [
+        ['android_vr', 'web_safari', 'mweb'],
+        ['ios', 'web', 'android'],
+        ['tv_embedded', 'web_embedded'],
+    ]
+    audio_bytes = None
+    for clients in client_sets:
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                ydl_opts = {
+                    'format': 'bestaudio[ext=m4a]/bestaudio/best',
+                    'quiet': True,
+                    'no_warnings': True,
+                    'outtmpl': {'default': f'{tmpdir}/audio.%(ext)s'},
+                    'socket_timeout': 30,
+                    'extractor_retries': 1,
+                    'retries': 1,
+                    'extractor_args': {'youtube': {'player_client': clients}},
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(f'https://www.youtube.com/watch?v={video_id}', download=True)
+
+                # Protect the free monthly allowance: skip very long videos (> 90 min)
+                duration = (info or {}).get('duration') or 0
+                if duration > 5400:
+                    print(f"DEBUG: AssemblyAI skipping {video_id} ({duration}s too long)")
+                    return None
+
+                audio_path = None
+                for f in os.listdir(tmpdir):
+                    if f.startswith('audio.'):
+                        audio_path = os.path.join(tmpdir, f)
+                        break
+                if audio_path:
+                    with open(audio_path, 'rb') as fh:
+                        audio_bytes = fh.read()
+                    if len(audio_bytes) < 1000:
+                        print(f"DEBUG: AssemblyAI: audio too small for {video_id} via {clients}")
+                        return None
+                    print(f"DEBUG: AssemblyAI: got audio for {video_id} via {clients} ({len(audio_bytes)} bytes)")
+                    break
+                print(f"DEBUG: AssemblyAI: no audio file for {video_id} via {clients}")
+        except Exception as e:
+            print(f"DEBUG: AssemblyAI audio download via {clients} failed for {video_id}: {e}")
+
+    if audio_bytes is None:
+        print(f"DEBUG: AssemblyAI: no audio obtainable for {video_id}")
+        return None
+
+    try:
+        # ── Step 2: upload audio to AssemblyAI ──
+        headers = {'authorization': api_key}
+        resp = requests.post(
+            'https://api.assemblyai.com/v2/upload',
+            headers={**headers, 'content-type': 'application/octet-stream'},
+            data=audio_bytes,
+            timeout=120
+        )
+        if resp.status_code != 200:
+            print(f"DEBUG: AssemblyAI upload failed HTTP {resp.status_code}: {resp.text[:200]}")
+            return None
+        upload_url = (resp.json() or {}).get('upload_url')
+        if not upload_url:
+            print("DEBUG: AssemblyAI upload returned no URL")
+            return None
+
+        # ── Step 3: submit transcription job ──
+        resp = requests.post(
+            'https://api.assemblyai.com/v2/transcript',
+            headers={**headers, 'content-type': 'application/json'},
+            json={'audio_url': upload_url},
+            timeout=30
+        )
+        if resp.status_code not in (200, 201):
+            print(f"DEBUG: AssemblyAI submit failed HTTP {resp.status_code}: {resp.text[:200]}")
+            return None
+        transcript_id = (resp.json() or {}).get('id')
+        if not transcript_id:
+            print("DEBUG: AssemblyAI submit returned no id")
+            return None
+
+        # ── Step 4: poll until done (~30-90s typical) ──
+        poll_url = f'https://api.assemblyai.com/v2/transcript/{transcript_id}'
+        for _ in range(60):
+            time.sleep(5)
+            resp = requests.get(poll_url, headers=headers, timeout=30)
+            if resp.status_code != 200:
+                continue
+            data = resp.json()
+            status = data.get('status')
+            if status == 'completed':
+                text = (data.get('text') or '').strip()
+                if len(text) > 50:
+                    print(f"DEBUG: AssemblyAI transcript for {video_id} ({len(text)} chars)")
+                    return text
+                print(f"DEBUG: AssemblyAI transcript too short for {video_id}")
+                return None
+            if status == 'error':
+                print(f"DEBUG: AssemblyAI transcription error for {video_id}: {resp.text[:200]}")
+                return None
+    except Exception as e:
+        print(f"DEBUG: AssemblyAI error for {video_id}: {e}")
+
+    print(f"DEBUG: AssemblyAI timed out for {video_id}")
+    return None
+
+
 def get_transcript(video_id, progress_callback=None, fast_only=False):
     """
     Extract English subtitles from YouTube.
@@ -373,6 +530,11 @@ def get_transcript(video_id, progress_callback=None, fast_only=False):
     if fast_only:
         print(f"DEBUG: Skipping slow methods for {video_id} (fast_only)")
         return None, False
+
+    # ── Method 3: AssemblyAI speech-to-text (slow, ~30-120s, but works with no captions) ──
+    text = _extract_transcript_via_assemblyai(video_id)
+    if text:
+        return text, False
 
     # ── Method 1: yt-dlp download subtitles to temp dir (slow, ~10-30s) ──
     with tempfile.TemporaryDirectory() as tmpdir:
