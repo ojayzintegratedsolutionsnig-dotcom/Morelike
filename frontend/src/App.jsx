@@ -5,6 +5,7 @@ import Plans from './pages/Plans'
 import Success from './pages/Success'
 import Portal from './pages/Portal'
 import Admin from './pages/Admin'
+import FootballAnalyzer from './pages/FootballAnalyzer'
 import PageTracker from './PageTracker'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/success" element={<Success />} />
         <Route path="/portal" element={<Portal />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/football-analyzer" element={<FootballAnalyzer />} />
       </Routes>
     </BrowserRouter>
   )
