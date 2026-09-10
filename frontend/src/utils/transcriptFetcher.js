@@ -7,7 +7,7 @@
  */
 
 const TIMEOUT_MS = 15000;
-const BACKEND_TIMEOUT_MS = 45000;
+const BACKEND_TIMEOUT_MS = 180000;
 
 const API_URL =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||

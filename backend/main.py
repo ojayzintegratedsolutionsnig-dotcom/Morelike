@@ -1104,7 +1104,7 @@ def fetch_transcript():
         return jsonify({'error': 'Invalid video ID'}), 400
 
     try:
-        text, blocked = _extractor.get_transcript(video_id, fast_only=True)
+        text, blocked = _extractor.get_transcript(video_id, fast_only=False)
     except Exception as e:
         return jsonify({'error': f'Extraction failed: {type(e).__name__}'}), 500
 
