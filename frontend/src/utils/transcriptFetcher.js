@@ -7,6 +7,11 @@
  */
 
 const TIMEOUT_MS = 15000;
+const BACKEND_TIMEOUT_MS = 45000;
+
+const API_URL =
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
+  'https://morelike-morelike.up.railway.app';
 
 /**
  * Fetch with timeout wrapper.
@@ -182,6 +187,35 @@ async function tryInnerTubeViaProxy(videoId) {
 }
 
 /**
+ * Strategy 5: Our own backend as a last-resort fallback.
+ * Uses the server's multi-method extractor (yt-dlp Android, watch-page scrape,
+ * youtube-transcript-api, AssemblyAI). Runs from Railway's IP so may be blocked
+ * for some videos — try client-side first, then fall back here.
+ */
+async function tryBackendFallback(videoId) {
+  const res = await fetchWithTimeout(
+    `${API_URL}/api/fetch-transcript`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_id: videoId }),
+    },
+    BACKEND_TIMEOUT_MS
+  );
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`;
+    try {
+      const err = await res.json();
+      if (err.error) msg = err.error;
+    } catch { /* ignore */ }
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  if (!data.transcript) throw new Error(data.error || 'Empty response');
+  return data.transcript;
+}
+
+/**
  * Main entry point: fetch transcript for a YouTube video ID.
  * Tries each strategy in order, returns the first successful result.
  *
@@ -198,6 +232,7 @@ export async function fetchTranscript(videoId) {
     { name: 'alternative API', fn: () => tryTranscriptApiAlternative(videoId) },
     { name: 'YouTube timedtext', fn: () => tryYouTubeTimedText(videoId) },
     { name: 'InnerTube proxy', fn: () => tryInnerTubeViaProxy(videoId) },
+    { name: 'backend fallback', fn: () => tryBackendFallback(videoId) },
   ];
 
   const errors = [];
