@@ -1091,6 +1091,29 @@ def channel_videos():
                     'warning': 'Could not fetch video list. You can still paste transcripts below.'})
 
 
+@app.route('/api/fetch-transcript', methods=['POST'])
+@_rate_limit(30, 60)
+def fetch_transcript():
+    """Server-side fallback for browser-side transcript auto-fetch.
+    Runs the same multi-strategy extractor the pipeline uses (yt-dlp Android,
+    watch-page scrape, youtube-transcript-api, AssemblyAI). Used only when
+    the client-side third-party services fail."""
+    data = request.json or {}
+    video_id = (data.get('video_id') or '').strip()
+    if not re.match(r'^[\w-]{11}$', video_id):
+        return jsonify({'error': 'Invalid video ID'}), 400
+
+    try:
+        text, blocked = _extractor.get_transcript(video_id, fast_only=True)
+    except Exception as e:
+        return jsonify({'error': f'Extraction failed: {type(e).__name__}'}), 500
+
+    if text and len(text) > 50:
+        return jsonify({'success': True, 'transcript': text})
+
+    return jsonify({'error': 'No transcript available', 'blocked': bool(blocked)}), 404
+
+
 @app.route('/api/admin/debug-transcript', methods=['GET'])
 @require_admin
 def debug_transcript():
